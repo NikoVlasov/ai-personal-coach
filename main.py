@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException, Body, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from groq import Groq
@@ -28,12 +30,20 @@ client = Groq(api_key=API_KEY)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # можно потом ограничить доменом фронтенда
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
+# --- Статика фронтенда ---
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+# --- Корневой маршрут ---
+@app.get("/")
+async def root():
+    return FileResponse("frontend/index.html")
 
 # --- SQLite база ---
 conn = sqlite3.connect("coach.db", check_same_thread=False)
@@ -99,7 +109,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Неверный токен",
+        detail="Invalid token",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -171,7 +181,6 @@ async def get_chats(current_user: dict = Depends(get_current_user)):
         (current_user["id"],)
     )
     rows = cur.fetchall()
-    logger.info(f"Найденные чаты: {rows}")
     chats = [{"id": row[0], "title": row[1], "created_at": row[2]} for row in rows]
     cur.close()
     return {"chats": chats}
@@ -208,7 +217,6 @@ async def coach_response(msg: Message, current_user: dict = Depends(get_current_
             "INSERT INTO messages (chat_id,user_id,sender,text,created_at) VALUES (?,?,?,?,?)",
             (msg.chat_id, current_user["id"], "ai", ai_text, datetime.utcnow())
         )
-    logger.info(f"Ответ AI: {ai_text[:50]}...")
     return {"reply": ai_text}
 
 # --- История чата ---
@@ -218,7 +226,6 @@ async def get_history(chat_id: int, current_user: dict = Depends(get_current_use
     cur.execute("SELECT sender, text, created_at FROM messages WHERE chat_id=? ORDER BY id ASC", (chat_id,))
     messages = [{"sender": row[0], "text": row[1], "created_at": row[2]} for row in cur.fetchall()]
     cur.close()
-    logger.info(f"История чата {chat_id}: {len(messages)} сообщений")
     return {"messages": messages}
 
 # --- Быстрые кнопки ---
@@ -237,7 +244,6 @@ async def add_quick_button(btn: QuickButton, current_user: dict = Depends(get_cu
             "INSERT INTO quick_buttons (user_id,text,created_at) VALUES (?,?,?)",
             (current_user["id"], btn.text, datetime.utcnow())
         )
-    logger.info(f"Добавлена кнопка: {btn.text} для {current_user['email']}")
     return {"status": "ok"}
 
 @app.delete("/quick_buttons")
@@ -247,7 +253,6 @@ async def delete_quick_button(body: dict = Body(...), current_user: dict = Depen
         raise HTTPException(status_code=400, detail="Нет текста кнопки для удаления")
     with conn:
         conn.execute("DELETE FROM quick_buttons WHERE user_id=? AND text=?", (current_user["id"], text))
-    logger.info(f"Удалена кнопка: {text} для {current_user['email']}")
     return {"status": "deleted"}
 
 @app.delete("/chats/{chat_id}")
@@ -255,5 +260,4 @@ async def delete_chat(chat_id: int, current_user: dict = Depends(get_current_use
     with conn:
         conn.execute("DELETE FROM messages WHERE chat_id=?", (chat_id,))
         conn.execute("DELETE FROM chats WHERE id=?", (chat_id,))
-    logger.info(f"Удален чат {chat_id} для {current_user['email']}")
     return {"status": "ok"}
