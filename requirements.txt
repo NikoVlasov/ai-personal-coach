@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 python-multipart
-sqlite3
 passlib[bcrypt]
 python-jose
 pydantic
