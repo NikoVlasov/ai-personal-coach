@@ -80,6 +80,11 @@ with conn:
 # --- Пароли ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def hash_password(password: str) -> str:
+    """Хешируем пароль, обрезая до 72 байт (ограничение bcrypt)"""
+    truncated = password[:72]
+    return pwd_context.hash(truncated)
+
 # --- Pydantic модели ---
 class UserRegister(BaseModel):
     email: str
@@ -130,7 +135,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 # --- Регистрация ---
 @app.post("/register")
 async def register(user: UserRegister):
-    hashed_password = pwd_context.hash(user.password)
+    # проверяем длину пароля
+    if len(user.password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Пароль слишком длинный (макс 72 байта)")
+    hashed_password = hash_password(user.password)
     try:
         with conn:
             conn.execute(
@@ -149,7 +157,7 @@ async def login(user: UserLogin):
     cur.execute("SELECT id, password, email FROM users WHERE email=?", (user.email,))
     row = cur.fetchone()
     cur.close()
-    if row and pwd_context.verify(user.password, row[1]):
+    if row and pwd_context.verify(user.password[:72], row[1]):
         token = create_access_token({"sub": row[2]})
         logger.info(f"Пользователь вошел: {row[2]}")
         return {"access_token": token, "token_type": "bearer", "user_id": row[0]}
