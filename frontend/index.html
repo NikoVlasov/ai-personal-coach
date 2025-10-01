@@ -149,9 +149,11 @@ const mainModule = (() => {
 
 // ===== CHAT MODULE =====
 const chatModule = (() => {
+    const BASE_URL = "https://ai-personal-coach-rogv.onrender.com";
+
     async function fetchChats(){
         try{
-            const res=await fetch(`http://127.0.0.1:8080/chats`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+            const res=await fetch(`${BASE_URL}/chats`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
             const data=await res.json();
             const chatListDiv = mainModule.chatListDiv;
             chatListDiv.innerHTML="";
@@ -167,15 +169,15 @@ const chatModule = (() => {
 
     async function fetchHistory(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
-        const res=await fetch(`http://127.0.0.1:8080/history/${chatId}`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+        const res=await fetch(`${BASE_URL}/history/${chatId}`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
         const data=await res.json(); mainModule.chatContainer.innerHTML="";
-        data.messages.forEach(msg=>addMessage(msg.text,msg.sender,msg.timestamp));
+        data.messages.forEach(msg=>addMessage(msg.text,msg.sender,msg.created_at));
         mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
     }
 
     function addMessage(text,sender,timestamp=null){
         const msgDiv=document.createElement("div"); msgDiv.className=`message ${sender}`;
-        msgDiv.textContent=text + (timestamp?` (${timestamp})`:'');
+        msgDiv.textContent=text + (timestamp?` (${timestamp})`:'' );
         mainModule.chatContainer.appendChild(msgDiv);
         mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
         return msgDiv;
@@ -186,7 +188,7 @@ const chatModule = (() => {
         const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
         const typingDiv=addMessage("AI печатает","ai"); typingDiv.classList.add("typing");
         let dots=0; const typingInterval=setInterval(()=>{ dots=(dots+1)%4; typingDiv.textContent="AI печатает"+'.'.repeat(dots); },500);
-        const res=await fetch("http://127.0.0.1:8080/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
+        const res=await fetch(`${BASE_URL}/coach`,{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
         const data=await res.json(); clearInterval(typingInterval);
         typingDiv.classList.add("fade-out");
         setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
@@ -194,7 +196,7 @@ const chatModule = (() => {
 
     async function deleteChat(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
-        await fetch(`http://127.0.0.1:8080/chats/${chatId}`,{ method:"DELETE", headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+        await fetch(`${BASE_URL}/chats/${chatId}`,{ method:"DELETE", headers:{ Authorization:"Bearer "+mainModule.getToken() } });
         mainModule.setCurrentChatId(null);
         mainModule.chatContainer.innerHTML="";
         mainModule.chatListDiv.innerHTML="";
@@ -207,13 +209,15 @@ const chatModule = (() => {
 
 // ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
+    const BASE_URL = "https://ai-personal-coach-rogv.onrender.com";
+
     async function fetchQuickButtons(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
-        const res=await fetch(`http://127.0.0.1:8080/quick_buttons`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+        const res=await fetch(`${BASE_URL}/quick_buttons`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
         const data=await res.json(); mainModule.quickButtonsDiv.innerHTML="";
         data.buttons.forEach(btn=>{
             const button=document.createElement("button"); button.className="quick-btn"; button.textContent=btn; button.onclick=()=>chatModule.sendMessage(btn);
-            const deleteBtn=document.createElement("button"); deleteBtn.className="delete-btn"; deleteBtn.textContent="×"; deleteBtn.onclick=async e=>{ e.stopPropagation(); await fetch(`http://127.0.0.1:8080/quick_buttons`,{ method:"DELETE", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({text:btn}) }); fetchQuickButtons(); };
+            const deleteBtn=document.createElement("button"); deleteBtn.className="delete-btn"; deleteBtn.textContent="×"; deleteBtn.onclick=async e=>{ e.stopPropagation(); await fetch(`${BASE_URL}/quick_buttons`,{ method:"DELETE", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({text:btn}) }); fetchQuickButtons(); };
             button.appendChild(deleteBtn); mainModule.quickButtonsDiv.appendChild(button);
         });
     }
@@ -222,6 +226,8 @@ const quickButtonsModule = (() => {
 
 // ===== AUTH MODULE =====
 const authModule = (() => {
+    const BASE_URL = "https://ai-personal-coach-rogv.onrender.com";
+
     function showForm(type){
         const loginForm=document.getElementById("login-form");
         const registerForm=document.getElementById("register-form");
@@ -234,7 +240,7 @@ const authModule = (() => {
     async function register(){
         const email=document.getElementById("register-email").value;
         const password=document.getElementById("register-password").value;
-        const res=await fetch("http://127.0.0.1:8080/register",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
+        const res=await fetch(`${BASE_URL}/register`,{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
         if(res.ok){ alert("Регистрация успешна! Теперь войдите."); showForm("login"); }
         else{ const err=await res.json(); alert("Ошибка: "+err.detail); }
     }
@@ -242,7 +248,7 @@ const authModule = (() => {
     async function login(){
         const email=document.getElementById("login-email").value;
         const password=document.getElementById("login-password").value;
-        const res=await fetch("http://127.0.0.1:8080/login",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
+        const res=await fetch(`${BASE_URL}/login`,{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
         if(res.ok){
             const data=await res.json();
             mainModule.setToken(data.access_token); mainModule.setUserId(data.user_id);
