@@ -135,7 +135,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 # --- Регистрация ---
 @app.post("/register")
 async def register(user: UserRegister):
-    # проверяем длину пароля
     if len(user.password.encode("utf-8")) > 72:
         raise HTTPException(status_code=400, detail="Пароль слишком длинный (макс 72 байта)")
     hashed_password = hash_password(user.password)
