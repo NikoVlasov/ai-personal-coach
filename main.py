@@ -28,13 +28,21 @@ client = Groq(api_key=API_KEY)
 
 # --- FastAPI + CORS ---
 app = FastAPI()
+
+# Разрешаем фронтенд на localhost и Render-домен
+FRONTEND_ORIGINS = [
+    "http://localhost:63342",
+    "https://ai-personal-coach-rogv.onrender.com"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # можно потом ограничить доменом фронтенда
+    allow_origins=FRONTEND_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # --- Статика фронтенда ---
