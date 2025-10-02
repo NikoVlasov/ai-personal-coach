@@ -81,16 +81,21 @@ with conn:
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
-    """Хешируем пароль, обрезая до 72 байт (ограничение bcrypt)"""
+    """Хешируем пароль с ограничением 72 байта (bcrypt лимит)."""
     password_bytes = password.encode("utf-8")
-    truncated = password_bytes[:72].decode("utf-8", errors="ignore")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    truncated = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.hash(truncated)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Проверяем пароль с обрезкой до 72 байт"""
+    """Проверяем пароль с ограничением 72 байта (bcrypt лимит)."""
     password_bytes = plain_password.encode("utf-8")
-    truncated = password_bytes[:72].decode("utf-8", errors="ignore")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    truncated = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.verify(truncated, hashed_password)
+
 
 # --- Pydantic модели ---
 class UserRegister(BaseModel):
