@@ -28,21 +28,13 @@ client = Groq(api_key=API_KEY)
 
 # --- FastAPI + CORS ---
 app = FastAPI()
-
-# Разрешаем фронтенд на localhost и Render-домен
-FRONTEND_ORIGINS = [
-    "http://localhost:63342",
-    "https://ai-personal-coach-rogv.onrender.com"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=FRONTEND_ORIGINS,
+    allow_origins=["*"],  # потом можно ограничить доменом фронтенда
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # --- Статика фронтенда ---
@@ -90,8 +82,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     """Хешируем пароль, обрезая до 72 байт (ограничение bcrypt)"""
-    truncated = password[:72]
+    password_bytes = password.encode("utf-8")
+    truncated = password_bytes[:72].decode("utf-8", errors="ignore")
     return pwd_context.hash(truncated)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Проверяем пароль с обрезкой до 72 байт"""
+    password_bytes = plain_password.encode("utf-8")
+    truncated = password_bytes[:72].decode("utf-8", errors="ignore")
+    return pwd_context.verify(truncated, hashed_password)
 
 # --- Pydantic модели ---
 class UserRegister(BaseModel):
@@ -164,7 +163,7 @@ async def login(user: UserLogin):
     cur.execute("SELECT id, password, email FROM users WHERE email=?", (user.email,))
     row = cur.fetchone()
     cur.close()
-    if row and pwd_context.verify(user.password[:72], row[1]):
+    if row and verify_password(user.password, row[1]):
         token = create_access_token({"sub": row[2]})
         logger.info(f"Пользователь вошел: {row[2]}")
         return {"access_token": token, "token_type": "bearer", "user_id": row[0]}
