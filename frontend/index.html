@@ -29,14 +29,15 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 /* Чаты */
 #chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
 #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
-#chat-dropdown-btn::after { content:'▾'; float: none; }
-#chat-list { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: max-height 0.3s ease; z-index: 100; }
-#chat-list.show { max-height: 200px; overflow-y:auto; }
+#chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
+#chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
+#chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
 #chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
 #chat-list div:hover { background:#e6edf7; }
-
+#chat-dropdown-btn.open::after { transform: rotate(180deg); }
 #delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px; cursor:pointer; transition: 0.2s; }
 #delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
+#chat-dropdown-btn.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
 
 #chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
 .message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; }
@@ -281,9 +282,13 @@ function setLanguage(lang){
     document.getElementById("message-input").placeholder=lang==='ru'?"Напиши сообщение...":"Type a message...";
 }
 
-function toggleChatList(){
-    document.getElementById("chat-list").classList.toggle("show");
+function toggleChatList() {
+  const list = document.getElementById("chat-list");
+  const btn = document.getElementById("chat-dropdown-btn");
+  const isOpen = list.classList.toggle("show");
+  btn.classList.toggle("open", isOpen);
 }
+
 
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', ()=>{
