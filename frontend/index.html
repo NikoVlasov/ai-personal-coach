@@ -271,42 +271,45 @@ const authModule = (() => {
 })();
 
 function setLanguage(lang) {
+    // визуальное выделение активной кнопки
     document.getElementById("btn-ru").classList.toggle("active", lang === 'ru');
     document.getElementById("btn-en").classList.toggle("active", lang === 'en');
 
-    // Заголовок
-    document.querySelector("header").textContent = lang === 'ru' ? "AI Персональный Коуч" : "AI Personal Coach";
-
-    // Вкладки авторизации
+    // вкладки входа / регистрации
     document.getElementById("login-tab").textContent = lang === 'ru' ? "Вход" : "Login";
     document.getElementById("register-tab").textContent = lang === 'ru' ? "Регистрация" : "Register";
 
-    // Кнопки в формах
+    // кнопки форм
     document.querySelector("#login-form button").textContent = lang === 'ru' ? "Войти" : "Login";
-    document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Sign up";
+    document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Register";
 
-    // Поля ввода
+    // плейсхолдеры для форм
     document.getElementById("login-email").placeholder = lang === 'ru' ? "Email" : "Email";
     document.getElementById("login-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
     document.getElementById("register-email").placeholder = lang === 'ru' ? "Email" : "Email";
     document.getElementById("register-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
 
-    // Кнопки и надписи чата
-    document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select a chat";
+    // выбор чата
+    document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
+
+    // кнопка удаления
     document.getElementById("delete-chat-btn").textContent = lang === 'ru' ? "Удалить чат" : "Delete chat";
+
+    // поле ввода нового чата
+    document.getElementById("new-chat-title").placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
+    document.querySelector("#new-chat-container button").textContent = lang === 'ru' ? "Создать" : "Create";
+
+    // поле ввода сообщения
     document.getElementById("message-input").placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type a message...";
     document.querySelector("#input-container button").textContent = lang === 'ru' ? "Отправить" : "Send";
 
-    // Тексты уведомлений
-    window.translations = {
-        noChatSelected: lang === 'ru' ? "Сначала выберите чат!" : "Please select a chat first!",
-        aiTyping: lang === 'ru' ? "AI печатает" : "AI is typing",
-        confirmDelete: lang === 'ru' ? "Вы уверены, что хотите удалить этот чат?" : "Are you sure you want to delete this chat?",
-        registerSuccess: lang === 'ru' ? "Регистрация успешна! Теперь войдите." : "Registration successful! Please log in.",
-        loginError: lang === 'ru' ? "Неверный email или пароль" : "Incorrect email or password",
-        chatError: lang === 'ru' ? "Ошибка при получении чатов" : "Error fetching chats"
-    };
+    // кнопка logout
+    document.getElementById("btn-logout").textContent = lang === 'ru' ? "Выйти" : "Logout";
+
+    // главное название "AI Personal Coach" остаётся неизменным
 }
+
+
 
 
 function toggleChatList() {
