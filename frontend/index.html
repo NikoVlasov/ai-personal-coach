@@ -207,6 +207,8 @@ const chatModule = (() => {
 
     async function sendMessage(predefined = null) {
     const chatId = mainModule.getCurrentChatId();
+    const currentLang = mainModule.getCurrentLang();
+
     if (!chatId) {
         alert(currentLang === 'ru' ? "Сначала выберите чат!" : "Please select a chat first!");
         return;
@@ -215,9 +217,11 @@ const chatModule = (() => {
     const text = predefined || mainModule.inputField.value.trim();
     if (!text) return;
 
+    // показываем сообщение пользователя
     addMessage(text, "user");
     mainModule.inputField.value = "";
 
+    // показываем "ИИ печатает..."
     const typingDiv = addMessage(currentLang === 'ru' ? "AI печатает" : "AI is typing", "ai");
     typingDiv.classList.add("typing");
 
@@ -228,7 +232,7 @@ const chatModule = (() => {
     }, 500);
 
     try {
-        const res = await fetch(BASE_URL + "/coach", {
+        const response = await fetch(BASE_URL + "/coach", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -241,19 +245,35 @@ const chatModule = (() => {
             }),
         });
 
-        const data = await res.json();
         clearInterval(typingInterval);
-
-        // Вставляем весь ответ сразу, без проверок и продолжений
-        typingDiv.textContent = data.reply || "(Пустой ответ / Empty reply)";
         typingDiv.classList.remove("typing");
+
+        // Проверяем, потоковый ли ответ
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            fullText += chunk;
+
+            // показываем постепенный ответ (если длинный)
+            typingDiv.textContent = fullText;
+            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+        }
+
+        typingDiv.textContent = fullText.trim() || "(Пустой ответ / Empty reply)";
         mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
 
     } catch (err) {
         clearInterval(typingInterval);
-        alert(currentLang === 'ru' ? "Ошибка при отправке сообщения" : "Error sending message");
+        typingDiv.textContent = currentLang === 'ru' ? "Ошибка при получении ответа" : "Error receiving response";
+        console.error(err);
     }
 }
+
 
 
 
