@@ -217,11 +217,11 @@ const chatModule = (() => {
     const text = predefined || mainModule.inputField.value.trim();
     if (!text) return;
 
-    // Добавляем сообщение пользователя
+    // Сообщение пользователя
     addMessage(text, "user");
     mainModule.inputField.value = "";
 
-    // Добавляем сообщение ИИ с "печатает..."
+    // "AI печатает..."
     const typingDiv = addMessage(currentLang === 'ru' ? "AI печатает" : "AI is typing", "ai");
     typingDiv.classList.add("typing");
 
@@ -255,48 +255,49 @@ const chatModule = (() => {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
 
-            // Плавная прокрутка вниз
-            const smoothScroll = () => {
-                mainModule.chatContainer.scrollTo({
-                    top: mainModule.chatContainer.scrollHeight,
-                    behavior: "smooth"
-                });
-            };
-
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+
+                // Добавляем поступающие куски текста
                 const chunk = decoder.decode(value, { stream: true });
                 fullText += chunk;
 
-                // Обновляем текст без тормозов
-                typingDiv.textContent = fullText;
-                smoothScroll();
+                // Убираем случайные JSON-обёртки (если сервер шлет {"reply":"текст"})
+                const cleaned = fullText
+                    .replace(/^\s*{"reply"\s*:\s*"?/, "")
+                    .replace(/"}\s*$/, "")
+                    .replace(/\\n/g, "\n")
+                    .replace(/\\"/g, '"');
+
+                typingDiv.textContent = cleaned.trim();
+                mainModule.chatContainer.scrollTo({
+                    top: mainModule.chatContainer.scrollHeight,
+                    behavior: "smooth",
+                });
             }
         }
         // === Если обычный JSON ===
         else {
             const data = await response.json();
-            fullText = data.reply || "(Пустой ответ / Empty reply)";
+            fullText = (data.reply || data.text || "(Пустой ответ)").trim();
+            typingDiv.textContent = fullText;
         }
 
-        typingDiv.textContent = fullText.trim();
-
-        // Убеждаемся, что всё видно
         mainModule.chatContainer.scrollTo({
             top: mainModule.chatContainer.scrollHeight,
-            behavior: "smooth"
+            behavior: "smooth",
         });
 
     } catch (err) {
         clearInterval(typingInterval);
         typingDiv.classList.remove("typing");
-        typingDiv.textContent = currentLang === 'ru'
-            ? "Ошибка при получении ответа"
-            : "Error receiving response";
+        typingDiv.textContent =
+            currentLang === "ru" ? "Ошибка при получении ответа" : "Error receiving response";
         console.error("Ошибка при отправке:", err);
     }
 }
+
 
 
 
