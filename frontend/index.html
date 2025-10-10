@@ -217,11 +217,11 @@ const chatModule = (() => {
     const text = predefined || mainModule.inputField.value.trim();
     if (!text) return;
 
-    // Сообщение пользователя
+    // Добавляем сообщение пользователя
     addMessage(text, "user");
     mainModule.inputField.value = "";
 
-    // "AI печатает..."
+    // Добавляем "AI печатает..."
     const typingDiv = addMessage(currentLang === 'ru' ? "AI печатает" : "AI is typing", "ai");
     typingDiv.classList.add("typing");
 
@@ -250,21 +250,20 @@ const chatModule = (() => {
 
         let fullText = "";
 
-        // === Если сервер отдает поток ===
+        // === Потоковая обработка ===
         if (response.body && response.body.getReader) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            let partial = "";
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                // Добавляем поступающие куски текста
-                const chunk = decoder.decode(value, { stream: true });
-                fullText += chunk;
+                partial += decoder.decode(value, { stream: true });
 
-                // Убираем случайные JSON-обёртки (если сервер шлет {"reply":"текст"})
-                const cleaned = fullText
+                // Убираем обертку {"reply":"..."}
+                let cleaned = partial
                     .replace(/^\s*{"reply"\s*:\s*"?/, "")
                     .replace(/"}\s*$/, "")
                     .replace(/\\n/g, "\n")
@@ -276,11 +275,28 @@ const chatModule = (() => {
                     behavior: "smooth",
                 });
             }
-        }
-        // === Если обычный JSON ===
-        else {
+
+            fullText = typingDiv.textContent.trim();
+        } else {
+            // === Если не поток, а обычный JSON ===
             const data = await response.json();
             fullText = (data.reply || data.text || "(Пустой ответ)").trim();
+        }
+
+        // === Разбиение длинного текста на части ===
+        const paragraphs = fullText.split(/\n\s*\n/); // по пустым строкам
+        if (paragraphs.length > 3) {
+            typingDiv.textContent = "";
+            for (let i = 0; i < paragraphs.length; i++) {
+                typingDiv.textContent += paragraphs[i].trim() + "\n\n";
+                mainModule.chatContainer.scrollTo({
+                    top: mainModule.chatContainer.scrollHeight,
+                    behavior: "smooth",
+                });
+                // имитация "написания" частей
+                await new Promise(r => setTimeout(r, 700));
+            }
+        } else {
             typingDiv.textContent = fullText;
         }
 
@@ -300,56 +316,6 @@ const chatModule = (() => {
 
 
 
-
-
-    async function deleteChat(){
-        const chatId = mainModule.getCurrentChatId(); if(!chatId) return;
-        if(!confirm(mainModule.getCurrentLang() === 'ru' ? "Вы уверены, что хотите удалить этот чат?" : "Are you sure you want to delete this chat?")) return;
-        await fetch(`/chats/${chatId}`,{ method:"DELETE", headers:{ Authorization:"Bearer "+mainModule.getToken() } });
-        mainModule.setCurrentChatId(null);
-        mainModule.chatContainer.innerHTML="";
-        mainModule.chatListDiv.innerHTML="";
-        fetchChats();
-    }
-
-    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
-})();
-
-// ===== QUICK BUTTONS MODULE =====
-const quickButtonsModule = (() => {
-    async function fetchQuickButtons(){
-        const chatId = mainModule.getCurrentChatId(); if(!chatId) return;
-        const res = await fetch(`/quick_buttons`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
-        const data = await res.json(); mainModule.quickButtonsDiv.innerHTML="";
-        data.buttons.forEach(btn=>{
-            const button = document.createElement("button"); button.className="quick-btn"; button.textContent=btn; button.onclick=()=>chatModule.sendMessage(btn);
-            const deleteBtn = document.createElement("button"); deleteBtn.className="delete-btn"; deleteBtn.textContent="×";
-            deleteBtn.onclick = async e => { e.stopPropagation(); await fetch(`/quick_buttons`, { method:"DELETE", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({text:btn}) }); fetchQuickButtons(); };
-            button.appendChild(deleteBtn); mainModule.quickButtonsDiv.appendChild(button);
-        });
-    }
-    return { fetchQuickButtons };
-})();
-
-// ===== AUTH MODULE =====
-const authModule = (() => {
-    function showForm(type) {
-        const loginForm = document.getElementById("login-form");
-        const registerForm = document.getElementById("register-form");
-        const loginTab = document.getElementById("login-tab");
-        const registerTab = document.getElementById("register-tab");
-        if(type==='login'){
-            loginForm.classList.remove("hidden");
-            registerForm.classList.add("hidden");
-            loginTab.classList.add("active");
-            registerTab.classList.remove("active");
-        } else {
-            loginForm.classList.add("hidden");
-            registerForm.classList.remove("hidden");
-            loginTab.classList.remove("active");
-            registerTab.classList.add("active");
-        }
-    }
 
     async function register() {
         const email = document.getElementById("register-email").value;
