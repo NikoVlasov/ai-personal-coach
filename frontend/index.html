@@ -40,7 +40,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 #chat-dropdown-btn.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
 
 #chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
-.message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; }
+.message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; white-space: pre-wrap; }
 .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
 .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
 .typing { font-style: italic; opacity: 0.7; }
@@ -124,6 +124,8 @@ const mainModule = (() => {
     let token = localStorage.getItem('token') || null;
     let user_id = localStorage.getItem('user_id') || null;
     let current_chat_id = null;
+    let currentLang = 'ru';
+
 
     const chatContainer = document.getElementById("chat-container");
     const quickButtonsDiv = document.getElementById("quick-buttons");
@@ -210,17 +212,84 @@ const chatModule = (() => {
         return msgDiv;
     }
 
-    async function sendMessage(predefined=null){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Сначала выберите чат!"); return; }
-        const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
-        const typingDiv=addMessage("AI печатает","ai"); typingDiv.classList.add("typing");
-        let dots=0; const typingInterval=setInterval(()=>{ dots=(dots+1)%4; typingDiv.textContent="AI печатает"+'.'.repeat(dots); },500);
-
-        const res=await fetch("/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
-        const data=await res.json(); clearInterval(typingInterval);
-        typingDiv.classList.add("fade-out");
-        setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
+    async function sendMessage(predefined = null) {
+    const chatId = mainModule.getCurrentChatId();
+    if (!chatId) {
+        alert(currentLang === 'ru' ? "Сначала выберите чат!" : "Please select a chat first!");
+        return;
     }
+
+    const text = predefined || mainModule.inputField.value.trim();
+    if (!text) return;
+
+    addMessage(text, "user");
+    mainModule.inputField.value = "";
+
+    const typingDiv = addMessage(currentLang === 'ru' ? "AI печатает" : "AI is typing", "ai");
+    typingDiv.classList.add("typing");
+
+    let dots = 0;
+    const typingInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        typingDiv.textContent = (currentLang === 'ru' ? "AI печатает" : "AI is typing") + ".".repeat(dots);
+    }, 500);
+
+    try {
+        // Первый запрос к серверу
+        const res = await fetch(BASE_URL + "/coach", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + mainModule.getToken(),
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                user_id: mainModule.getUserId(),
+                text,
+            }),
+        });
+
+        const data = await res.json();
+        clearInterval(typingInterval);
+
+        typingDiv.classList.add("fade-out");
+        setTimeout(async () => {
+            typingDiv.textContent = data.reply || "(Пустой ответ / Empty reply)";
+            typingDiv.classList.remove("typing", "fade-out");
+            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+
+            // Проверяем, не оборвалось ли сообщение (нет ли конца предложения)
+            const needsContinuation = data.reply && !/[.!?…]$/.test(data.reply.trim());
+
+            if (needsContinuation) {
+                const continuationPrompt = currentLang === 'ru'
+                    ? "Продолжи предыдущее сообщение."
+                    : "Continue the previous message.";
+
+                const contRes = await fetch(BASE_URL + "/coach", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + mainModule.getToken(),
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        user_id: mainModule.getUserId(),
+                        text: continuationPrompt,
+                    }),
+                });
+
+                const contData = await contRes.json();
+                addMessage(contData.reply, "ai");
+            }
+        }, 500);
+    } catch (err) {
+        clearInterval(typingInterval);
+        alert(currentLang === 'ru' ? "Ошибка при отправке сообщения" : "Error sending message");
+    }
+}
+
+
 
     async function deleteChat(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
@@ -311,9 +380,13 @@ const authModule = (() => {
 
 // ===== AUTO LOGIN ON PAGE LOAD =====
 window.addEventListener('DOMContentLoaded', async () => {
-    setLanguage('ru');
+    // ✅ применяем сохранённый язык или по умолчанию русский
+    const savedLang = localStorage.getItem("lang") || "ru";
+    setLanguage(savedLang);
+
     const token = localStorage.getItem('token');
     const user_id = localStorage.getItem('user_id');
+
     if (token && user_id) {
         try {
             const res = await fetch("/chats", { headers: { Authorization: "Bearer " + token } });
@@ -336,6 +409,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+
 // ===== ENTER TO SEND =====
 document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("message-input");
@@ -347,44 +421,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+// ===== LANGUAGE SWITCH =====
 function setLanguage(lang) {
-    // визуальное выделение активной кнопки
+    // сохраняем выбранный язык
+    localStorage.setItem("lang", lang);
+
+    // активная кнопка
     document.getElementById("btn-ru").classList.toggle("active", lang === 'ru');
     document.getElementById("btn-en").classList.toggle("active", lang === 'en');
 
-    // вкладки входа / регистрации
+    // вкладки авторизации
     document.getElementById("login-tab").textContent = lang === 'ru' ? "Вход" : "Login";
     document.getElementById("register-tab").textContent = lang === 'ru' ? "Регистрация" : "Register";
 
-    // кнопки форм
+    // кнопки в формах
     document.querySelector("#login-form button").textContent = lang === 'ru' ? "Войти" : "Login";
     document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Register";
 
-    // плейсхолдеры для форм
-    document.getElementById("login-email").placeholder = lang === 'ru' ? "Email" : "Email";
-    document.getElementById("login-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
-    document.getElementById("register-email").placeholder = lang === 'ru' ? "Email" : "Email";
-    document.getElementById("register-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
+    // поля и кнопки создания чата
+    const newChatTitle = document.getElementById("new-chat-title");
+    const createChatBtn = document.querySelector("#new-chat-container button");
+    if (newChatTitle) newChatTitle.placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
+    if (createChatBtn) createChatBtn.textContent = lang === 'ru' ? "Создать" : "Create";
 
-    // выбор чата
-    document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
+    // выпадающий список чатов
+    const dropdownBtn = document.getElementById("chat-dropdown-btn");
+    if (dropdownBtn) dropdownBtn.textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
 
-    // кнопка удаления
+    // кнопка удаления чата
     document.getElementById("delete-chat-btn").textContent = lang === 'ru' ? "Удалить чат" : "Delete chat";
 
-    // поле ввода нового чата
-    document.getElementById("new-chat-title").placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
-    document.querySelector("#new-chat-container button").textContent = lang === 'ru' ? "Создать" : "Create";
-
-    // поле ввода сообщения
+    // поле ввода и кнопка отправки
     document.getElementById("message-input").placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type a message...";
     document.querySelector("#input-container button").textContent = lang === 'ru' ? "Отправить" : "Send";
 
-    // кнопка logout
+    // кнопка выхода
     document.getElementById("btn-logout").textContent = lang === 'ru' ? "Выйти" : "Logout";
-
-    // главное название "AI Personal Coach" остаётся неизменным
 }
+
 
 
 
