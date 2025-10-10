@@ -121,31 +121,45 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 <script>
 // ===== MAIN MODULE =====
 const mainModule = (() => {
-    let token=null, user_id=null, current_chat_id=null;
-    const chatContainer=document.getElementById("chat-container");
-    const quickButtonsDiv=document.getElementById("quick-buttons");
-    const inputField=document.getElementById("message-input");
-    const chatListDiv=document.getElementById("chat-list");
-    const chatDropdownBtn=document.getElementById("chat-dropdown-btn");
+    let token = localStorage.getItem('token') || null;
+    let user_id = localStorage.getItem('user_id') || null;
+    let current_chat_id = null;
 
-    function setToken(t){ token=t; }
-    function setUserId(id){ user_id=id; }
-    function setCurrentChatId(id){
-        current_chat_id=id;
+    const chatContainer = document.getElementById("chat-container");
+    const quickButtonsDiv = document.getElementById("quick-buttons");
+    const inputField = document.getElementById("message-input");
+    const chatListDiv = document.getElementById("chat-list");
+    const chatDropdownBtn = document.getElementById("chat-dropdown-btn");
+
+    function setToken(t) {
+        token = t;
+        localStorage.setItem('token', t);
+    }
+    function setUserId(id) {
+        user_id = id;
+        localStorage.setItem('user_id', id);
+    }
+    function setCurrentChatId(id) {
+        current_chat_id = id;
         chatDropdownBtn.textContent = chatListDiv.querySelector(`[data-id='${id}']`)?.textContent || "Выберите чат";
         chatListDiv.classList.remove("show");
     }
-    function getToken(){ return token; }
-    function getUserId(){ return user_id; }
-    function getCurrentChatId(){ return current_chat_id; }
+    function getToken() { return token; }
+    function getUserId() { return user_id; }
+    function getCurrentChatId() { return current_chat_id; }
 
-    function logout(){
-        token=null; user_id=null; current_chat_id=null;
-        localStorage.removeItem('token'); localStorage.removeItem('user_id');
+    function logout() {
+        token = null;
+        user_id = null;
+        current_chat_id = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user_id');
         document.getElementById("chat-ui").classList.add("hidden");
-        document.getElementById("auth-container").style.display="block";
-        chatContainer.innerHTML=""; quickButtonsDiv.innerHTML=""; chatListDiv.innerHTML="";
-        chatDropdownBtn.textContent="Выберите чат";
+        document.getElementById("auth-container").style.display = "block";
+        chatContainer.innerHTML = "";
+        quickButtonsDiv.innerHTML = "";
+        chatListDiv.innerHTML = "";
+        chatDropdownBtn.textContent = "Выберите чат";
         authModule.showForm('login');
     }
 
@@ -237,38 +251,101 @@ const quickButtonsModule = (() => {
 
 // ===== AUTH MODULE =====
 const authModule = (() => {
-    function showForm(type){
-        const loginForm=document.getElementById("login-form");
-        const registerForm=document.getElementById("register-form");
-        const loginTab=document.getElementById("login-tab");
-        const registerTab=document.getElementById("register-tab");
-        if(type==='login'){ loginForm.classList.remove("hidden"); registerForm.classList.add("hidden"); loginTab.classList.add("active"); registerTab.classList.remove("active"); }
-        else{ loginForm.classList.add("hidden"); registerForm.classList.remove("hidden"); loginTab.classList.remove("active"); registerTab.classList.add("active"); }
+    function showForm(type) {
+        const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
+        const loginTab = document.getElementById("login-tab");
+        const registerTab = document.getElementById("register-tab");
+        if (type === 'login') {
+            loginForm.classList.remove("hidden");
+            registerForm.classList.add("hidden");
+            loginTab.classList.add("active");
+            registerTab.classList.remove("active");
+        } else {
+            loginForm.classList.add("hidden");
+            registerForm.classList.remove("hidden");
+            loginTab.classList.remove("active");
+            registerTab.classList.add("active");
+        }
     }
 
-    async function register(){
-        const email=document.getElementById("register-email").value;
-        const password=document.getElementById("register-password").value;
-        const res=await fetch("/register",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
-        if(res.ok){ alert("Регистрация успешна! Теперь войдите."); showForm("login"); }
-        else{ const err=await res.json(); alert("Ошибка: "+err.detail); }
+    async function register() {
+        const email = document.getElementById("register-email").value;
+        const password = document.getElementById("register-password").value;
+        const res = await fetch("/register", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ email, password })
+        });
+        if (res.ok) {
+            alert("Регистрация успешна! Теперь войдите.");
+            showForm("login");
+        } else {
+            const err = await res.json();
+            alert("Ошибка: " + err.detail);
+        }
     }
 
-    async function login(){
-        const email=document.getElementById("login-email").value;
-        const password=document.getElementById("login-password").value;
-        const res=await fetch("/login",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
-        if(res.ok){
-            const data=await res.json();
-            mainModule.setToken(data.access_token); mainModule.setUserId(data.user_id);
-            document.getElementById("auth-container").style.display="none";
+    async function login() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ email, password })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            mainModule.setToken(data.access_token);
+            mainModule.setUserId(data.user_id);
+            document.getElementById("auth-container").style.display = "none";
             document.getElementById("chat-ui").classList.remove("hidden");
             chatModule.fetchChats();
-        } else { alert("Неверный email или пароль"); }
+        } else {
+            alert("Неверный email или пароль");
+        }
     }
 
     return { showForm, register, login };
 })();
+
+// ===== AUTO LOGIN ON PAGE LOAD =====
+window.addEventListener('DOMContentLoaded', async () => {
+    setLanguage('ru');
+    const token = localStorage.getItem('token');
+    const user_id = localStorage.getItem('user_id');
+    if (token && user_id) {
+        try {
+            const res = await fetch("/chats", { headers: { Authorization: "Bearer " + token } });
+            if (res.ok) {
+                mainModule.setToken(token);
+                mainModule.setUserId(user_id);
+                document.getElementById("auth-container").style.display = "none";
+                document.getElementById("chat-ui").classList.remove("hidden");
+                chatModule.fetchChats();
+            } else {
+                localStorage.clear();
+            }
+        } catch (err) {
+            console.error("Ошибка при авто-входе:", err);
+            localStorage.clear();
+        }
+    } else {
+        document.getElementById("auth-container").style.display = "block";
+        authModule.showForm('login');
+    }
+});
+
+// ===== ENTER TO SEND =====
+document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("message-input");
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            chatModule.sendMessage();
+        }
+    });
+});
 
 function setLanguage(lang) {
     // визуальное выделение активной кнопки
