@@ -8,10 +8,11 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta
-import sqlite3
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import logging
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +24,7 @@ API_KEY = os.getenv("GROQ_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+DATABASE_URL = os.getenv("DATABASE_URL")  # из Render
 
 client = Groq(api_key=API_KEY)
 
@@ -30,58 +32,73 @@ client = Groq(api_key=API_KEY)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # потом можно ограничить доменом фронтенда
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 oauth2_scheme = HTTPBearer()
 
-# --- Статика фронтенда ---
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# --- Подключение к PostgreSQL ---
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL не найден. Установи переменную окружения в Render.")
 
-# --- Корневой маршрут ---
-@app.get("/")
-async def root():
-    return FileResponse("frontend/index.html")
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+Base = declarative_base()
 
-# --- SQLite база ---
-conn = sqlite3.connect("coach.db", check_same_thread=False)
+# --- Модели ---
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    password = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-# --- Таблицы ---
-with conn:
-    conn.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE,
-        password TEXT,
-        created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS chats (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        title TEXT,
-        created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        chat_id INTEGER,
-        user_id INTEGER,
-        sender TEXT,
-        text TEXT,
-        created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS quick_buttons (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        text TEXT,
-        created_at TEXT
-    )""")
+    chats = relationship("Chat", back_populates="user")
+    buttons = relationship("QuickButton", back_populates="user")
+
+
+class Chat(Base):
+    __tablename__ = "chats"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="chats")
+    messages = relationship("Message", back_populates="chat")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, ForeignKey("chats.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    sender = Column(String)
+    text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    chat = relationship("Chat", back_populates="messages")
+
+
+class QuickButton(Base):
+    __tablename__ = "quick_buttons"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="buttons")
+
+
+# --- Создаём таблицы ---
+Base.metadata.create_all(bind=engine)
 
 # --- Пароли ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
-    """Хешируем пароль с ограничением 72 байта (bcrypt лимит)."""
     password_bytes = password.encode("utf-8")
     if len(password_bytes) > 72:
         password_bytes = password_bytes[:72]
@@ -89,13 +106,11 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(truncated)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Проверяем пароль с ограничением 72 байта (bcrypt лимит)."""
     password_bytes = plain_password.encode("utf-8")
     if len(password_bytes) > 72:
         password_bytes = password_bytes[:72]
     truncated = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.verify(truncated, hashed_password)
-
 
 # --- Pydantic модели ---
 class UserRegister(BaseModel):
@@ -109,11 +124,11 @@ class UserLogin(BaseModel):
 class ChatCreate(BaseModel):
     title: str
 
-class Message(BaseModel):
+class MessageIn(BaseModel):
     chat_id: int
     text: str
 
-class QuickButton(BaseModel):
+class QuickButtonIn(BaseModel):
     text: str
 
 # --- JWT ---
@@ -123,108 +138,85 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     token = credentials.credentials
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid token",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
-            raise credentials_exception
-        cur = conn.cursor()
-        cur.execute("SELECT id, email FROM users WHERE email=?", (email,))
-        row = cur.fetchone()
-        cur.close()
-        if not row:
-            raise credentials_exception
-        return {"id": row[0], "email": row[1]}
+            raise HTTPException(status_code=401, detail="Invalid token")
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# --- Статика фронтенда ---
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+async def root():
+    return FileResponse("frontend/index.html")
 
 # --- Регистрация ---
 @app.post("/register")
-async def register(user: UserRegister):
+async def register(user: UserRegister, db: Session = Depends(get_db)):
     if len(user.password.encode("utf-8")) > 72:
         raise HTTPException(status_code=400, detail="Пароль слишком длинный (макс 72 байта)")
     hashed_password = hash_password(user.password)
-    try:
-        with conn:
-            conn.execute(
-                "INSERT INTO users (email,password,created_at) VALUES (?,?,?)",
-                (user.email, hashed_password, datetime.utcnow())
-            )
-        logger.info(f"Пользователь зарегистрирован: {user.email}")
-        return {"status": "ok"}
-    except sqlite3.IntegrityError:
+    existing = db.query(User).filter(User.email == user.email).first()
+    if existing:
         raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
+    new_user = User(email=user.email, password=hashed_password)
+    db.add(new_user)
+    db.commit()
+    logger.info(f"Пользователь зарегистрирован: {user.email}")
+    return {"status": "ok"}
 
 # --- Логин ---
 @app.post("/login")
-async def login(user: UserLogin):
-    cur = conn.cursor()
-    cur.execute("SELECT id, password, email FROM users WHERE email=?", (user.email,))
-    row = cur.fetchone()
-    cur.close()
-    if row and verify_password(user.password, row[1]):
-        token = create_access_token({"sub": row[2]})
-        logger.info(f"Пользователь вошел: {row[2]}")
-        return {"access_token": token, "token_type": "bearer", "user_id": row[0]}
-    else:
-        logger.warning(f"Неудачный вход: {user.email}")
+async def login(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    token = create_access_token({"sub": db_user.email})
+    logger.info(f"Пользователь вошел: {db_user.email}")
+    return {"access_token": token, "token_type": "bearer", "user_id": db_user.id}
 
 # --- Создать чат ---
 @app.post("/chats")
-async def create_chat(chat: ChatCreate, current_user: dict = Depends(get_current_user)):
-    logger.info(f"Создание чата: {current_user['email']} title={chat.title}")
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO chats (user_id, title, created_at) VALUES (?,?,?)",
-        (current_user["id"], chat.title, datetime.utcnow())
-    )
-    conn.commit()
-    chat_id = cur.lastrowid
-    cur.close()
-    return {"status": "ok", "chat_id": chat_id}
+async def create_chat(chat: ChatCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    new_chat = Chat(user_id=current_user.id, title=chat.title)
+    db.add(new_chat)
+    db.commit()
+    db.refresh(new_chat)
+    return {"status": "ok", "chat_id": new_chat.id}
 
 # --- Получить чаты пользователя ---
 @app.get("/chats")
-async def get_chats(current_user: dict = Depends(get_current_user)):
-    logger.info(f"Получение списка чатов: {current_user['email']}")
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, title, created_at FROM chats WHERE user_id=? ORDER BY created_at DESC",
-        (current_user["id"],)
-    )
-    rows = cur.fetchall()
-    chats = [{"id": row[0], "title": row[1], "created_at": row[2]} for row in rows]
-    cur.close()
-    return {"chats": chats}
+async def get_chats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    chats = db.query(Chat).filter(Chat.user_id == current_user.id).order_by(Chat.created_at.desc()).all()
+    return {"chats": [{"id": c.id, "title": c.title, "created_at": c.created_at} for c in chats]}
 
 # --- AI Coach ---
 @app.post("/coach")
-async def coach_response(msg: Message, current_user: dict = Depends(get_current_user)):
-    logger.info(f"Сообщение от {current_user['email']}: {msg.text}")
-    with conn:
-        conn.execute(
-            "INSERT INTO messages (chat_id,user_id,sender,text,created_at) VALUES (?,?,?,?,?)",
-            (msg.chat_id, current_user["id"], "user", msg.text, datetime.utcnow())
-        )
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT sender, text FROM messages WHERE chat_id=? ORDER BY id DESC LIMIT 10",
-        (msg.chat_id,)
-    )
-    history_rows = cur.fetchall()[::-1]
-    cur.close()
+async def coach_response(msg: MessageIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
+    db.commit()
+
     history = [{"role": "system", "content": "Ты — персональный коуч. Поддерживай и мотивируй."}]
-    for sender, text in history_rows:
-        role = "user" if sender == "user" else "assistant"
-        history.append({"role": role, "content": text[:1000]})
+    last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.id.desc()).limit(10).all()
+    for m in reversed(last_msgs):
+        history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
+
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=history,
@@ -232,52 +224,40 @@ async def coach_response(msg: Message, current_user: dict = Depends(get_current_
         max_tokens=500
     )
     ai_text = response.choices[0].message.content.strip()
-    with conn:
-        conn.execute(
-            "INSERT INTO messages (chat_id,user_id,sender,text,created_at) VALUES (?,?,?,?,?)",
-            (msg.chat_id, current_user["id"], "ai", ai_text, datetime.utcnow())
-        )
+    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=ai_text))
+    db.commit()
     return {"reply": ai_text}
 
 # --- История чата ---
 @app.get("/history/{chat_id}")
-async def get_history(chat_id: int, current_user: dict = Depends(get_current_user)):
-    cur = conn.cursor()
-    cur.execute("SELECT sender, text, created_at FROM messages WHERE chat_id=? ORDER BY id ASC", (chat_id,))
-    messages = [{"sender": row[0], "text": row[1], "created_at": row[2]} for row in cur.fetchall()]
-    cur.close()
-    return {"messages": messages}
+async def get_history(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id.asc()).all()
+    return {"messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at} for m in messages]}
 
 # --- Быстрые кнопки ---
 @app.get("/quick_buttons")
-async def get_quick_buttons(current_user: dict = Depends(get_current_user)):
-    cur = conn.cursor()
-    cur.execute("SELECT text FROM quick_buttons WHERE user_id=?", (current_user["id"],))
-    buttons = [row[0] for row in cur.fetchall()]
-    cur.close()
-    return {"buttons": buttons}
+async def get_quick_buttons(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    buttons = db.query(QuickButton).filter(QuickButton.user_id == current_user.id).all()
+    return {"buttons": [b.text for b in buttons]}
 
 @app.post("/quick_buttons")
-async def add_quick_button(btn: QuickButton, current_user: dict = Depends(get_current_user)):
-    with conn:
-        conn.execute(
-            "INSERT INTO quick_buttons (user_id,text,created_at) VALUES (?,?,?)",
-            (current_user["id"], btn.text, datetime.utcnow())
-        )
+async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.add(QuickButton(user_id=current_user.id, text=btn.text))
+    db.commit()
     return {"status": "ok"}
 
 @app.delete("/quick_buttons")
-async def delete_quick_button(body: dict = Body(...), current_user: dict = Depends(get_current_user)):
+async def delete_quick_button(body: dict = Body(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     text = body.get("text")
     if not text:
         raise HTTPException(status_code=400, detail="Нет текста кнопки для удаления")
-    with conn:
-        conn.execute("DELETE FROM quick_buttons WHERE user_id=? AND text=?", (current_user["id"], text))
+    db.query(QuickButton).filter(QuickButton.user_id == current_user.id, QuickButton.text == text).delete()
+    db.commit()
     return {"status": "deleted"}
 
 @app.delete("/chats/{chat_id}")
-async def delete_chat(chat_id: int, current_user: dict = Depends(get_current_user)):
-    with conn:
-        conn.execute("DELETE FROM messages WHERE chat_id=?", (chat_id,))
-        conn.execute("DELETE FROM chats WHERE id=?", (chat_id,))
+async def delete_chat(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.query(Message).filter(Message.chat_id == chat_id).delete()
+    db.query(Chat).filter(Chat.id == chat_id).delete()
+    db.commit()
     return {"status": "ok"}
