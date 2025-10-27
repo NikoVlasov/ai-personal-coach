@@ -204,62 +204,63 @@ const chatModule = (() => {
         return msgDiv;
     }
 
-    async function sendMessage(predefined=null){
-        const chatId = mainModule.getCurrentChatId();
-        const currentLang = mainModule.getCurrentLang();
-        if(!chatId){ alert(currentLang==='ru'?"Сначала выберите чат!":"Please select a chat first!"); return;}
-        const text = predefined||mainModule.inputField.value.trim(); if(!text) return;
-        addMessage(text,"user");
-        mainModule.inputField.value="";
-        const typingDiv=addMessage(currentLang==='ru'?"AI печатает":"AI is typing","ai");
-        typingDiv.classList.add("typing");
+    async function sendMessage(predefined = null) {
+    const chatId = mainModule.getCurrentChatId();
+    const currentLang = mainModule.getCurrentLang();
 
-        let dots=0;
-        const typingInterval=setInterval(()=>{ dots=(dots+1)%4; typingDiv.textContent=(currentLang==='ru'?"AI печатает":"AI is typing")+".".repeat(dots); },500);
-
-        try{
-            const response=await fetch(BASE_URL+"/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
-
-            clearInterval(typingInterval);
-            typingDiv.classList.remove("typing");
-
-            let fullText="";
-            if(response.body && response.body.getReader){
-                const reader=response.body.getReader();
-                const decoder=new TextDecoder();
-                let partial="";
-                while(true){
-                    const {done,value}=await reader.read();
-                    if(done) break;
-                    partial+=decoder.decode(value,{stream:true});
-                    let cleaned=partial.replace(/^\s*{"reply"\s*:\s*"?/,"").replace(/"}\s*$/,"").replace(/\\n/g,"\n").replace(/\\"/g,'"');
-                    typingDiv.textContent=cleaned.trim();
-                    mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior:"smooth" });
-                }
-                fullText=typingDiv.textContent.trim();
-            }else{
-                const data=await response.json();
-                fullText=(data.reply||data.text||"(Пустой ответ)").trim();
-            }
-
-            const paragraphs=fullText.split(/\n\s*\n/);
-            if(paragraphs.length>3){
-                typingDiv.textContent="";
-                for(let i=0;i<paragraphs.length;i++){
-                    typingDiv.textContent+=paragraphs[i].trim()+"\n\n";
-                    mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior:"smooth" });
-                    await new Promise(r=>setTimeout(r,700));
-                }
-            }else{ typingDiv.textContent=fullText; }
-
-            mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior:"smooth" });
-        }catch(err){
-            clearInterval(typingInterval);
-            typingDiv.classList.remove("typing");
-            typingDiv.textContent=currentLang==="ru"?"Ошибка при получении ответа":"Error receiving response";
-            console.error("Ошибка при отправке:",err);
-        }
+    if (!chatId) {
+        alert(currentLang === 'ru' ? "Сначала выберите чат!" : "Please select a chat first!");
+        return;
     }
+
+    const text = predefined || mainModule.inputField.value.trim();
+    if (!text) return;
+
+    // Добавляем сообщение пользователя
+    chatModule.addMessage(text, "user");
+    mainModule.inputField.value = "";
+
+    // Создаём временное сообщение ИИ "печатает"
+    const typingDiv = chatModule.addMessage(currentLang === 'ru' ? "AI печатает..." : "AI is typing...", "ai");
+    typingDiv.classList.add("typing");
+
+    try {
+        // Получаем ответ от сервера
+        const response = await fetch(BASE_URL + "/coach", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + mainModule.getToken(),
+            },
+            body: JSON.stringify({ chat_id: chatId, text }),
+        });
+
+        if (!response.ok) throw new Error("Ошибка сервера");
+
+        const data = await response.json();
+        const aiText = data.reply || "(Пустой ответ)";
+
+        // Убираем класс typing
+        typingDiv.classList.remove("typing");
+        typingDiv.textContent = "";
+
+        // Построчная анимация ответа
+        const paragraphs = aiText.split(/\n\s*\n/);
+        for (let i = 0; i < paragraphs.length; i++) {
+            typingDiv.textContent += paragraphs[i].trim() + "\n\n";
+            mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior: "smooth" });
+            await new Promise(r => setTimeout(r, 500)); // задержка между блоками текста
+        }
+
+        mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior: "smooth" });
+
+    } catch (err) {
+        typingDiv.classList.remove("typing");
+        typingDiv.textContent = currentLang === "ru" ? "Ошибка при получении ответа" : "Error receiving response";
+        console.error("Ошибка при отправке:", err);
+    }
+}
+
 
     async function deleteChat(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
