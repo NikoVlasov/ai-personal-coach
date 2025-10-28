@@ -220,7 +220,7 @@ const chatModule = (() => {
     chatModule.addMessage(text, "user");
     mainModule.inputField.value = "";
 
-    // Создаём временное сообщение ИИ "печатает"
+    // Создаём временное сообщение ИИ "печатает..."
     const typingDiv = chatModule.addMessage(currentLang === 'ru' ? "AI печатает..." : "AI is typing...", "ai");
     typingDiv.classList.add("typing");
 
@@ -240,26 +240,41 @@ const chatModule = (() => {
         const data = await response.json();
         const aiText = data.reply || "(Пустой ответ)";
 
-        // Убираем класс typing
+        // Убираем "печатает..." и подготавливаем к анимации
         typingDiv.classList.remove("typing");
         typingDiv.textContent = "";
 
-        // Построчная анимация ответа
+        // Разбиваем по абзацам
         const paragraphs = aiText.split(/\n\s*\n/);
-        for (let i = 0; i < paragraphs.length; i++) {
-            typingDiv.textContent += paragraphs[i].trim() + "\n\n";
-            mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior: "smooth" });
-            await new Promise(r => setTimeout(r, 500)); // задержка между блоками текста
+
+        // Плавная анимация посимвольно
+        for (let paragraph of paragraphs) {
+            for (let char of paragraph.trim()) {
+                typingDiv.textContent += char;
+                mainModule.chatContainer.scrollTo({
+                    top: mainModule.chatContainer.scrollHeight,
+                    behavior: "smooth"
+                });
+                await new Promise(r => setTimeout(r, 15)); // скорость набора (меньше = быстрее)
+            }
+            typingDiv.textContent += "\n\n"; // пауза между абзацами
+            await new Promise(r => setTimeout(r, 150));
         }
 
-        mainModule.chatContainer.scrollTo({ top: mainModule.chatContainer.scrollHeight, behavior: "smooth" });
+        mainModule.chatContainer.scrollTo({
+            top: mainModule.chatContainer.scrollHeight,
+            behavior: "smooth"
+        });
 
     } catch (err) {
         typingDiv.classList.remove("typing");
-        typingDiv.textContent = currentLang === "ru" ? "Ошибка при получении ответа" : "Error receiving response";
+        typingDiv.textContent = currentLang === "ru"
+            ? "Ошибка при получении ответа"
+            : "Error receiving response";
         console.error("Ошибка при отправке:", err);
     }
 }
+
 
 
     async function deleteChat(){
