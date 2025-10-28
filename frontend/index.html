@@ -197,15 +197,27 @@ const chatModule = (() => {
         mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
     }
 
-    function addMessage(text,sender,timestamp=null){
-        const msgDiv=document.createElement("div"); msgDiv.className=`message ${sender}`;
-        msgDiv.textContent=text+(timestamp?` (${timestamp})`:'');
+    function addMessage(text, sender, timestamp=null){
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message ${sender}`;
+        msgDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
         mainModule.chatContainer.appendChild(msgDiv);
-        mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
-        return msgDiv;
-    }
 
-    async function sendMessage(predefined = null) {
+        scrollChatToBottom(); // умный автоскролл
+
+        return msgDiv;
+}
+    function scrollChatToBottom() {
+        const container = mainModule.chatContainer;
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+        if (isAtBottom) {
+            container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+}
+
+
+// ===== sendMessage =====
+async function sendMessage(predefined = null) {
     const chatId = mainModule.getCurrentChatId();
     const currentLang = mainModule.getCurrentLang();
 
@@ -218,15 +230,15 @@ const chatModule = (() => {
     if (!text) return;
 
     // Добавляем сообщение пользователя
-    chatModule.addMessage(text, "user");
+    addMessage(text, "user");
     mainModule.inputField.value = "";
 
-    // Добавляем временное сообщение "AI печатает..."
-    const typingDiv = chatModule.addMessage(currentLang === 'ru' ? "AI печатает..." : "AI is typing...", "ai");
+    // Создаём временное сообщение ИИ "печатает..."
+    const typingDiv = addMessage(currentLang === 'ru' ? "AI печатает..." : "AI is typing...", "ai");
     typingDiv.classList.add("typing");
 
     try {
-        // Отправляем запрос
+        // Получаем ответ от сервера
         const response = await fetch(BASE_URL + "/coach", {
             method: "POST",
             headers: {
@@ -237,24 +249,23 @@ const chatModule = (() => {
         });
 
         if (!response.ok) throw new Error("Ошибка сервера");
+
         const data = await response.json();
         const aiText = data.reply || "(Пустой ответ)";
 
-        // Убираем "печатает..."
+        // Убираем "печатает..." и подготавливаем к анимации
         typingDiv.classList.remove("typing");
         typingDiv.textContent = "";
 
-        // Плавная посимвольная печать
+        // Разбиваем по абзацам и выводим посимвольно
         const paragraphs = aiText.split(/\n\s*\n/);
-
-        for (let p = 0; p < paragraphs.length; p++) {
-            const paragraph = paragraphs[p].trim();
-            for (let i = 0; i < paragraph.length; i++) {
-                typingDiv.textContent += paragraph[i];
-                smoothScrollDynamic();
-                await new Promise(r => setTimeout(r, 8)); // скорость символов
+        for (let paragraph of paragraphs) {
+            for (let char of paragraph.trim()) {
+                typingDiv.textContent += char;
+                scrollChatToBottom(); // плавный автоскролл при наборе
+                await new Promise(r => setTimeout(r, 8)); // скорость набора
             }
-            typingDiv.textContent += "\n\n";
+            typingDiv.textContent += "\n\n"; // пауза между абзацами
             await new Promise(r => setTimeout(r, 150));
         }
 
@@ -265,20 +276,8 @@ const chatModule = (() => {
             : "Error receiving response";
         console.error("Ошибка при отправке:", err);
     }
-
-    function smoothScrollDynamic() {
-        const c = mainModule.chatContainer;
-        const diff = c.scrollHeight - c.scrollTop - c.clientHeight;
-
-        // Чем ближе к низу, тем быстрее прокручиваем
-        const scrollSpeed = diff > 300 ? 0.3 : diff > 100 ? 0.6 : 1.0;
-
-        c.scrollTop += (c.scrollHeight - c.scrollTop - c.clientHeight) * scrollSpeed * 0.15;
-
-        c.classList.add("smooth-scroll");
-        setTimeout(() => c.classList.remove("smooth-scroll"), 120);
-    }
 }
+
 
 
 
