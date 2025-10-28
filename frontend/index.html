@@ -255,7 +255,7 @@ const chatModule = (() => {
                     top: mainModule.chatContainer.scrollHeight,
                     behavior: "smooth"
                 });
-                await new Promise(r => setTimeout(r, 15)); // скорость набора (меньше = быстрее)
+                await new Promise(r => setTimeout(r, 8)); // скорость набора (меньше = быстрее)
             }
             typingDiv.textContent += "\n\n"; // пауза между абзацами
             await new Promise(r => setTimeout(r, 150));
