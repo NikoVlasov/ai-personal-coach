@@ -207,6 +207,7 @@ const chatModule = (() => {
     async function sendMessage(predefined = null) {
     const chatId = mainModule.getCurrentChatId();
     const currentLang = mainModule.getCurrentLang();
+    const speedMs = 8; // <--- скорость набора (меньше = быстрее). Подкорректируй под вкус.
 
     if (!chatId) {
         alert(currentLang === 'ru' ? "Сначала выберите чат!" : "Please select a chat first!");
@@ -220,57 +221,186 @@ const chatModule = (() => {
     chatModule.addMessage(text, "user");
     mainModule.inputField.value = "";
 
-    // Создаём временное сообщение "AI печатает..."
-    const typingDiv = chatModule.addMessage(
-        currentLang === 'ru' ? "AI печатает..." : "AI is typing...",
-        "ai"
-    );
+    // Временное сообщение ИИ "печатает..."
+    const typingDiv = chatModule.addMessage(currentLang === 'ru' ? "AI печатает..." : "AI is typing...", "ai");
     typingDiv.classList.add("typing");
 
-    try {
-        // Запрос к серверу
-        const response = await fetch(BASE_URL + "/coach", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + mainModule.getToken(),
-            },
-            body: JSON.stringify({ chat_id: chatId, text }),
-        });
+    // безопасная проверка токена
+    const token = mainModule.getToken();
+    if (!token) {
+        clearTypingAndShowError(typingDiv, currentLang === 'ru' ? "Нет токена авторизации" : "No auth token");
+        return;
+    }
 
-        if (!response.ok) throw new Error("Ошибка сервера");
+    // helper: плавная прокрутка (можно вынести отдельно)
+    function smoothScroll() {
+        const c = mainModule.chatContainer;
+        c.scrollTo({ top: c.scrollHeight, behavior: "smooth" });
+    }
 
-        const data = await response.json();
-        const aiText = data.reply || "(Пустой ответ)";
-
-        // Убираем "печатает..." и готовим место для вывода текста
-        typingDiv.classList.remove("typing");
-        typingDiv.textContent = "";
-
-        // Разбиваем ответ по абзацам
-        const paragraphs = aiText.split(/\n\s*\n/);
-
-        // Посимвольное плавное появление текста
-        for (let paragraph of paragraphs) {
-            for (let char of paragraph.trim()) {
-                typingDiv.textContent += char;
-                smoothScrollToBottom(); // 👈 плавная прокрутка
-                await new Promise(r => setTimeout(r, 10)); // скорость набора (8–12 мс — естественно)
+    // helper для обработки полного текста через анимацию
+    async function animateTextInto(div, fullText) {
+        div.classList.remove("typing");
+        div.textContent = "";
+        const paragraphs = fullText.split(/\n\s*\n/);
+        for (let p = 0; p < paragraphs.length; p++) {
+            const paragraph = paragraphs[p].trim();
+            for (let i = 0; i < paragraph.length; i++) {
+                div.textContent += paragraph[i];
+                smoothScroll();
+                await new Promise(r => setTimeout(r, speedMs));
             }
-            typingDiv.textContent += "\n\n";
-            await new Promise(r => setTimeout(r, 200)); // пауза между абзацами
+            if (p < paragraphs.length - 1) {
+                div.textContent += "\n\n";
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+        smoothScroll();
+    }
+
+    // helper для показа ошибки
+    function clearTypingAndShowError(div, message) {
+        div.classList.remove("typing");
+        div.textContent = message;
+        console.error("sendMessage error:", message);
+    }
+
+    // Попытки, если ответ обрывается (макс дополнительных запросов)
+    let continuationAttempts = 0;
+    const MAX_CONTINUATIONS = 2;
+
+    // основная функция запроса (можем вызывать для продолжений)
+    async function requestAndProcess(promptText) {
+        // Выполняем запрос
+        let response;
+        try {
+            response = await fetch((BASE_URL || "") + "/coach", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify({ chat_id: chatId, text: promptText }),
+            });
+        } catch (err) {
+            clearTypingAndShowError(typingDiv, currentLang === 'ru' ? "Ошибка сети при обращении к серверу" : "Network error contacting server");
+            console.error(err);
+            return { ok: false };
         }
 
-        smoothScrollToBottom();
+        // Если сервер вернул не ok — попробуем прочитать тело и показать детализацию
+        if (!response.ok) {
+            let serverMsg = `${response.status} ${response.statusText}`;
+            try {
+                const errJson = await response.json();
+                // стараемся показать полезное поле detail или message
+                if (errJson && (errJson.detail || errJson.message || errJson.error)) {
+                    serverMsg = errJson.detail || errJson.message || errJson.error;
+                } else {
+                    serverMsg = JSON.stringify(errJson);
+                }
+            } catch (e) {
+                // не удалось распарсить json
+            }
+            clearTypingAndShowError(typingDiv, currentLang === 'ru' ? `Ошибка сервера: ${serverMsg}` : `Server error: ${serverMsg}`);
+            console.error("Server response (not ok):", response.status, response.statusText);
+            return { ok: false };
+        }
 
-    } catch (err) {
-        typingDiv.classList.remove("typing");
-        typingDiv.textContent = currentLang === "ru"
-            ? "Ошибка при получении ответа"
-            : "Error receiving response";
-        console.error("Ошибка при отправке:", err);
+        // Если потоковый ответ (ReadStream)
+        if (response.body && response.body.getReader) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let partial = "";
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    partial += decoder.decode(value, { stream: true });
+
+                    // Периодически очищаем JSON-обёртку, если сервер возвращает {"reply":"..."}
+                    let cleaned = partial
+                        .replace(/^\s*{"reply"\s*:\s*"?/, "")
+                        .replace(/"}\s*$/, "")
+                        .replace(/\\n/g, "\n")
+                        .replace(/\\"/g, '"');
+
+                    // выводим текущее содержимое (но без анимации по-символьно в стриме;
+                    // стримируем обновление целиком — это быстрее и избегает "рывков")
+                    typingDiv.classList.remove("typing");
+                    typingDiv.textContent = cleaned.trim();
+                    smoothScroll();
+                }
+                // после конца стрима считаем полный текст
+                const full = typingDiv.textContent || partial;
+                return { ok: true, text: (full || "").trim() };
+            } catch (streamErr) {
+                console.error("Stream reading error:", streamErr);
+                clearTypingAndShowError(typingDiv, currentLang === 'ru' ? "Ошибка при чтении потока" : "Error reading stream");
+                return { ok: false };
+            }
+        } else {
+            // не потоковый — обычный JSON
+            let data;
+            try {
+                data = await response.json();
+            } catch (jerr) {
+                clearTypingAndShowError(typingDiv, currentLang === 'ru' ? "Неправильный формат ответа" : "Invalid response format");
+                console.error("JSON parse error:", jerr);
+                return { ok: false };
+            }
+            const replyText = (data.reply || data.text || "").trim();
+            return { ok: true, text: replyText };
+        }
+    } // конец requestAndProcess
+
+    // Первый запрос
+    const first = await requestAndProcess(text);
+    if (!first.ok) return;
+
+    // Если ответ пустой
+    if (!first.text) {
+        clearTypingAndShowError(typingDiv, currentLang === 'ru' ? "Пустой ответ от ИИ" : "Empty reply from AI");
+        return;
     }
-}
+
+    // Если потокный обработчик уже вывел текст — анимация не нужна.
+    // Но если у нас обычный ответ — хотим посимвольную анимацию.
+    // Решаем по длине и по тому, совпадает ли typingDiv.textContent с полным текст:
+    const fullReply = first.text;
+    // Старательно анимируем (если сейчас в typingDiv — стрим уже заполнил — тогда просто плавно показать)
+    await animateTextInto(typingDiv, fullReply);
+
+    // Проверка — нужно ли продолжать (если ответ, по простому правилу, обрывается)
+    function looksTruncated(s) {
+        if (!s) return false;
+        const trimmed = s.trim();
+        // если не заканчивается на точку/вопрос/воскл/многоточие — возможно обрыв
+        if (/[.!?…]$/.test(trimmed)) return false;
+        // если короткий — не считать обрывом
+        if (trimmed.length < 80) return false;
+        // иначе — считаем возможным обрывом
+        return true;
+    }
+
+    while (looksTruncated(first.text) && continuationAttempts < MAX_CONTINUATIONS) {
+        continuationAttempts++;
+        // формируем подсказку для продолжения
+        const contPrompt = currentLang === 'ru' ? "Продолжи предыдущее сообщение." : "Continue the previous message.";
+        // маленькая пауза перед запросом на продолжение
+        await new Promise(r => setTimeout(r, 250));
+        const cont = await requestAndProcess(contPrompt);
+        if (!cont.ok) break;
+        if (!cont.text) break;
+
+        // Добавляем продолжение в элемент (с анимацией)
+        await animateTextInto(typingDiv, typingDiv.textContent + "\n\n" + cont.text);
+    }
+
+    // Финальная прокрутка
+    smoothScroll();
+} // конец sendMessage
+
 
 
 
