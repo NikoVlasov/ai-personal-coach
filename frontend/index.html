@@ -220,12 +220,15 @@ const chatModule = (() => {
     chatModule.addMessage(text, "user");
     mainModule.inputField.value = "";
 
-    // Создаём временное сообщение ИИ "печатает..."
-    const typingDiv = chatModule.addMessage(currentLang === 'ru' ? "AI печатает..." : "AI is typing...", "ai");
+    // Создаём временное сообщение "AI печатает..."
+    const typingDiv = chatModule.addMessage(
+        currentLang === 'ru' ? "AI печатает..." : "AI is typing...",
+        "ai"
+    );
     typingDiv.classList.add("typing");
 
     try {
-        // Получаем ответ от сервера
+        // Запрос к серверу
         const response = await fetch(BASE_URL + "/coach", {
             method: "POST",
             headers: {
@@ -240,31 +243,25 @@ const chatModule = (() => {
         const data = await response.json();
         const aiText = data.reply || "(Пустой ответ)";
 
-        // Убираем "печатает..." и подготавливаем к анимации
+        // Убираем "печатает..." и готовим место для вывода текста
         typingDiv.classList.remove("typing");
         typingDiv.textContent = "";
 
-        // Разбиваем по абзацам
+        // Разбиваем ответ по абзацам
         const paragraphs = aiText.split(/\n\s*\n/);
 
-        // Плавная анимация посимвольно
+        // Посимвольное плавное появление текста
         for (let paragraph of paragraphs) {
             for (let char of paragraph.trim()) {
                 typingDiv.textContent += char;
-                mainModule.chatContainer.scrollTo({
-                    top: mainModule.chatContainer.scrollHeight,
-                    behavior: "smooth"
-                });
-                await new Promise(r => setTimeout(r, 8)); // скорость набора (меньше = быстрее)
+                smoothScrollToBottom(); // 👈 плавная прокрутка
+                await new Promise(r => setTimeout(r, 10)); // скорость набора (8–12 мс — естественно)
             }
-            typingDiv.textContent += "\n\n"; // пауза между абзацами
-            await new Promise(r => setTimeout(r, 150));
+            typingDiv.textContent += "\n\n";
+            await new Promise(r => setTimeout(r, 200)); // пауза между абзацами
         }
 
-        mainModule.chatContainer.scrollTo({
-            top: mainModule.chatContainer.scrollHeight,
-            behavior: "smooth"
-        });
+        smoothScrollToBottom();
 
     } catch (err) {
         typingDiv.classList.remove("typing");
@@ -274,6 +271,7 @@ const chatModule = (() => {
         console.error("Ошибка при отправке:", err);
     }
 }
+
 
 
 
