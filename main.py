@@ -166,30 +166,33 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 async def root():
     return FileResponse("frontend/index.html")
 
-# --- Регистрация ---
+
+# --- Registration ---
 @app.post("/register")
 async def register(user: UserRegister, db: Session = Depends(get_db)):
     if len(user.password.encode("utf-8")) > 72:
-        raise HTTPException(status_code=400, detail="Пароль слишком длинный (макс 72 байта)")
+        raise HTTPException(status_code=400, detail="Password too long (max 72 bytes)")
     hashed_password = hash_password(user.password)
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
+        raise HTTPException(status_code=400, detail="Email is already registered")
     new_user = User(email=user.email, password=hashed_password)
     db.add(new_user)
     db.commit()
-    logger.info(f"Пользователь зарегистрирован: {user.email}")
+    logger.info(f"User registered: {user.email}")
     return {"status": "ok"}
 
-# --- Логин ---
+
+# --- Login ---
 @app.post("/login")
 async def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token({"sub": db_user.email})
-    logger.info(f"Пользователь вошел: {db_user.email}")
+    logger.info(f"User logged in: {db_user.email}")
     return {"access_token": token, "token_type": "bearer", "user_id": db_user.id}
+
 
 # --- Создать чат ---
 @app.post("/chats")
@@ -212,7 +215,7 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
     db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
     db.commit()
 
-    history = [{"role": "system", "content": "Ты — персональный коуч. Поддерживай и мотивируй."}]
+    history = [{"role": "system", "content": "You are a personal mentor. Support and motivate the user."}]
     last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.id.desc()).limit(10).all()
     for m in reversed(last_msgs):
         history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
@@ -227,6 +230,7 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
     db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=ai_text))
     db.commit()
     return {"reply": ai_text}
+
 
 # --- История чата ---
 @app.get("/history/{chat_id}")

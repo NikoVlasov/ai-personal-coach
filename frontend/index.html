@@ -73,55 +73,55 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 </head>
 <body>
 <div id="app-container">
-    <header>AI Personal Coach</header>
+    <header>AI Mentor</header>
 
     <div id="top-buttons">
-        <button id="btn-ru" class="top-btn active" onclick="setLanguage('ru')">RU</button>
-        <button id="btn-en" class="top-btn" onclick="setLanguage('en')">EN</button>
         <button id="btn-logout" class="top-btn" onclick="mainModule.logout()">Logout</button>
     </div>
 
     <!-- AUTH -->
     <div id="auth-container">
         <div class="auth-tabs">
-            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Вход</button>
-            <button id="register-tab" onclick="authModule.showForm('register')">Регистрация</button>
+            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Login</button>
+            <button id="register-tab" onclick="authModule.showForm('register')">Sign Up</button>
         </div>
         <form id="login-form" class="auth-form">
             <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Пароль" required>
-            <button type="button" onclick="authModule.login()">Войти</button>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="button" onclick="authModule.login()">Login</button>
         </form>
         <form id="register-form" class="auth-form hidden">
             <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Пароль" required>
-            <button type="button" onclick="authModule.register()">Зарегистрироваться</button>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <button type="button" onclick="authModule.register()">Create Account</button>
         </form>
     </div>
 
     <!-- CHAT -->
     <div id="chat-ui" class="hidden">
         <div id="chat-dropdown-container">
-            <div id="chat-dropdown-btn" onclick="toggleChatList()">Выберите чат</div>
+            <div id="chat-dropdown-btn" onclick="toggleChatList()">Select Chat</div>
             <div id="chat-list"></div>
         </div>
+
         <div id="new-chat-container">
-            <input type="text" id="new-chat-title" placeholder="Название нового чата">
-            <button onclick="chatModule.createChat()">Создать</button>
+            <input type="text" id="new-chat-title" placeholder="New chat name">
+            <button onclick="chatModule.createChat()">Create</button>
         </div>
-        <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Удалить чат</button>
+        <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete Chat</button>
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
         <div id="input-container">
-            <input type="text" id="message-input" placeholder="Напиши сообщение...">
-            <button onclick="chatModule.sendMessage()">Отправить</button>
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button onclick="chatModule.sendMessage()">Send</button>
         </div>
     </div>
 </div>
 
 <script>
+
 // ===== BASE URL =====
 const BASE_URL = "";
 
