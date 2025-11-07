@@ -384,41 +384,56 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     const input=document.getElementById("message-input");
     input.addEventListener("keydown", (e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); chatModule.sendMessage(); }});
 });
-// === Improved mobile keyboard fix (iOS + Android) ===
+// === Mobile keyboard fix (stable for iOS & Android) ===
 function handleKeyboardVisibilityFix() {
   const input = document.getElementById("message-input");
   const chatContainer = document.getElementById("chat-container");
-  const inputContainer = document.getElementById("input-container");
   const appContainer = document.getElementById("app-container");
 
   if (!input || !chatContainer || !appContainer) return;
 
   let originalHeight = window.innerHeight;
+  let isKeyboardVisible = false;
 
-  // При фокусе на поле ввода
+  // Когда клавиатура открывается (фокус)
   input.addEventListener("focus", () => {
     setTimeout(() => {
-      const keyboardHeight = originalHeight - window.innerHeight;
+      const newHeight = window.innerHeight;
+      const keyboardHeight = originalHeight - newHeight;
 
-      // Поднимаем контейнер, если клавиатура открылась
-      if (keyboardHeight > 100) {
-        appContainer.style.transform = `translateY(-${keyboardHeight - 50}px)`;
+      // Если клавиатура реально появилась
+      if (keyboardHeight > 120 && !isKeyboardVisible) {
+        isKeyboardVisible = true;
+        appContainer.style.transform = `translateY(-${keyboardHeight - 60}px)`;
+        appContainer.style.transition = "transform 0.25s ease-out";
       }
 
+      // Скроллим к последнему сообщению
       chatContainer.scrollTo({
         top: chatContainer.scrollHeight,
         behavior: "smooth",
       });
-    }, 300);
+    }, 250);
   });
 
-  // При потере фокуса возвращаем на место
+  // Когда клавиатура исчезает
   input.addEventListener("blur", () => {
-    appContainer.style.transform = "translateY(0)";
+    if (isKeyboardVisible) {
+      isKeyboardVisible = false;
+      appContainer.style.transform = "translateY(0)";
+    }
+  });
+
+  // Если пользователь меняет ориентацию или перезагружает
+  window.addEventListener("resize", () => {
+    if (!isKeyboardVisible) {
+      originalHeight = window.innerHeight;
+    }
   });
 }
 
 window.addEventListener("DOMContentLoaded", handleKeyboardVisibilityFix);
+
 
 
 </script>
