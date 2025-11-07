@@ -384,33 +384,42 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     const input=document.getElementById("message-input");
     input.addEventListener("keydown", (e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); chatModule.sendMessage(); }});
 });
-// === Fix for mobile keyboard overlap ===
+// === Improved mobile keyboard fix (iOS + Android) ===
 function handleKeyboardVisibilityFix() {
   const input = document.getElementById("message-input");
   const chatContainer = document.getElementById("chat-container");
   const inputContainer = document.getElementById("input-container");
+  const appContainer = document.getElementById("app-container");
 
-  if (!input || !chatContainer) return;
+  if (!input || !chatContainer || !appContainer) return;
 
-  // Когда фокус на инпуте (появляется клавиатура)
+  let originalHeight = window.innerHeight;
+
+  // При фокусе на поле ввода
   input.addEventListener("focus", () => {
     setTimeout(() => {
+      const keyboardHeight = originalHeight - window.innerHeight;
+
+      // Поднимаем контейнер, если клавиатура открылась
+      if (keyboardHeight > 100) {
+        appContainer.style.transform = `translateY(-${keyboardHeight - 50}px)`;
+      }
+
       chatContainer.scrollTo({
         top: chatContainer.scrollHeight,
         behavior: "smooth",
       });
-      // Немного "поднимаем" input-container
-      inputContainer.style.paddingBottom = "250px";
-    }, 300); // ждём, пока появится клавиатура
+    }, 300);
   });
 
-  // Когда клавиатура скрывается
+  // При потере фокуса возвращаем на место
   input.addEventListener("blur", () => {
-    inputContainer.style.paddingBottom = "10px";
+    appContainer.style.transform = "translateY(0)";
   });
 }
 
 window.addEventListener("DOMContentLoaded", handleKeyboardVisibilityFix);
+
 
 </script>
 </body>
