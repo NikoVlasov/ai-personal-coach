@@ -176,7 +176,6 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
     </div>
 </div>
 </div>
-
 <script>
 // ===== BASE URL =====
 const BASE_URL = "";
@@ -258,17 +257,16 @@ const chatModule = (() => {
         msgDiv.className = `message ${sender}`;
         msgDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
         mainModule.chatContainer.appendChild(msgDiv);
-
         scrollChatToBottom();
-
         return msgDiv;
     }
 
     function scrollChatToBottom() {
         const container = mainModule.chatContainer;
-        container.scrollTop = container.scrollHeight;
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
 
+    // === Плавная печать ===
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) {
@@ -301,7 +299,20 @@ const chatModule = (() => {
             const aiText = data.reply || "(Empty response)";
 
             typingDiv.classList.remove("typing");
-            typingDiv.textContent = aiText;
+            typingDiv.textContent = "";
+
+            const paragraphs = aiText.split(/\n\s*\n/);
+
+            for (let paragraph of paragraphs) {
+                for (let char of paragraph.trim()) {
+                    typingDiv.textContent += char;
+                    scrollChatToBottom();
+                    await new Promise(r => setTimeout(r, 8));
+                }
+                typingDiv.textContent += "\n\n";
+                await new Promise(r => setTimeout(r, 150));
+            }
+
             scrollChatToBottom();
 
         } catch (err) {
@@ -376,59 +387,21 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
-// ===== MOBILE KEYBOARD ADJUSTMENT (precise) =====
-function adjustForKeyboardPrecise() {
-    const chatContainer = mainModule.chatContainer;
-    const inputContainer = document.getElementById("input-container");
-    const input = document.getElementById("message-input");
-    if (!chatContainer || !inputContainer || !window.visualViewport || !input) return;
-
-    let lastViewportHeight = window.visualViewport.height;
-
-    function scrollLastMessageIntoView() {
-        const lastMsg = chatContainer.lastElementChild;
-        if (lastMsg) {
-            lastMsg.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
+// ===== MOBILE KEYBOARD FIX (simple & stable) =====
+window.addEventListener('resize', () => {
+    const active = document.activeElement;
+    if (active && active.tagName === 'INPUT') {
+        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-
-    // Фокус на input
-    input.addEventListener('focus', () => {
-        setTimeout(scrollLastMessageIntoView, 300);
-    });
-
-    // Resize viewport (iOS / Android)
-    window.visualViewport.addEventListener('resize', () => {
-        const vh = window.visualViewport.height;
-        const delta = lastViewportHeight - vh;
-
-        if (delta > 150) { // клавиатура открылась
-            chatContainer.style.transform = `translateY(-${delta}px)`;
-            inputContainer.scrollIntoView({ behavior: "smooth", block: "end" });
-            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
-        } else { // клавиатура закрылась
-            chatContainer.style.transform = `translateY(0)`;
-        }
-
-        lastViewportHeight = vh;
-
-        // Дополнительно скроллим последнюю строку
-        setTimeout(scrollLastMessageIntoView, 100);
-    });
-
-    // При отправке сообщения
-    const originalSendMessage = chatModule.sendMessage;
-    chatModule.sendMessage = async (...args) => {
-        await originalSendMessage(...args);
-        scrollLastMessageIntoView();
-    };
-}
-
-// Инициализация после загрузки DOM
-window.addEventListener('DOMContentLoaded', () => {
-    adjustForKeyboardPrecise();
 });
 
-</script>>
+// ===== ENTER to SEND =====
+document.getElementById("message-input").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        chatModule.sendMessage();
+    }
+});
+</script>
 </body>
 </html>
