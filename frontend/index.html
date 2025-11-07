@@ -89,7 +89,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 #new-chat-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
-.chat-container{ scroll-behavior: smooth; transition: transform 0.25s ease-out; will-change: transform; }
+.chat-container{ flex: 1; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; overflow-y: auto; max-height: calc(100vh - 60px - 50px); scroll-behavior: smooth; }
 .chat-container.smooth-scroll { transform: translateY(-1px); }
 /* === MOBILE FIX for iPhone & small screens === */
 @media (max-width: 480px) {
@@ -380,16 +380,29 @@ const authModule = (() => {
 function adjustForKeyboardPrecise() {
     const chatContainer = mainModule.chatContainer;
     const inputContainer = document.getElementById("input-container");
-    if (!chatContainer || !inputContainer || !window.visualViewport) return;
+    const input = document.getElementById("message-input");
+    if (!chatContainer || !inputContainer || !window.visualViewport || !input) return;
 
     let lastViewportHeight = window.visualViewport.height;
 
+    function scrollLastMessageIntoView() {
+        const lastMsg = chatContainer.lastElementChild;
+        if (lastMsg) {
+            lastMsg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }
+
+    // Фокус на input
+    input.addEventListener('focus', () => {
+        setTimeout(scrollLastMessageIntoView, 300);
+    });
+
+    // Resize viewport (iOS / Android)
     window.visualViewport.addEventListener('resize', () => {
         const vh = window.visualViewport.height;
         const delta = lastViewportHeight - vh;
 
         if (delta > 150) { // клавиатура открылась
-            // смещаем контейнер чата вверх ровно на высоту клавиатуры
             chatContainer.style.transform = `translateY(-${delta}px)`;
             inputContainer.scrollIntoView({ behavior: "smooth", block: "end" });
             chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
@@ -398,14 +411,17 @@ function adjustForKeyboardPrecise() {
         }
 
         lastViewportHeight = vh;
+
+        // Дополнительно скроллим последнюю строку
+        setTimeout(scrollLastMessageIntoView, 100);
     });
 
-    // автоскролл при фокусе на input (iOS)
-    inputContainer.querySelector('input').addEventListener('focus', () => {
-        setTimeout(() => {
-            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
-        }, 300);
-    });
+    // При отправке сообщения
+    const originalSendMessage = chatModule.sendMessage;
+    chatModule.sendMessage = async (...args) => {
+        await originalSendMessage(...args);
+        scrollLastMessageIntoView();
+    };
 }
 
 // Инициализация после загрузки DOM
@@ -413,6 +429,6 @@ window.addEventListener('DOMContentLoaded', () => {
     adjustForKeyboardPrecise();
 });
 
-</script>
+</script>>
 </body>
 </html>
