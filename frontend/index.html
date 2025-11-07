@@ -178,8 +178,10 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 </div>
 
 <script>
+// ===== BASE URL =====
 const BASE_URL = "";
 
+// ===== MAIN MODULE =====
 const mainModule = (() => {
     let token = localStorage.getItem('token') || null;
     let user_id = localStorage.getItem('user_id') || null;
@@ -194,12 +196,14 @@ const mainModule = (() => {
     function setUserId(id){ user_id=id; localStorage.setItem('user_id',id);}
     function getToken(){ return token;}
     function getUserId(){ return user_id;}
+    function getCurrentLang(){ return localStorage.getItem("lang")||"en";}
     function setCurrentChatId(id){
         current_chat_id = id;
         chatDropdownBtn.textContent = chatListDiv.querySelector(`[data-id='${id}']`)?.textContent || "Select Chat";
         chatListDiv.classList.remove("show");
     }
     function getCurrentChatId(){ return current_chat_id;}
+
     function logout(){
         token=null; user_id=null; current_chat_id=null;
         localStorage.removeItem('token'); localStorage.removeItem('user_id');
@@ -209,9 +213,11 @@ const mainModule = (() => {
         chatDropdownBtn.textContent = "Select Chat";
         authModule.showForm('login');
     }
-    return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
+
+    return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv, getCurrentLang };
 })();
 
+// ===== CHAT MODULE =====
 const chatModule = (() => {
     async function fetchChats(){
         try{
@@ -244,7 +250,7 @@ const chatModule = (() => {
         const res=await fetch(`/history/${chatId}`, { headers:{ Authorization:"Bearer "+mainModule.getToken() } });
         const data=await res.json(); mainModule.chatContainer.innerHTML="";
         data.messages.forEach(msg=>addMessage(msg.text,msg.sender,msg.timestamp));
-        mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
+        scrollChatToBottom();
     }
 
     function addMessage(text, sender, timestamp=null){
@@ -252,51 +258,56 @@ const chatModule = (() => {
         msgDiv.className = `message ${sender}`;
         msgDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
         mainModule.chatContainer.appendChild(msgDiv);
+
         scrollChatToBottom();
+
         return msgDiv;
     }
+
     function scrollChatToBottom() {
         const container = mainModule.chatContainer;
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-        if (isAtBottom) {
-            container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-        }
+        container.scrollTop = container.scrollHeight;
     }
 
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
-        if (!chatId) { alert("Please select a chat first!"); return; }
+        if (!chatId) {
+            alert("Please select a chat first!");
+            return;
+        }
+
         const text = predefined || mainModule.inputField.value.trim();
         if (!text) return;
+
         addMessage(text, "user");
         mainModule.inputField.value = "";
+
         const typingDiv = addMessage("AI is typing...", "ai");
         typingDiv.classList.add("typing");
+
         try {
             const response = await fetch(BASE_URL + "/coach", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: "Bearer " + mainModule.getToken() },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + mainModule.getToken(),
+                },
                 body: JSON.stringify({ chat_id: chatId, text }),
             });
+
             if (!response.ok) throw new Error("Server error");
+
             const data = await response.json();
-            const aiText = data.reply || "(Empty reply)";
+            const aiText = data.reply || "(Empty response)";
+
             typingDiv.classList.remove("typing");
-            typingDiv.textContent = "";
-            const paragraphs = aiText.split(/\n\s*\n/);
-            for (let paragraph of paragraphs) {
-                for (let char of paragraph.trim()) {
-                    typingDiv.textContent += char;
-                    scrollChatToBottom();
-                    await new Promise(r => setTimeout(r, 8));
-                }
-                typingDiv.textContent += "\n\n";
-                await new Promise(r => setTimeout(r, 150));
-            }
+            typingDiv.textContent = aiText;
+            scrollChatToBottom();
+
         } catch (err) {
             typingDiv.classList.remove("typing");
             typingDiv.textContent = "Error receiving response";
-            console.error(err);
+            console.error("Error sending message:", err);
         }
     }
 
@@ -310,9 +321,10 @@ const chatModule = (() => {
         fetchChats();
     }
 
-    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
+    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat, scrollChatToBottom };
 })();
 
+// ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
     async function fetchQuickButtons(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
@@ -328,6 +340,7 @@ const quickButtonsModule = (() => {
     return { fetchQuickButtons };
 })();
 
+// ===== AUTH MODULE =====
 const authModule = (() => {
     function showForm(type){
         const loginForm=document.getElementById("login-form");
@@ -342,7 +355,7 @@ const authModule = (() => {
         const email=document.getElementById("register-email").value;
         const password=document.getElementById("register-password").value;
         const res=await fetch("/register",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
-        if(res.ok){ alert("Registration successful! Please login."); showForm("login"); }
+        if(res.ok){ alert("Registration successful! Now login."); showForm("login"); }
         else { const err=await res.json(); alert("Error: "+err.detail); }
     }
 
@@ -363,6 +376,24 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
+// ===== MOBILE KEYBOARD SCROLL FIX =====
+function fixMobileKeyboardScroll() {
+    const input = document.getElementById("message-input");
+    const chatContainer = document.getElementById("chat-container");
+
+    if (!input || !chatContainer) return;
+
+    function scrollToBottom() {
+        setTimeout(() => {
+            chatModule.scrollChatToBottom();
+        }, 300); // небольшая задержка для появления клавиатуры
+    }
+
+    input.addEventListener("focus", scrollToBottom);
+    input.addEventListener("input", scrollToBottom);
+}
+
+// ===== TOGGLE CHAT LIST =====
 function toggleChatList(){
     const list=document.getElementById("chat-list");
     const btn=document.getElementById("chat-dropdown-btn");
@@ -370,7 +401,10 @@ function toggleChatList(){
     btn.classList.toggle("open",isOpen);
 }
 
+// ===== INIT ON PAGE LOAD =====
 window.addEventListener('DOMContentLoaded', async ()=>{
+    fixMobileKeyboardScroll();
+
     const token=localStorage.getItem('token');
     const user_id=localStorage.getItem('user_id');
     if(token && user_id){
@@ -378,64 +412,12 @@ window.addEventListener('DOMContentLoaded', async ()=>{
             const res=await fetch("/chats",{ headers:{ Authorization:"Bearer "+token } });
             if(res.ok){ mainModule.setToken(token); mainModule.setUserId(user_id); document.getElementById("auth-container").style.display="none"; document.getElementById("chat-ui").classList.remove("hidden"); chatModule.fetchChats();}
             else localStorage.clear();
-        }catch(err){ console.error(err); localStorage.clear(); }
+        }catch(err){ console.error("Auto-login error:",err); localStorage.clear(); }
     }else{ document.getElementById("auth-container").style.display="block"; authModule.showForm('login'); }
 
     const input=document.getElementById("message-input");
     input.addEventListener("keydown", (e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); chatModule.sendMessage(); }});
 });
-// === Mobile keyboard fix (stable for iOS & Android) ===
-function handleKeyboardVisibilityFix() {
-  const input = document.getElementById("message-input");
-  const chatContainer = document.getElementById("chat-container");
-  const appContainer = document.getElementById("app-container");
-
-  if (!input || !chatContainer || !appContainer) return;
-
-  let originalHeight = window.innerHeight;
-  let isKeyboardVisible = false;
-
-  // Когда клавиатура открывается (фокус)
-  input.addEventListener("focus", () => {
-    setTimeout(() => {
-      const newHeight = window.innerHeight;
-      const keyboardHeight = originalHeight - newHeight;
-
-      // Если клавиатура реально появилась
-      if (keyboardHeight > 120 && !isKeyboardVisible) {
-        isKeyboardVisible = true;
-        appContainer.style.transform = `translateY(-${keyboardHeight - 60}px)`;
-        appContainer.style.transition = "transform 0.25s ease-out";
-      }
-
-      // Скроллим к последнему сообщению
-      chatContainer.scrollTo({
-        top: chatContainer.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 250);
-  });
-
-  // Когда клавиатура исчезает
-  input.addEventListener("blur", () => {
-    if (isKeyboardVisible) {
-      isKeyboardVisible = false;
-      appContainer.style.transform = "translateY(0)";
-    }
-  });
-
-  // Если пользователь меняет ориентацию или перезагружает
-  window.addEventListener("resize", () => {
-    if (!isKeyboardVisible) {
-      originalHeight = window.innerHeight;
-    }
-  });
-}
-
-window.addEventListener("DOMContentLoaded", handleKeyboardVisibilityFix);
-
-
-
 </script>
 </body>
 </html>
