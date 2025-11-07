@@ -376,47 +376,44 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
-// ===== MOBILE KEYBOARD SCROLL FIX =====
-function fixMobileKeyboardScroll() {
-    const input = document.getElementById("message-input");
-    const chatContainer = document.getElementById("chat-container");
+// ===== MOBILE KEYBOARD ADJUSTMENT =====
+function adjustForKeyboard() {
+    const chatContainer = mainModule.chatContainer;
+    const inputContainer = document.getElementById("input-container");
+    if (!chatContainer || !inputContainer || !window.visualViewport) return;
 
-    if (!input || !chatContainer) return;
+    let lastViewportHeight = window.visualViewport.height;
+
+    // Когда изменяется видимая область (открытие клавиатуры)
+    window.visualViewport.addEventListener('resize', () => {
+        const vh = window.visualViewport.height;
+        const delta = lastViewportHeight - vh;
+
+        if (delta > 150) { // клавиатура открылась
+            // добавляем padding снизу равный высоте клавиатуры
+            chatContainer.style.paddingBottom = delta + "px";
+            inputContainer.scrollIntoView({ behavior: "smooth", block: "end" });
+            scrollToBottom();
+        } else { // клавиатура закрылась
+            chatContainer.style.paddingBottom = "10px"; // вернем обычный padding
+        }
+        lastViewportHeight = vh;
+    });
 
     function scrollToBottom() {
-        setTimeout(() => {
-            chatModule.scrollChatToBottom();
-        }, 300); // небольшая задержка для появления клавиатуры
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
     }
 
-    input.addEventListener("focus", scrollToBottom);
-    input.addEventListener("input", scrollToBottom);
+    // Для iOS иногда нужно скроллить при фокусе на input
+    const inputField = document.getElementById("message-input");
+    inputField.addEventListener("focus", () => {
+        setTimeout(scrollToBottom, 300);
+    });
 }
 
-// ===== TOGGLE CHAT LIST =====
-function toggleChatList(){
-    const list=document.getElementById("chat-list");
-    const btn=document.getElementById("chat-dropdown-btn");
-    const isOpen=list.classList.toggle("show");
-    btn.classList.toggle("open",isOpen);
-}
-
-// ===== INIT ON PAGE LOAD =====
-window.addEventListener('DOMContentLoaded', async ()=>{
-    fixMobileKeyboardScroll();
-
-    const token=localStorage.getItem('token');
-    const user_id=localStorage.getItem('user_id');
-    if(token && user_id){
-        try{
-            const res=await fetch("/chats",{ headers:{ Authorization:"Bearer "+token } });
-            if(res.ok){ mainModule.setToken(token); mainModule.setUserId(user_id); document.getElementById("auth-container").style.display="none"; document.getElementById("chat-ui").classList.remove("hidden"); chatModule.fetchChats();}
-            else localStorage.clear();
-        }catch(err){ console.error("Auto-login error:",err); localStorage.clear(); }
-    }else{ document.getElementById("auth-container").style.display="block"; authModule.showForm('login'); }
-
-    const input=document.getElementById("message-input");
-    input.addEventListener("keydown", (e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); chatModule.sendMessage(); }});
+// Инициализация после загрузки DOM
+window.addEventListener('DOMContentLoaded', () => {
+    adjustForKeyboard();
 });
 </script>
 </body>
