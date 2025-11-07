@@ -376,45 +376,43 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
-// ===== MOBILE KEYBOARD ADJUSTMENT =====
-function adjustForKeyboard() {
+// ===== MOBILE KEYBOARD ADJUSTMENT (precise) =====
+function adjustForKeyboardPrecise() {
     const chatContainer = mainModule.chatContainer;
     const inputContainer = document.getElementById("input-container");
     if (!chatContainer || !inputContainer || !window.visualViewport) return;
 
     let lastViewportHeight = window.visualViewport.height;
 
-    // Когда изменяется видимая область (открытие клавиатуры)
     window.visualViewport.addEventListener('resize', () => {
         const vh = window.visualViewport.height;
         const delta = lastViewportHeight - vh;
 
         if (delta > 150) { // клавиатура открылась
-            // добавляем padding снизу равный высоте клавиатуры
-            chatContainer.style.paddingBottom = delta + "px";
+            // смещаем контейнер чата вверх ровно на высоту клавиатуры
+            chatContainer.style.transform = `translateY(-${delta}px)`;
             inputContainer.scrollIntoView({ behavior: "smooth", block: "end" });
-            scrollToBottom();
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
         } else { // клавиатура закрылась
-            chatContainer.style.paddingBottom = "10px"; // вернем обычный padding
+            chatContainer.style.transform = `translateY(0)`;
         }
+
         lastViewportHeight = vh;
     });
 
-    function scrollToBottom() {
-        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
-    }
-
-    // Для iOS иногда нужно скроллить при фокусе на input
-    const inputField = document.getElementById("message-input");
-    inputField.addEventListener("focus", () => {
-        setTimeout(scrollToBottom, 300);
+    // автоскролл при фокусе на input (iOS)
+    inputContainer.querySelector('input').addEventListener('focus', () => {
+        setTimeout(() => {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
+        }, 300);
     });
 }
 
 // Инициализация после загрузки DOM
 window.addEventListener('DOMContentLoaded', () => {
-    adjustForKeyboard();
+    adjustForKeyboardPrecise();
 });
+
 </script>
 </body>
 </html>
