@@ -384,6 +384,34 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     const input=document.getElementById("message-input");
     input.addEventListener("keydown", (e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); chatModule.sendMessage(); }});
 });
+// === Fix for mobile keyboard overlap ===
+function handleKeyboardVisibilityFix() {
+  const input = document.getElementById("message-input");
+  const chatContainer = document.getElementById("chat-container");
+  const inputContainer = document.getElementById("input-container");
+
+  if (!input || !chatContainer) return;
+
+  // Когда фокус на инпуте (появляется клавиатура)
+  input.addEventListener("focus", () => {
+    setTimeout(() => {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: "smooth",
+      });
+      // Немного "поднимаем" input-container
+      inputContainer.style.paddingBottom = "250px";
+    }, 300); // ждём, пока появится клавиатура
+  });
+
+  // Когда клавиатура скрывается
+  input.addEventListener("blur", () => {
+    inputContainer.style.paddingBottom = "10px";
+  });
+}
+
+window.addEventListener("DOMContentLoaded", handleKeyboardVisibilityFix);
+
 </script>
 </body>
 </html>
