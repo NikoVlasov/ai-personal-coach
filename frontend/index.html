@@ -402,6 +402,35 @@ document.getElementById("message-input").addEventListener("keypress", function (
         chatModule.sendMessage();
     }
 });
+// ===== ВОССТАНОВЛЕНИЕ ПОСЛЕДНЕГО ЧАТА =====
+window.addEventListener("DOMContentLoaded", async () => {
+    const token = mainModule.getToken();
+    const userId = mainModule.getUserId();
+
+    if (token && userId) {
+        // Пользователь уже вошёл — сразу показываем UI
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("chat-ui").classList.remove("hidden");
+
+        // Загружаем список чатов
+        await chatModule.fetchChats();
+
+        // Пробуем восстановить последний открытый чат
+        const lastChatId = localStorage.getItem("last_chat_id");
+        if (lastChatId) {
+            mainModule.setCurrentChatId(lastChatId);
+            await chatModule.fetchHistory();
+            await quickButtonsModule.fetchQuickButtons();
+        }
+    }
+});
+
+// ===== Сохраняем ID последнего чата при выборе =====
+const originalSetCurrentChatId = mainModule.setCurrentChatId;
+mainModule.setCurrentChatId = (id) => {
+    localStorage.setItem("last_chat_id", id);
+    originalSetCurrentChatId(id);
+};
 </script>
 </body>
 </html>
