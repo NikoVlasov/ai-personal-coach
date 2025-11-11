@@ -216,42 +216,86 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv, getCurrentLang };
 })();
 
-// ===== CHAT MODULE =====
+// ===== CHAT MODULE (fixed) =====
 const chatModule = (() => {
+    let chats = []; // локальное хранилище списка чатов
+
+    // Получить список чатов с сервера
     async function fetchChats(){
-        try{
-            const res = await fetch(`/chats`, { headers:{ Authorization:"Bearer "+mainModule.getToken() } });
-            const data = await res.json();
-            const chatListDiv = mainModule.chatListDiv;
-            chatListDiv.innerHTML="";
-            data.chats.forEach(chat=>{
-                const div=document.createElement("div");
-                div.textContent=chat.title;
-                div.dataset.id=chat.id;
-                div.onclick=()=>{ mainModule.setCurrentChatId(chat.id); fetchHistory(); quickButtonsModule.fetchQuickButtons(); };
-                chatListDiv.appendChild(div);
+        try {
+            const res = await fetch(`/chats`, {
+                headers: { Authorization: "Bearer " + mainModule.getToken() }
             });
-        }catch(e){ alert("Error fetching chats");}
+            const data = await res.json();
+            chats = data.chats; // обновляем локальный список
+            renderChatList();
+        } catch (e) {
+            alert("Error fetching chats");
+            console.error(e);
+        }
     }
 
+    // Отрисовать список чатов
+    function renderChatList() {
+        const chatListDiv = mainModule.chatListDiv;
+        chatListDiv.innerHTML = "";
+        chats.forEach(chat => {
+            const div = document.createElement("div");
+            div.textContent = chat.title;
+            div.dataset.id = chat.id;
+            div.onclick = () => switchChat(chat.id);
+            chatListDiv.appendChild(div);
+        });
+    }
+
+    // Переключение на выбранный чат
+    async function switchChat(chatId){
+        mainModule.setCurrentChatId(chatId);
+        await fetchHistory(chatId);
+        quickButtonsModule.fetchQuickButtons();
+    }
+
+    // Создать новый чат
     async function createChat(){
-        const title=document.getElementById("new-chat-title").value.trim();
+        const title = document.getElementById("new-chat-title").value.trim();
         if(!title) return;
-        const res=await fetch(`/chats`, { method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ title }) });
-        const data=await res.json();
-        document.getElementById("new-chat-title").value="";
-        await fetchChats();
-        mainModule.setCurrentChatId(data.chat_id);
+
+        try {
+            const res = await fetch(`/chats`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + mainModule.getToken()
+                },
+                body: JSON.stringify({ title })
+            });
+            const data = await res.json();
+            document.getElementById("new-chat-title").value = "";
+            await fetchChats();
+            switchChat(data.chat_id);
+        } catch(e) {
+            alert("Error creating chat");
+            console.error(e);
+        }
     }
 
-    async function fetchHistory(){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
-        const res=await fetch(`/history/${chatId}`, { headers:{ Authorization:"Bearer "+mainModule.getToken() } });
-        const data=await res.json(); mainModule.chatContainer.innerHTML="";
-        data.messages.forEach(msg=>addMessage(msg.text,msg.sender,msg.timestamp));
-        scrollChatToBottom();
+    // Получить историю сообщений выбранного чата
+    async function fetchHistory(chatId){
+        if(!chatId) return;
+        try {
+            const res = await fetch(`/history/${chatId}`, {
+                headers: { Authorization: "Bearer " + mainModule.getToken() }
+            });
+            const data = await res.json();
+            mainModule.chatContainer.innerHTML = "";
+            data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.timestamp));
+            scrollChatToBottom();
+        } catch(e) {
+            console.error("Error fetching history", e);
+        }
     }
 
+    // Добавить сообщение в чат
     function addMessage(text, sender, timestamp=null){
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${sender}`;
@@ -261,25 +305,27 @@ const chatModule = (() => {
         return msgDiv;
     }
 
+    // Прокрутка к последнему сообщению
     function scrollChatToBottom() {
         const container = mainModule.chatContainer;
-        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        container.scrollTop = container.scrollHeight;
     }
 
-    // === Плавная печать ===
+    // Отправка сообщения
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
-        if (!chatId) {
+        if(!chatId) {
             alert("Please select a chat first!");
             return;
         }
 
         const text = predefined || mainModule.inputField.value.trim();
-        if (!text) return;
+        if(!text) return;
 
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
+        // Временное сообщение "печатает..."
         const typingDiv = addMessage("AI is typing...", "ai");
         typingDiv.classList.add("typing");
 
@@ -288,52 +334,55 @@ const chatModule = (() => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: "Bearer " + mainModule.getToken(),
+                    Authorization: "Bearer " + mainModule.getToken()
                 },
-                body: JSON.stringify({ chat_id: chatId, text }),
+                body: JSON.stringify({ chat_id: chatId, text })
             });
 
-            if (!response.ok) throw new Error("Server error");
+            if(!response.ok) throw new Error("Server error");
 
             const data = await response.json();
             const aiText = data.reply || "(Empty response)";
 
+            // Плавная анимация набора текста
             typingDiv.classList.remove("typing");
             typingDiv.textContent = "";
-
-            const paragraphs = aiText.split(/\n\s*\n/);
-
-            for (let paragraph of paragraphs) {
-                for (let char of paragraph.trim()) {
-                    typingDiv.textContent += char;
-                    scrollChatToBottom();
-                    await new Promise(r => setTimeout(r, 8));
-                }
-                typingDiv.textContent += "\n\n";
-                await new Promise(r => setTimeout(r, 150));
+            for(let char of aiText) {
+                typingDiv.textContent += char;
+                await new Promise(r => setTimeout(r, 8));
+                scrollChatToBottom();
             }
 
-            scrollChatToBottom();
-
-        } catch (err) {
+        } catch(e) {
             typingDiv.classList.remove("typing");
             typingDiv.textContent = "Error receiving response";
-            console.error("Error sending message:", err);
+            console.error(e);
         }
     }
 
+    // Удаление выбранного чата
     async function deleteChat(){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
+        const chatId = mainModule.getCurrentChatId();
+        if(!chatId) return;
         if(!confirm("Are you sure you want to delete this chat?")) return;
-        await fetch(`/chats/${chatId}`,{ method:"DELETE", headers:{ Authorization:"Bearer "+mainModule.getToken() } });
-        mainModule.setCurrentChatId(null);
-        mainModule.chatContainer.innerHTML="";
-        mainModule.chatListDiv.innerHTML="";
-        fetchChats();
+
+        try {
+            await fetch(`/chats/${chatId}`, {
+                method: "DELETE",
+                headers: { Authorization: "Bearer " + mainModule.getToken() }
+            });
+            mainModule.setCurrentChatId(null);
+            await fetchChats();
+            mainModule.chatContainer.innerHTML = "";
+        } catch(e) {
+            alert("Error deleting chat");
+            console.error(e);
+        }
     }
 
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat, scrollChatToBottom };
 })();
+
 
 // ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
