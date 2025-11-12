@@ -361,24 +361,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
     setLanguage('ru');
 });
 
-// ===== MOBILE KEYBOARD FIX (FINAL PRECISE VERSION) =====
-if (window.visualViewport) {
-    const chatContainer = document.getElementById("chat-container");
-    const inputContainer = document.getElementById("input-container");
-    let lastHeight = window.visualViewport.height;
-
-    window.visualViewport.addEventListener("resize", () => {
-        const diff = lastHeight - window.visualViewport.height;
-        if (diff > 120) {
-            // клавиатура открыта
-            chatContainer.style.transform = `translateY(-${diff}px)`;
-            inputContainer.scrollIntoView({ behavior: "smooth", block: "end" });
-        } else {
-            // клавиатура закрылась
-            chatContainer.style.transform = "translateY(0)";
-        }
-        lastHeight = window.visualViewport.height;
-    });
+// ===== MOBILE KEYBOARD FIX (simple & stable) =====
+window.addEventListener('resize', () => {
+    const active = document.activeElement;
+    if (active && active.tagName === 'INPUT') {
+        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
 }
 </script>
 </body>
