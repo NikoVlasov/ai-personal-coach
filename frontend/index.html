@@ -248,11 +248,17 @@ const chatModule = (() => {
         });
     }
 
-    // Переключение на выбранный чат
-    async function switchChat(chatId){
+    // ===== SWITCH CHAT (updated) =====
+    async function switchChat(chatId) {
+        if (!chatId) return;
+
+        // Сохраняем выбранный чат
         mainModule.setCurrentChatId(chatId);
+        localStorage.setItem("last_chat_id", chatId);
+
+        // Загружаем историю и быстрые кнопки
         await fetchHistory(chatId);
-        quickButtonsModule.fetchQuickButtons();
+        await quickButtonsModule.fetchQuickButtons();
     }
 
     // Создать новый чат
@@ -260,38 +266,47 @@ const chatModule = (() => {
         const title = document.getElementById("new-chat-title").value.trim();
         if(!title) return;
 
-        try {
-            const res = await fetch(`/chats`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + mainModule.getToken()
-                },
-                body: JSON.stringify({ title })
-            });
-            const data = await res.json();
-            document.getElementById("new-chat-title").value = "";
-            await fetchChats();
-            switchChat(data.chat_id);
-        } catch(e) {
-            alert("Error creating chat");
-            console.error(e);
-        }
+        const res = await fetch(`/chats`, {
+            method:"POST",
+            headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() },
+            body: JSON.stringify({ title })
+        });
+
+        const data = await res.json();
+        document.getElementById("new-chat-title").value = "";
+
+        // обновляем список чатов, не удаляя предыдущие
+        await fetchChats();
+
+        // выбираем новый чат
+        mainModule.setCurrentChatId(data.chat_id);
+        fetchHistory();
+        quickButtonsModule.fetchQuickButtons();
     }
 
-    // Получить историю сообщений выбранного чата
-    async function fetchHistory(chatId){
-        if(!chatId) return;
+    // ===== FETCH CHAT HISTORY (updated) =====
+    async function fetchHistory(chatId) {
+        const id = chatId || mainModule.getCurrentChatId();
+        if (!id) return;
+
         try {
-            const res = await fetch(`/history/${chatId}`, {
+            const res = await fetch(`/history/${id}`, {
                 headers: { Authorization: "Bearer " + mainModule.getToken() }
             });
+
+            if (!res.ok) throw new Error("Failed to load history");
+
             const data = await res.json();
+
+            // Очищаем контейнер и добавляем сообщения
             mainModule.chatContainer.innerHTML = "";
             data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.timestamp));
+
+            // Скроллим вниз
             scrollChatToBottom();
-        } catch(e) {
-            console.error("Error fetching history", e);
+
+        } catch (e) {
+            console.error("Error fetching history:", e);
         }
     }
 
@@ -383,7 +398,6 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat, scrollChatToBottom };
 })();
 
-
 // ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
     async function fetchQuickButtons(){
@@ -451,25 +465,30 @@ document.getElementById("message-input").addEventListener("keypress", function (
         chatModule.sendMessage();
     }
 });
-// ===== ВОССТАНОВЛЕНИЕ ПОСЛЕДНЕГО ЧАТА =====
+
+// ===== RESTORE LAST CHAT (updated) =====
 window.addEventListener("DOMContentLoaded", async () => {
     const token = mainModule.getToken();
     const userId = mainModule.getUserId();
 
     if (token && userId) {
-        // Пользователь уже вошёл — сразу показываем UI
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("chat-ui").classList.remove("hidden");
 
         // Загружаем список чатов
         await chatModule.fetchChats();
 
-        // Пробуем восстановить последний открытый чат
+        // Восстанавливаем последний выбранный чат, если есть
         const lastChatId = localStorage.getItem("last_chat_id");
         if (lastChatId) {
             mainModule.setCurrentChatId(lastChatId);
-            await chatModule.fetchHistory();
+            await chatModule.fetchHistory(lastChatId);
             await quickButtonsModule.fetchQuickButtons();
+        } else {
+            const msg = document.createElement("div");
+            msg.className = "system-msg";
+            msg.textContent = "Select a chat or create a new one to get started.";
+            mainModule.chatContainer.appendChild(msg);
         }
     }
 });
