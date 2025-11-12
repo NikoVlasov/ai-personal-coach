@@ -367,6 +367,15 @@ window.addEventListener('resize', () => {
     if (active && active.tagName === 'INPUT') {
         active.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
+// ===== ENTER to SEND =====
+document.getElementById("message-input").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        chatModule.sendMessage();
+    }
+
+
 });
 </script>
 </body>
