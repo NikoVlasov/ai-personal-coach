@@ -34,24 +34,22 @@
 <style>
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
 #app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; margin: 10px; box-sizing: border-box;}
-header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
+header { background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
 .hidden { display: none; }
 #top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
-.top-btn { padding:10px 16px; border:none; border-radius:8px; background:#4f8ef7; color:white; cursor:pointer; transition:none; font-size:15px; font-weight:bold; }
-.top-btn.active { background:#3a6fdc; }
+.top-btn { padding: 8px 16px; border:none; border-radius:8px; background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color:white; cursor:pointer; transition: 0.2s; font-weight:bold; }
+.top-btn.active { background: linear-gradient(90deg, #3a6fdc, #5a87ff); }
 
-/* AUTH */
 #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
 .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
 .auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
-.auth-tabs button.active { background: #4f8ef7; color: white; }
+.auth-tabs button.active { background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color: white; }
 .auth-form { display: flex; flex-direction: column; gap: 12px; width:100%; margin:0; }
 .auth-form.hidden { display: none !important; }
 .auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
-.auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; font-size:15px; }
-.auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
+.auth-form button { padding: 12px; border-radius: 8px; border: none; background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
+.auth-form button:hover { background: linear-gradient(90deg, #3a6fdc, #5a87ff); transform: scale(1.03); }
 
-/* Chat */
 #chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
 #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
 #chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
@@ -60,40 +58,36 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 #chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
 #chat-list div:hover { background:#e6edf7; }
 #chat-dropdown-btn.open::after { transform: rotate(180deg); }
-#delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:10px 16px; cursor:pointer; transition: 0.2s; font-size:15px; font-weight:bold; }
+#delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px; cursor:pointer; transition: 0.2s; }
 #delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
 
 #chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
 .message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; white-space: pre-wrap; }
-.user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+.user { background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color: white; align-self: flex-end; border-bottom-right-radius: 0; }
 .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
 .typing { font-style: italic; opacity: 0.7; }
 .fade-out { opacity: 0; transition: opacity 0.5s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Quick buttons */
 #quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
-.quick-btn { background: #81b4ff; color: white; border: none; padding:10px 16px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; font-size:15px; font-weight:bold; min-height:44px; }
-.quick-btn:hover { background: #4f8ef7; transform: scale(1.05); }
+.quick-btn { background: linear-gradient(90deg, #81b4ff, #4f8ef7); color: white; border: none; padding: 12px 16px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; font-weight:bold; }
+.quick-btn:hover { background: linear-gradient(90deg, #4f8ef7, #3a6fdc); transform: scale(1.05); }
 .quick-btn .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; transition: 0.2s; }
 .quick-btn .delete-btn:hover { background: darkred; }
 
-/* Input */
 #input-container { display:flex; gap:5px; padding:10px; }
 #input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
-#input-container button { padding:10px 16px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; font-size:15px; min-height:44px; }
-#input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
+#input-container button { padding:12px 16px; border-radius:8px; border:none; background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color:white; font-weight:bold; cursor:pointer; }
+#input-container button:hover { background: linear-gradient(90deg, #3a6fdc, #5a87ff); transform:scale(1.05); }
 
-/* New chat */
 #new-chat-container { display:flex; gap:5px; margin:10px; }
 #new-chat-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
-#new-chat-container button { padding:10px 16px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; font-size:15px; min-height:44px; }
-#new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
+#new-chat-container button { padding:12px 16px; border-radius:8px; border:none; background: linear-gradient(90deg, #4f8ef7, #6aa0ff); color:white; font-weight:bold; cursor:pointer; }
+#new-chat-container button:hover { background: linear-gradient(90deg, #3a6fdc, #5a87ff); transform:scale(1.05); }
 
 .chat-container{ flex: 1; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; overflow-y: auto; max-height: calc(100vh - 60px - 50px); scroll-behavior: smooth; }
 .chat-container.smooth-scroll { transform: translateY(-1px); }
 
-/* === MOBILE FIX for iPhone & small screens === */
 @media (max-width: 480px) {
   html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
   #app-container { width: 100%; height: 100dvh; max-width: none; border-radius: 0; margin: 0; box-shadow: none; display: flex; flex-direction: column; overflow: hidden; }
@@ -103,6 +97,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
   input, button { font-size: 16px; }
 }
 </style>
+
 
 
 </head>
