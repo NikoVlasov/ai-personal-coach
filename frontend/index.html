@@ -33,12 +33,13 @@
 
 <style>
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-#app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; margin: 10px; box-sizing: border-box;}
+#app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; margin: 10px; box-sizing: border-box; }
 header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
 .hidden { display: none; }
 #top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
 .top-btn { padding:6px 12px; border:none; border-radius:8px; background:#4f8ef7; color:white; cursor:pointer; transition:none; }
 .top-btn.active { background:#3a6fdc; }
+
 /* AUTH */
 #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
 .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
@@ -49,25 +50,32 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
 .auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
 .auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
+
 /* Chat */
 #chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
-#chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
+#chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
 #chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
-#chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
-#chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
+#chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0; }
+#chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0); }
 #chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
 #chat-list div:hover { background:#e6edf7; }
 #chat-dropdown-btn.open::after { transform: rotate(180deg); }
+
 #delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px 30px 8px 8px; cursor:pointer; position: relative; transition: 0.2s; }
 #delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
 #delete-chat-btn::after { content:'🗑'; position: absolute; top:50%; right: 10px; transform: translate(-50%,-50%); font-size:14px; }
+
 #chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
+
 .message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeInMove 0.35s ease forwards; white-space: pre-wrap; }
 .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
 .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
+
 .typing { font-style: italic; opacity: 0.7; }
 .fade-out { opacity: 0; transition: opacity 0.5s ease; }
+
 @keyframes fadeInMove { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
 /* Quick buttons */
 #quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
 .quick-btn { background: #81b4ff; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; }
@@ -77,24 +85,60 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .quick-btn .delete-btn:hover { background: darkred; }
 .quick-btn[title] { position: relative; cursor: pointer; }
 .quick-btn[title]:hover::before { content: attr(title); position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 10; }
+
 /* Input */
 #input-container { display:flex; gap:5px; padding:10px; }
 #input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; position: relative; }
 #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
 #input-container button::after { content:'➡'; margin-left:4px; }
+
 /* New chat */
 #new-chat-container { display:flex; gap:5px; margin:10px; }
 #new-chat-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; position: relative; }
 #new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
 #new-chat-container button::after { content:'+'; margin-left:4px; }
+
 /* Chat container */
-.chat-container{ flex: 1; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; overflow-y: auto; max-height: calc(100vh - 60px - 50px); scroll-behavior: smooth; }
+.chat-container { flex: 1; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; overflow-y: auto; max-height: calc(100vh - 60px - 50px); scroll-behavior: smooth; }
 .chat-container.smooth-scroll { transform: translateY(-1px); }
+
 /* === MOBILE FIX for iPhone & small screens === */
-@media (max-width: 480px) { html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; } #app-container { width: 100%; height: 100dvh; max-width: none; border-radius: 0; margin: 0; box-shadow: none; display: flex; flex-direction: column; overflow: hidden; } header { font-size: 1.2rem; padding: 10px; } #chat-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; } #input-container { padding: 8px; } input, button { font-size: 16px; } }
+@media (max-width: 480px) {
+    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+
+    /* фикс: iOS перестает увеличивать элементы */
+    input, button, select, textarea {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* фикс: реальное высотное значение для iPhone */
+    #app-container {
+        width: 100%;
+        height: 100dvh;
+        max-width: none;
+        border-radius: 0;
+        margin: 0;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    header { font-size: 1.2rem; padding: 10px; }
+
+    #chat-container {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #input-container { padding: 8px; }
+}
 </style>
+
 
 
 
