@@ -73,7 +73,7 @@ uvicorn main:app --host 0.0.0.0 --port 8080
 Open index.html in a browser or deploy locally using GitHub Pages / Netlify.
 
 
-```markdown
+
 ## 🖥️ Usage
 
 1. Open the frontend in a browser (either via Render or locally).  
@@ -93,10 +93,10 @@ Open index.html in a browser or deploy locally using GitHub Pages / Netlify.
 ai-personal-coach/
 ├─ main.py             # Backend API
 ├─ requirements.txt    # Python dependencies
-├─ index.html          # Frontend MVP
 ├─ .gitignore
 ├─ README.md
-└─ frontend/           # Optional folder for assets
+└─ frontend/
+           ├─ index.html     # Frontend MVP
 
 
 ## 📬 Contact / Feedback
