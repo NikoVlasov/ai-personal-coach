@@ -37,7 +37,6 @@ You can test the application **directly via Render** without installing anything
 If you want to run the application locally or contribute to development:
 
 #### Clone the repository
-```bash
 git clone https://github.com/NikoVlasov/ai-personal-coach.git
 cd ai-personal-coach
 
