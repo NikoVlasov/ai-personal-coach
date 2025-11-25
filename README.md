@@ -11,7 +11,6 @@ AI Personal Coach is a minimal viable product (MVP) of a personal AI assistant t
 - User registration and login
 - Select, create, and delete chats
 - Chat with AI assistant
-- Quick buttons for frequently used messages
 - Multi-language support (RU / EN)
 - Minimalist responsive UI
 
