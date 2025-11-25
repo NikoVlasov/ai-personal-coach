@@ -97,6 +97,9 @@ ai-personal-coach/
 ├─ README.md
 └─ frontend/
            ├─ index.html     # Frontend MVP
+```
+
+
 
 
 ## 📬 Contact / Feedback
