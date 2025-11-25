@@ -97,21 +97,17 @@ Chat renaming is not implemented yet.
 
 UI is minimal; future improvements planned: dark mode, animations, responsive tweaks.
 
- Project Structure
+## 📂 Project Structure
 
+```text
 ai-personal-coach/
+├─ main.py             # Backend API
+├─ requirements.txt    # Python dependencies
+├─ .gitignore
+├─ README.md
+└─ frontend/
+            ├─ index.html     # Frontend MVP
 
-main.py       # Backend API
-
-requirements.txt     # Python dependencies
-
-.gitignore
-
-README.md
-
-📂Frontend
-
-index.html      # Frontend MVP
 
 📬 Contact / Feedback
 
