@@ -1,153 +1,89 @@
- 🤖 AI Personal Coach - MVP
+# 🤖 AI Personal Coach — MVP
+A minimal viable product (MVP) of a personal AI assistant that allows users to create chats, switch between them, and communicate with an AI model through a clean and responsive interface.  
+The project is already deployed and can be used instantly — no installation required.
 
+## 🌐 Live Demo
 
- 📖 Overview
+👉 **https://ai-personal-coach.onrender.com**
 
-AI Personal Coach —  (MVP) 
+⚠️ Note:  
+The backend is hosted on Render’s free tier.  
+If the app loads slowly (10–20 seconds), the server is simply waking up.
 
+## ✨ Features
 
- 📖 Overview
+- 🔐 User registration & login  
+- 💬 Create, select, and delete chats  
+- 🧠 AI assistant chat  
+- 🌏 Multi-language UI (EN / RU)  
+- 📱 Fully responsive design (mobile + desktop)  
+- 💾 Chat history stored per account  
+- 🎨 Clean modern UI with future expansion planned  
 
+## 🛠️ Optional Local Installation
 
-AI Personal Coach —  (MVP) 
+Users can test the app directly via the live link above.  
+Local installation is only needed for developers.
 
- ✨ Features
-
-✨ Features
-
-User registration and login
-
-Select, create, and delete chats
-
-Chat with AI assistant
-
- ✨ Features
-
-- User registration and login  
-- Select, create, and delete chats  
-- Chat with AI assistant  
-- Multi-language support (RU / EN)  
-- Minimalist responsive UI with animations and tooltips  
-- Floating icons and interactive buttons
-
-
-- User registration and login  
-- Select, create, and delete chats  
-- Chat with AI assistant  
-- Multi-language support (RU / EN)  
-- Minimalist responsive UI with animations and tooltips  
-- Floating icons and interactive buttons
-
- 🌐 Testing the Application
-
- For Users / Testers
-
-You can test the application **directly via Render** without installing anything locally:  
-
-https://ai-personal-coach-rogv.onrender.com  
-
-
-
-
- ⚠️ Note: Free Render servers may go to sleep when inactive. The first request may take a few seconds to wake up the server.
-
- For Developers / Contributors
-
-If you want to run the application locally or contribute to development:
-
-
-Clone the repository:
-
- Clone the repository
- 
-git clone https://github.com/NikoVlasov/ai-personal-coach.git
+### 1. Clone the repository
+git clone https://github.com/NikoVlasov/ai-personal-coach.git  
 cd ai-personal-coach
 
-Create a virtual environment:
-
-
+### 2. Create a virtual environment
 python -m venv .venv
 
-Activate it
+### 3. Activate the environment
+Windows: .venv\Scripts\activate  
+macOS/Linux: source .venv/bin/activate
 
-Windows:
-
-.venv\Scripts\activate
-
-Linux / Mac:
-
-source .venv/bin/activate
-
-Install dependencies:
-
+### 4. Install dependencies
 pip install -r requirements.txt
 
-Configuration
+## ⚙️ Configuration
 
-Create a .env file in the root folder and add required environment variables:
+Create a `.env` file in the root folder:
 
 API_KEY=<your_api_key>
-OTHER_CONFIG=<other_config>
 
+Do **not** commit `.env` to the repository.
 
+## ▶️ Running the App Locally
 
-
-Do not commit .env to the repository.
-
-Running Locally:
+Start backend server:
 
 uvicorn main:app --host 0.0.0.0 --port 8080
 
-Open index.html in a browser or deploy locally using GitHub Pages / Netlify.
+Backend will be available at:
 
+http://localhost:8080
 
+Then simply open `index.html` in your browser.
 
- 🖥️ Usage
+## 📂 Project Structure
 
-1. Open the frontend in a browser (either via Render or locally).  
-2. Register a new account or log in.  
-3. Create or select a chat.  
-4. Send messages to the AI assistant.  
-5. Delete chats if needed.  
+ai-personal-coach/  
+├─ main.py              # Backend API  
+├─ requirements.txt     # Python dependencies  
+├─ index.html           # Frontend  
+├─ README.md  
+├─ .gitignore  
+└─ frontend/            # Assets and styles  
 
- ⚠️ Notes:  
- - Sending messages by pressing Enter is currently not implemented (only via button).  
- - Chat renaming is not implemented yet.  
- - UI is minimal; future improvements include dark mode, animations, and enhanced responsive design.
+## 📝 Notes
 
+- Enter-to-send is not yet implemented  
+- UI/UX improvements planned: animations, redesign, additional themes  
+- Safari/iOS layout may have minor issues (MVP stage)
 
+## 📬 Feedback & Contact
 
+Have suggestions or found a bug?  
+Feel free to open an issue on GitHub — all feedback is welcome!
 
+## ⚖️ License
 
- 📂 Project Structure
-
-
-ai-personal-coach/
-├─ main.py             # Backend API
-├─ requirements.txt    # Python dependencies
-├─ .gitignore
-├─ README.md
-<<<<<<< HEAD
-└─ frontend/           
-           ├─ index.html     # Frontend MVP
-
-
-=======
-└─ frontend/
-           ├─ index.html     # Frontend MVP
-
-
-
-
-
-
- 📬 Contact / Feedback
-
-For any questions, suggestions, or feedback, feel free to open an issue on GitHub or contact the developer directly.
-
- ⚖️ License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License.  
+See the LICENSE file for details.
 
 
 
