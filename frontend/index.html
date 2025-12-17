@@ -506,10 +506,19 @@ async function saveMemoryFromText(text) {
 
 async function fetchChats() {
     try {
-        const res = await fetch("/chats", { headers: { Authorization: "Bearer " + mainModule.getToken() } });
+        const token = mainModule.getToken();
+        if (!token) throw new Error("No token set");
+
+        const res = await fetch("/chats", {
+            headers: { Authorization: "Bearer " + token }
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch chats: " + res.status);
+
         const data = await res.json();
         const chatListDiv = mainModule.chatListDiv;
         if (!chatListDiv) return;
+
         chatListDiv.innerHTML = "";
         data.chats.forEach(chat => {
             const div = document.createElement("div");
@@ -517,13 +526,18 @@ async function fetchChats() {
             div.dataset.id = chat.id;
             div.onclick = () => {
                 mainModule.setCurrentChatId(chat.id);
-                fetchHistory();
+                chatModule.fetchHistory();
                 quickButtonsModule.fetchQuickButtons();
             };
             chatListDiv.appendChild(div);
         });
-    } catch (e) { alert("Error fetching chats"); console.error(e); }
+
+    } catch (e) {
+        alert("Error fetching chats: " + e.message);
+        console.error(e);
+    }
 }
+
 
 async function createChat() {
     const title = document.getElementById("new-chat-title").value.trim();
