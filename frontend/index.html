@@ -14,108 +14,217 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
 
-<!-- === OpenGraph (LinkedIn / Facebook preview) === -->
+<!-- === OpenGraph === -->
 <meta property="og:title" content="AI Mentor – Your Personal AI Coach">
-<meta property="og:description" content="Boost your productivity and motivation with AI Mentor. Your personal AI coach, available anytime.">
+<meta property="og:description" content="Boost your productivity and motivation with AI Mentor.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ai-personal-coach-rogv.onrender.com">
 <meta property="og:image" content="https://ai-personal-coach-rogv.onrender.com/static/og-preview.png">
-<meta property="og:site_name" content="AI Mentor">
 
-<!-- === Twitter Card === -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AI Mentor – Your Personal AI Coach">
-<meta name="twitter:description" content="Boost your productivity and motivation with AI Mentor. Your personal AI coach, available anytime.">
-<meta name="twitter:image" content="https://ai-personal-coach-rogv.onrender.com/static/og-preview.png">
-
-<!-- === Tailwind CSS === -->
+<!-- === Tailwind === -->
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
 
 <style>
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-#app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; margin: 10px; box-sizing: border-box; }
-header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* App */
+#app-container {
+    width: 420px;
+    min-height: 700px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+header {
+    background-color: #4f8ef7;
+    color: white;
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    padding: 15px;
+}
+
 .hidden { display: none; }
 
 /* Top buttons */
-#top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
-.top-btn { padding:6px 12px; border:none; border-radius:8px; background:#4f8ef7; color:white; cursor:pointer; transition: background 0.3s; }
-.top-btn.active { background:#3a6fdc; }
+#top-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px;
+}
 
-/* Auth container */
-#auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
-.auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
-.auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
-.auth-tabs button.active { background: #4f8ef7; color: white; }
-.auth-form { display: flex; flex-direction: column; gap: 12px; width:100%; margin:0; }
-.auth-form.hidden { display: none !important; }
-.auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
-.auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
-.auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
+.top-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #4f8ef7;
+    color: white;
+    cursor: pointer;
+}
 
-/* Chat dropdown */
-#chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
-#chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-#chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
-#chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0; }
-#chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0); }
-#chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
-#chat-list div:hover { background:#e6edf7; }
-#chat-dropdown-btn.open::after { transform: rotate(180deg); }
+/* Auth */
+#auth-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-/* Delete chat */
-#delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px 40px 8px 12px; cursor:pointer; position: relative; transition: 0.2s; }
-#delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
-#delete-chat-btn::after { content:'🗑'; position: absolute; top:50%; right: 12px; transform: translate(-50%,-50%); font-size:14px; }
+.auth-tabs {
+    display: flex;
+    width: 100%;
+    margin-bottom: 15px;
+}
 
-/* Chat container */
-#chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
-.message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeInMove 0.35s ease forwards; white-space: pre-wrap; }
-.user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
-.ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
-.typing { font-style: italic; opacity: 0.7; }
-.fade-out { opacity: 0; transition: opacity 0.5s ease; }
+.auth-tabs button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    cursor: pointer;
+    background: #e6edf7;
+    font-weight: bold;
+}
 
-@keyframes fadeInMove { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.auth-tabs button.active {
+    background: #4f8ef7;
+    color: white;
+}
 
-/* Quick buttons */
-#quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
-.quick-btn { background: #81b4ff; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; }
-.quick-btn:hover { background: #4f8ef7; transform: scale(1.05); }
-.quick-btn::after { content:'⚡'; margin-left:6px; }
-.quick-btn .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; transition: 0.2s; }
-.quick-btn .delete-btn:hover { background: darkred; }
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.auth-form input {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.auth-form button {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4f8ef7;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Chat */
+#chat-container {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    background: #e6edf7;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.message {
+    max-width: 75%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    white-space: pre-wrap;
+}
+
+.user {
+    background: #4f8ef7;
+    color: white;
+    align-self: flex-end;
+}
+
+.ai {
+    background: white;
+    border: 1px solid #ccc;
+    align-self: flex-start;
+}
+
+/* Memory suggestion (NEW) */
+.memory-suggest {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: #f0f8ff;
+    border: 1px dashed #4f8ef7;
+    border-radius: 10px;
+    font-size: 0.85em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.memory-suggest button {
+    background: #4f8ef7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
 
 /* Input */
-#input-container { display:flex; gap:5px; padding:10px; }
-#input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
-#input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; position: relative; }
-#input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
-#input-container button::after { content:'➡'; margin-left:4px; }
+#input-container {
+    display: flex;
+    gap: 5px;
+    padding: 10px;
+}
 
-/* New chat */
-#new-chat-container { display:flex; gap:5px; margin:10px; }
-#new-chat-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
-#new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; position: relative; }
-#new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
-#new-chat-container button::after { content:'+'; margin-left:4px; }
+#input-container input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
 
-/* === MOBILE FIX for iPhone & small screens === */
+#input-container button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4f8ef7;
+    color: white;
+    cursor: pointer;
+}
+
+/* Mobile */
 @media (max-width: 480px) {
-    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
-    input, button, select, textarea { font-size: 16px !important; -webkit-text-size-adjust: 100%; }
-    #app-container { width: 100%; height: 100dvh; max-width: none; border-radius: 0; margin: 0; box-shadow: none; display: flex; flex-direction: column; overflow: hidden; }
-    header { font-size: 1.2rem; padding: 10px; }
-    #chat-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    #input-container { padding: 8px; }
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    #app-container {
+        width: 100%;
+        height: 100dvh;
+        border-radius: 0;
+    }
 }
 </style>
 </head>
+
 <body>
 <div id="app-container">
 <header>AI Mentor</header>
+
 <div id="top-buttons">
-    <button id="btn-logout" class="top-btn" onclick="mainModule.logout()">Logout</button>
+    <button class="top-btn" onclick="mainModule.logout()">Logout</button>
 </div>
 
 <div id="auth-container">
@@ -123,420 +232,157 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
         <button id="login-tab" class="active" onclick="authModule.showForm('login')">Login</button>
         <button id="register-tab" onclick="authModule.showForm('register')">Sign Up</button>
     </div>
+
     <form id="login-form" class="auth-form">
-        <input type="email" id="login-email" placeholder="Email" required>
-        <input type="password" id="login-password" placeholder="Password" required>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Password">
         <button type="button" onclick="authModule.login()">Login</button>
     </form>
+
     <form id="register-form" class="auth-form hidden">
-        <input type="email" id="register-email" placeholder="Email" required>
-        <input type="password" id="register-password" placeholder="Password" required>
+        <input type="email" id="register-email" placeholder="Email">
+        <input type="password" id="register-password" placeholder="Password">
         <button type="button" onclick="authModule.register()">Create Account</button>
     </form>
 </div>
 
 <div id="chat-ui" class="hidden">
-    <div id="chat-dropdown-container">
-        <div id="chat-dropdown-btn" onclick="toggleChatList()">Select Chat</div>
-        <div id="chat-list"></div>
-    </div>
-
-    <div id="new-chat-container">
-        <input type="text" id="new-chat-title" placeholder="New chat name">
-        <button onclick="chatModule.createChat()">Create</button>
-    </div>
-    <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete Chat</button>
-
     <div id="chat-container"></div>
-    <div id="quick-buttons"></div>
 
     <div id="input-container">
-        <input type="text" id="message-input" placeholder="Type your message...">
+        <input id="message-input" placeholder="Type your message...">
         <button onclick="chatModule.sendMessage()">Send</button>
     </div>
 </div>
 </div>
 
 <script>
-// ===== MAIN MODULE =====
+// ===== MAIN =====
 const mainModule = (() => {
-    let token = null, user_id = null, current_chat_id = null;
-    const chatContainer = document.getElementById("chat-container");
-    const quickButtonsDiv = document.getElementById("quick-buttons");
-    const inputField = document.getElementById("message-input");
-    const chatListDiv = document.getElementById("chat-list");
-    const chatDropdownBtn = document.getElementById("chat-dropdown-btn");
+    let token = null;
 
     function setToken(t) {
         token = t;
-        localStorage.setItem('token', t);
+        localStorage.setItem("token", t);
     }
 
-    function setUserId(id) {
-        user_id = id;
-        localStorage.setItem('user_id', id);
+    function getToken() {
+        return token;
     }
-
-    function setCurrentChatId(id) {
-        current_chat_id = id;
-        if (chatDropdownBtn && chatListDiv) {
-            const label = chatListDiv.querySelector(`[data-id='${id}']`);
-            chatDropdownBtn.textContent = label ? label.textContent : "Select Chat";
-            chatListDiv.classList.remove("show");
-        }
-    }
-
-    function getToken() { return token; }
-    function getUserId() { return user_id; }
-    function getCurrentChatId() { return current_chat_id; }
 
     function logout() {
-        token = null; user_id = null; current_chat_id = null;
-        localStorage.removeItem('token');
-        localStorage.removeItem('user_id');
-        const chatUi = document.getElementById("chat-ui");
-        const authContainer = document.getElementById("auth-container");
-        if (chatUi) chatUi.classList.add("hidden");
-        if (authContainer) authContainer.style.display = "block";
-        if (chatContainer) chatContainer.innerHTML = "";
-        if (quickButtonsDiv) quickButtonsDiv.innerHTML = "";
-        if (chatListDiv) chatListDiv.innerHTML = "";
-        if (chatDropdownBtn) chatDropdownBtn.textContent = "Select Chat";
-        authModule.showForm('login');
+        token = null;
+        localStorage.removeItem("token");
+        document.getElementById("chat-ui").classList.add("hidden");
+        document.getElementById("auth-container").style.display = "block";
     }
 
-    return {
-        setToken, setUserId, setCurrentChatId,
-        getToken, getUserId, getCurrentChatId,
-        logout, chatContainer, quickButtonsDiv, inputField, chatListDiv
-    };
+    return { setToken, getToken, logout };
 })();
 
-// ===== CHAT MODULE =====
+// ===== CHAT =====
 const chatModule = (() => {
 
-    async function fetchChats() {
-        try {
-            const res = await fetch("/chats", {
-                headers: { Authorization: "Bearer " + mainModule.getToken() }
-            });
-            const data = await res.json();
-            const chatListDiv = mainModule.chatListDiv;
-            if (!chatListDiv) return;
-            chatListDiv.innerHTML = "";
-            data.chats.forEach(chat => {
-                const div = document.createElement("div");
-                div.textContent = chat.title;
-                div.dataset.id = chat.id;
-                div.onclick = () => {
-                    mainModule.setCurrentChatId(chat.id);
-                    fetchHistory();
-                    quickButtonsModule.fetchQuickButtons();
-                };
-                chatListDiv.appendChild(div);
-            });
-        } catch (e) {
-            alert("Error fetching chats");
-            console.error(e);
-        }
+    async function saveMemoryFromText(text) {
+        await fetch("/memory", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({ key: "note", value: text })
+        });
     }
 
-    async function createChat() {
-        const title = document.getElementById("new-chat-title").value.trim();
-        if (!title) return;
-        try {
-            const res = await fetch("/chats", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + mainModule.getToken()
-                },
-                body: JSON.stringify({ title })
-            });
-            const data = await res.json();
-            document.getElementById("new-chat-title").value = "";
-            await fetchChats();
-            mainModule.setCurrentChatId(data.chat_id);
-        } catch (e) {
-            alert("Error creating chat");
-            console.error(e);
-        }
-    }
-
-    async function fetchHistory() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return;
-        try {
-            const res = await fetch(`/history/${chatId}`, {
-                headers: { Authorization: "Bearer " + mainModule.getToken() }
-            });
-            if (!res.ok) throw new Error("Failed to load history");
-            const data = await res.json();
-            if (mainModule.chatContainer) mainModule.chatContainer.innerHTML = "";
-            data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.created_at || msg.timestamp));
-            scrollChatToBottom();
-        } catch (e) {
-            console.error("Error fetching history:", e);
-        }
-    }
-
-    function addMessage(text, sender, timestamp = null) {
-        if (!mainModule.chatContainer) return;
-        const msgDiv = document.createElement("div");
-        msgDiv.className = `message ${sender}`;
-        msgDiv.textContent = text;
-        mainModule.chatContainer.appendChild(msgDiv);
-        scrollChatToBottom();
-        return msgDiv;
-    }
-
-    async function typeWriterEffect(element, text, delay = 16) {
-        element.textContent = "";
-        for (let i = 0; i < text.length; i++) {
-            element.textContent += text.charAt(i);
-            scrollChatToBottom();
-            await new Promise(r => setTimeout(r, delay));
-        }
-    }
-
-    async function sendMessage(predefined = null) {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) { alert("Please select a chat first!"); return; }
-        const input = mainModule.inputField;
-        const text = predefined || (input ? input.value.trim() : "");
+    async function sendMessage() {
+        const input = document.getElementById("message-input");
+        const text = input.value.trim();
         if (!text) return;
-        addMessage(text, "user");
-        if (input) input.value = "";
 
-        const typingDiv = addMessage("AI is typing", "ai");
-        if (typingDiv) typingDiv.classList.add("typing");
-        let dots = 0;
-        const typingInterval = setInterval(() => {
-            dots = (dots + 1) % 4;
-            if (typingDiv) typingDiv.textContent = "AI is typing" + '.'.repeat(dots);
-        }, 400);
+        const userDiv = document.createElement("div");
+        userDiv.className = "message user";
+        userDiv.textContent = text;
 
-        try {
-            const res = await fetch("/coach", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + mainModule.getToken()
-                },
-                body: JSON.stringify({ chat_id: chatId, user_id: mainModule.getUserId(), text })
-            });
-            if (!res.ok) throw new Error("Server error");
-            const data = await res.json();
-            clearInterval(typingInterval);
-            if (typingDiv) {
-                typingDiv.classList.remove("typing");
-                await typeWriterEffect(typingDiv, data.reply || "(Empty response)");
-            }
-        } catch (err) {
-            clearInterval(typingInterval);
-            if (typingDiv) {
-                typingDiv.classList.remove("typing");
-                typingDiv.textContent = "Error receiving response";
-            }
-            console.error("Error sending message:", err);
+        const chat = document.getElementById("chat-container");
+        chat.appendChild(userDiv);
+        input.value = "";
+
+        const aiDiv = document.createElement("div");
+        aiDiv.className = "message ai";
+        aiDiv.textContent = "AI is typing...";
+        chat.appendChild(aiDiv);
+
+        const res = await fetch("/coach", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await res.json();
+        aiDiv.textContent = data.reply;
+
+        if (data.suggest_memory) {
+            const mem = document.createElement("div");
+            mem.className = "memory-suggest";
+            mem.innerHTML = `
+                <span>💾 Remember this?</span>
+                <div>
+                    <button class="save">Save</button>
+                    <button class="dismiss">Dismiss</button>
+                </div>
+            `;
+
+            aiDiv.appendChild(mem);
+
+            mem.querySelector(".save").onclick = async () => {
+                await saveMemoryFromText(text);
+                mem.innerHTML = "✅ Saved";
+                setTimeout(() => mem.remove(), 1200);
+            };
+
+            mem.querySelector(".dismiss").onclick = () => mem.remove();
         }
     }
 
-    async function deleteChat() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return;
-        if (!confirm("Are you sure you want to delete this chat?")) return;
-        try {
-            await fetch(`/chats/${chatId}`, {
-                method: "DELETE",
-                headers: { Authorization: "Bearer " + mainModule.getToken() }
-            });
-            mainModule.setCurrentChatId(null);
-            if (mainModule.chatContainer) mainModule.chatContainer.innerHTML = "";
-            if (mainModule.chatListDiv) mainModule.chatListDiv.innerHTML = "";
-            await fetchChats();
-        } catch (e) {
-            alert("Error deleting chat");
-            console.error(e);
-        }
-    }
-
-    function scrollChatToBottom() {
-        const container = mainModule.chatContainer;
-        if (!container) return;
-        container.scrollTop = container.scrollHeight;
-    }
-
-    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
+    return { sendMessage };
 })();
 
-// ===== QUICK BUTTONS MODULE =====
-const quickButtonsModule = (() => {
-    async function fetchQuickButtons() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return;
-        try {
-            const res = await fetch("/quick_buttons", {
-                headers: { Authorization: "Bearer " + mainModule.getToken() }
-            });
-            const data = await res.json();
-            if (!mainModule.quickButtonsDiv) return;
-            mainModule.quickButtonsDiv.innerHTML = "";
-            data.buttons.forEach(btn => {
-                const button = document.createElement("button");
-                button.className = "quick-btn";
-                button.textContent = btn;
-                button.onclick = () => chatModule.sendMessage(btn);
-
-                const deleteBtn = document.createElement("button");
-                deleteBtn.className = "delete-btn";
-                deleteBtn.textContent = "×";
-                deleteBtn.onclick = async e => {
-                    e.stopPropagation();
-                    await fetch("/quick_buttons", {
-                        method: "DELETE",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: "Bearer " + mainModule.getToken()
-                        },
-                        body: JSON.stringify({ text: btn })
-                    });
-                    fetchQuickButtons();
-                };
-                button.appendChild(deleteBtn);
-                mainModule.quickButtonsDiv.appendChild(button);
-            });
-        } catch (e) {
-            console.error("Error loading quick buttons", e);
-        }
-    }
-    return { fetchQuickButtons };
-})();
-
-// ===== AUTH MODULE =====
+// ===== AUTH =====
 const authModule = (() => {
-    function showForm(type) {
-        const loginForm = document.getElementById("login-form");
-        const registerForm = document.getElementById("register-form");
-        const loginTab = document.getElementById("login-tab");
-        const registerTab = document.getElementById("register-tab");
-        if (!loginForm || !registerForm) return;
-        if (type === 'login') {
-            loginForm.classList.remove("hidden");
-            registerForm.classList.add("hidden");
-            loginTab.classList.add("active");
-            registerTab.classList.remove("active");
-        } else {
-            loginForm.classList.add("hidden");
-            registerForm.classList.remove("hidden");
-            loginTab.classList.remove("active");
-            registerTab.classList.add("active");
-        }
-    }
 
-    async function register() {
-        const email = document.getElementById("register-email").value;
-        const password = document.getElementById("register-password").value;
-        try {
-            const res = await fetch("/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
-            });
-            if (res.ok) {
-                alert("Registration successful! Please login.");
-                showForm("login");
-            } else {
-                const err = await res.json();
-                alert("Error: " + (err.detail || res.statusText));
-            }
-        } catch (e) { alert("Registration error"); console.error(e); }
+    function showForm(type) {
+        document.getElementById("login-form").classList.toggle("hidden", type !== "login");
+        document.getElementById("register-form").classList.toggle("hidden", type !== "register");
+        document.getElementById("login-tab").classList.toggle("active", type === "login");
+        document.getElementById("register-tab").classList.toggle("active", type === "register");
     }
 
     async function login() {
         const email = document.getElementById("login-email").value;
         const password = document.getElementById("login-password").value;
-        try {
-            const res = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                mainModule.setToken(data.access_token);
-                mainModule.setUserId(data.user_id);
-                const authContainer = document.getElementById("auth-container");
-                const chatUi = document.getElementById("chat-ui");
-                if (authContainer) authContainer.style.display = "none";
-                if (chatUi) chatUi.classList.remove("hidden");
-                chatModule.fetchChats();
-            } else { alert("Invalid email or password"); }
-        } catch (e) { alert("Login error"); console.error(e); }
+
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        mainModule.setToken(data.access_token);
+
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("chat-ui").classList.remove("hidden");
     }
 
-    return { showForm, register, login };
+    async function register() {
+        alert("Register stub");
+    }
+
+    return { showForm, login, register };
 })();
-
-// ===== LANGUAGE + UTILS =====
-function setLanguage(lang) {
-    const loginTab = document.getElementById("login-tab");
-    const registerTab = document.getElementById("register-tab");
-    if (loginTab) loginTab.textContent = lang === 'ru' ? "Вход" : "Login";
-    if (registerTab) registerTab.textContent = lang === 'ru' ? "Регистрация" : "Register";
-    const loginBtn = document.querySelector("#login-form button");
-    const regBtn = document.querySelector("#register-form button");
-    if (loginBtn) loginBtn.textContent = lang === 'ru' ? "Войти" : "Login";
-    if (regBtn) regBtn.textContent = lang === 'ru' ? "Зарегистрироваться" : "Create Account";
-    const input = document.getElementById("message-input");
-    if (input) input.placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type your message...";
-}
-
-function toggleChatList() {
-    const list = document.getElementById("chat-list");
-    const btn = document.getElementById("chat-dropdown-btn");
-    if (!list || !btn) return;
-    const isOpen = list.classList.toggle("show");
-    btn.classList.toggle("open", isOpen);
-}
-
-// ===== INIT =====
-window.addEventListener('DOMContentLoaded', () => {
-    const authContainer = document.getElementById("auth-container");
-    if (authContainer) authContainer.style.display = "block";
-    authModule.showForm('login');
-    setLanguage('en');
-
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user_id');
-    if (storedToken && storedUser) {
-        mainModule.setToken(storedToken);
-        mainModule.setUserId(storedUser);
-        const chatUi = document.getElementById("chat-ui");
-        if (chatUi) chatUi.classList.remove("hidden");
-        if (authContainer) authContainer.style.display = "none";
-        chatModule.fetchChats();
-    }
-});
-
-// ===== MOBILE KEYBOARD FIX =====
-window.addEventListener('resize', () => {
-    const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-});
-
-// ===== ENTER TO SEND =====
-const msgInput = document.getElementById("message-input");
-if (msgInput) {
-    msgInput.addEventListener("keypress", function(e) {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            chatModule.sendMessage();
-        }
-    });
-}
 </script>
 </body>
 </html>
