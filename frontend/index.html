@@ -425,7 +425,11 @@
             <div id="input-container">
                 <input type="text" id="message-input" placeholder="Type your message...">
                 <button onclick="chatModule.sendMessage()">Send</button>
+                <button id="memory-suggest-btn" class="top-btn" onclick="memoryModule.suggestMemory()">
+                    💡
+                </button>
             </div>
+
         </div>
     </div>
 
@@ -671,6 +675,40 @@ const chatModule = (() => {
 
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
+// ===== MEMORY MODULE =====
+const memoryModule = (() => {
+    async function suggestMemory() {
+        const chatId = mainModule.getCurrentChatId();
+        if (!chatId) {
+            alert("Please select a chat first!");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/memory_suggest/${chatId}`, {
+                headers: {
+                    Authorization: "Bearer " + mainModule.getToken()
+                }
+            });
+            if (!res.ok) throw new Error("Failed to fetch memory suggestions");
+
+            const data = await res.json();
+            if (!data.suggestions || data.suggestions.length === 0) {
+                alert("No memory suggestions found.");
+                return;
+            }
+
+            // Показываем первое предложение в чате
+            const suggestion = data.suggestions[0];
+            chatModule.addMessage("💡 Memory Suggest: " + suggestion, "ai");
+        } catch (e) {
+            console.error("Memory Suggest error:", e);
+            alert("Error fetching memory suggestions");
+        }
+    }
+
+    return { suggestMemory };
+})();
 
 // ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
@@ -860,7 +898,6 @@ if (msgInput) {
         }
     });
 }
-
     </script>
-</body>
-</html>
+    </body>
+    </html>
