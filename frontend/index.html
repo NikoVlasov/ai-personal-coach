@@ -224,7 +224,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: #e6edf7;
+            background: linear-gradient(180deg, #e9f0fb, #dde7f5);
             max-height: 400px;
         }
         .message {
@@ -241,21 +241,45 @@
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 0;
+            box-shadow: 0 3px 10px rgba(79, 142, 247, 0.35);
         }
+        /* === AI message === */
         .ai {
             background: #fff;
             color: #333;
             align-self: flex-start;
             border: 1px solid #ccc;
             border-bottom-left-radius: 0;
+            background: linear-gradient(180deg, #ffffff, #f5f7fb);
+
+            /* === AI feels alive === */
+            animation: aiAppear 0.35s ease-out forwards;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(2px);
         }
-        .typing { font-style: italic; opacity: 0.7; }
+
+        /* Soft appearance animation */
+        @keyframes aiAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+
+        .typing { font-style: italic; opacity: 0.75; animation: typingPulse 1.2s ease-in-out infinite; }
+
         .fade-out { opacity: 0; transition: opacity 0.5s ease; }
 
-        @keyframes fadeInMove {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeInMove { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        @keyframes typingPulse { 0% { opacity: 0.4; } 50% { opacity: 0.85; } 100% { opacity: 0.4; } }
+
+
 
         /* Quick buttons */
         #quick-buttons {
@@ -425,9 +449,9 @@
             <div id="input-container">
                 <input type="text" id="message-input" placeholder="Type your message...">
                 <button onclick="chatModule.sendMessage()">Send</button>
-                <button id="memory-suggest-btn" class="top-btn" onclick="memoryModule.suggestMemory()">
-                    💡
-                </button>
+
+
+
             </div>
 
         </div>
@@ -605,6 +629,7 @@ const chatModule = (() => {
         if (!text) return;
 
         addMessage(text, "user");
+        setHeaderState("thinking");
         if (input) input.value = "";
 
         const typingDiv = addMessage("AI is typing", "ai");
@@ -636,6 +661,8 @@ const chatModule = (() => {
             if (typingDiv) {
                 typingDiv.classList.remove("typing");
                 await typeWriterEffect(typingDiv, data.reply || "(Empty response)");
+                setHeaderState("reply");
+
             }
         } catch (err) {
             clearInterval(typingInterval);
@@ -644,6 +671,8 @@ const chatModule = (() => {
                 typingDiv.textContent = "Error receiving response";
             }
             console.error("Error sending message:", err);
+            setHeaderState("idle");
+
         }
     }
 
@@ -675,40 +704,7 @@ const chatModule = (() => {
 
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
-// ===== MEMORY MODULE =====
-const memoryModule = (() => {
-    async function suggestMemory() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) {
-            alert("Please select a chat first!");
-            return;
-        }
 
-        try {
-            const res = await fetch(`/memory_suggest/${chatId}`, {
-                headers: {
-                    Authorization: "Bearer " + mainModule.getToken()
-                }
-            });
-            if (!res.ok) throw new Error("Failed to fetch memory suggestions");
-
-            const data = await res.json();
-            if (!data.suggestions || data.suggestions.length === 0) {
-                alert("No memory suggestions found.");
-                return;
-            }
-
-            // Показываем первое предложение в чате
-            const suggestion = data.suggestions[0];
-            chatModule.addMessage("💡 Memory Suggest: " + suggestion, "ai");
-        } catch (e) {
-            console.error("Memory Suggest error:", e);
-            alert("Error fetching memory suggestions");
-        }
-    }
-
-    return { suggestMemory };
-})();
 
 // ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
@@ -848,6 +844,20 @@ function setLanguage(lang) {
     const input = document.getElementById("message-input");
     if (input) input.placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type your message...";
 }
+
+function setHeaderState(state) {
+  const header = document.querySelector("header");
+  if (!header) return;
+
+  if (state === "idle") {
+    header.textContent = "AI Mentor";
+  } else if (state === "thinking") {
+    header.textContent = "Thinking… 🤔";
+  } else if (state === "reply") {
+    header.textContent = "Here’s my thought 💡";
+  }
+}
+
 
 function toggleChatList() {
     const list = document.getElementById("chat-list");
