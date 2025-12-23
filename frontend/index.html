@@ -631,6 +631,7 @@
       const typingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
         if (typingDiv) typingDiv.textContent = "AI is typing" + '.'.repeat(dots);
+        scrollChatToBottom();
       }, 400);
 
       try {
@@ -909,4 +910,5 @@
 </script>
 </body>
 </html>
+
 
