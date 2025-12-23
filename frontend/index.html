@@ -631,7 +631,6 @@
       const typingInterval = setInterval(() => {
         dots = (dots + 1) % 4;
         if (typingDiv) typingDiv.textContent = "AI is typing" + '.'.repeat(dots);
-        scrollChatToBottom();
       }, 400);
 
       try {
@@ -883,12 +882,14 @@
   function scrollInputIntoView() {
     const active = document.activeElement;
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-      let container = active.closest('#chat-container, #app-container') || document.body;
+      const chatContainer = document.getElementById('chat-container');
+      if (!chatContainer) return;
+
       const rect = active.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      const offset = rect.bottom - containerRect.bottom + 20;
+      const containerRect = chatContainer.getBoundingClientRect();
+      const offset = rect.bottom - containerRect.bottom + 10;
       if (offset > 0) {
-        container.scrollBy({ top: offset, behavior: 'smooth' });
+        chatContainer.scrollBy({ top: offset, behavior: 'smooth' });
       }
     }
   }
@@ -910,5 +911,6 @@
 </script>
 </body>
 </html>
+
 
 
