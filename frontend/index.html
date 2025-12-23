@@ -459,26 +459,6 @@
 
 
     <script>
-    function updateVH() {
-         const vh = window.visualViewport
-             ? window.visualViewport.height * 0.01
-             : window.innerHeight * 0.01;
-
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-
-    // initial call
-    updateVH();
-
-    // on resize (Android, desktop)
-    window.addEventListener('resize', updateVH);
-
-    // iOS specific: handle keyboard & rotation
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateVH);
-    }
-
-
         // ===== MAIN MODULE =====
 const mainModule = (() => {
     let token = null;
@@ -911,21 +891,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== MOBILE KEYBOARD FIX (iOS + Android) =====
-function scrollInputIntoView() {
-    const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-        // Определяем ближайший прокручиваемый контейнер (chat-container или app-container)
-        let container = active.closest('#chat-container, #app-container') || document.body;
-        // Прокрутка так, чтобы input оказался видимым и чуть выше клавиатуры
-        const rect = active.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const offset = rect.bottom - containerRect.bottom + 20; // 20px под запас
-        if (offset > 0) {
-            container.scrollBy({ top: offset, behavior: 'smooth' });
-        }
-    }
-}
+
 
 // Ловим resize (клавиатура открылась/закрылась) и ориентацию экрана
 window.addEventListener('resize', scrollInputIntoView);
@@ -945,6 +911,49 @@ if (msgInput) {
         }
     });
 }
+// ===== DYNAMIC VIEWPORT HEIGHT + IOS/ANDROID KEYBOARD FIX =====
+function updateViewportHeight() {
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--vh', `${vh * 0.01}px`);
+}
+
+// initial set
+updateViewportHeight();
+
+// handle resize & orientation change
+window.addEventListener('resize', updateViewportHeight);
+window.addEventListener('orientationchange', updateViewportHeight);
+
+// iOS: handle keyboard appearance
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        updateViewportHeight();
+
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+            setTimeout(() => {
+                active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                const chatContainer = document.getElementById('chat-container');
+                if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 50);
+        }
+    });
+}
+
+// scroll input into view on focus
+const msgInput = document.getElementById('message-input');
+if (msgInput) {
+    msgInput.addEventListener('focus', () => {
+        setTimeout(() => {
+            msgInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const chatContainer = document.getElementById('chat-container');
+            if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 50);
+    });
+}
+
     </script>
     </body>
     </html>
