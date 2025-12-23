@@ -234,6 +234,7 @@
             gap: 8px;
             background: linear-gradient(180deg, #e9f0fb, #dde7f5);
             max-height: 400px;
+            overflow-y: auto;
         }
         .message {
             max-width: 75%;
@@ -458,14 +459,25 @@
 
 
     <script>
-    function updateViewportHeight() {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    function updateVH() {
+         const vh = window.visualViewport
+             ? window.visualViewport.height * 0.01
+             : window.innerHeight * 0.01;
+
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
     }
 
-    updateViewportHeight();
-    window.addEventListener('resize', updateViewportHeight);
-    window.addEventListener('orientationchange', updateViewportHeight);
+    // initial call
+    updateVH();
+
+    // on resize (Android, desktop)
+    window.addEventListener('resize', updateVH);
+
+    // iOS specific: handle keyboard & rotation
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateVH);
+    }
+
 
         // ===== MAIN MODULE =====
 const mainModule = (() => {
@@ -899,13 +911,29 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== MOBILE KEYBOARD FIX =====
-window.addEventListener('resize', () => {
+// ===== MOBILE KEYBOARD FIX (iOS + Android) =====
+function scrollInputIntoView() {
     const active = document.activeElement;
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Определяем ближайший прокручиваемый контейнер (chat-container или app-container)
+        let container = active.closest('#chat-container, #app-container') || document.body;
+        // Прокрутка так, чтобы input оказался видимым и чуть выше клавиатуры
+        const rect = active.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const offset = rect.bottom - containerRect.bottom + 20; // 20px под запас
+        if (offset > 0) {
+            container.scrollBy({ top: offset, behavior: 'smooth' });
+        }
     }
-});
+}
+
+// Ловим resize (клавиатура открылась/закрылась) и ориентацию экрана
+window.addEventListener('resize', scrollInputIntoView);
+window.visualViewport?.addEventListener('resize', scrollInputIntoView);
+
+// Ловим фокус на input/textarea
+document.addEventListener('focusin', scrollInputIntoView);
+
 
 // ===== ENTER TO SEND =====
 const msgInput = document.getElementById("message-input");
