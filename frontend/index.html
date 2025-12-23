@@ -40,8 +40,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
         }
+
 
         #app-container {
             width: 420px;
@@ -54,7 +55,9 @@
             overflow: hidden;
             margin: 10px;
             box-sizing: border-box;
+            height: calc(var(--vh, 1vh) * 100);
         }
+
 
         header {
             background-color: #4f8ef7;
@@ -457,8 +460,18 @@
         </div>
     </div>
 
+
     <script>
-    // ===== MAIN MODULE =====
+    function updateViewportHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+
+        // ===== MAIN MODULE =====
 const mainModule = (() => {
     let token = null;
     let user_id = null;
