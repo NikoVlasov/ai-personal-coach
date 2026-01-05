@@ -37,7 +37,6 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* ⛔ body НЕ скроллится */
 }
 
 body {
@@ -48,6 +47,7 @@ body {
     align-items: center;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    overflow: hidden; /* ❗ чтобы не скроллилось всё приложение */
 }
 
 /* === APP CONTAINER === */
@@ -61,7 +61,6 @@ body {
     overflow: hidden;
     margin: 10px;
     box-sizing: border-box;
-
     height: calc(var(--vh, 1vh) * 100);
 }
 
@@ -87,11 +86,79 @@ header {
     flex-shrink: 0;
 }
 
-/* === CHAT === */
+.top-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #4f8ef7;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.top-btn.active { background: #3a6fdc; }
+
+/* === CHAT DROPDOWN === */
+#chat-dropdown-container {
+    position: relative;
+    margin: 15px 10px 10px 10px;
+    flex-shrink: 0;
+}
+
+#chat-dropdown-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    background: #f7faff;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#chat-dropdown-btn::after {
+    content: '▾';
+    transition: transform 0.25s;
+}
+
+#chat-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
+    background: #f7faff;
+    border: 1px solid #ccc;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all 0.25s ease;
+    z-index: 100;
+    border-top: none;
+    opacity: 0;
+}
+
+#chat-list.show {
+    max-height: 200px;
+    overflow-y: auto;
+    opacity: 1;
+}
+
+#chat-list div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+#chat-list div:hover { background: #e6edf7; }
+
+/* === CHAT CONTAINER === */
 #chat-container {
-    flex: 1;                 /* 🔥 ГЛАВНОЕ */
-    min-height: 0;           /* 🔥 ГЛАВНОЕ */
-    overflow-y: auto;        /* ✅ ТОЛЬКО ТУТ СКРОЛЛ */
+    flex: 1;
+    min-height: 0;                 /* 🔥 КРИТИЧНО */
+    overflow-y: auto;              /* 🔥 СКРОЛЛ ТОЛЬКО ТУТ */
     -webkit-overflow-scrolling: touch;
 
     padding: 10px;
@@ -120,11 +187,12 @@ header {
 }
 
 .ai {
-    background: #fff;
+    background: linear-gradient(180deg, #ffffff, #f5f7fb);
     color: #333;
     align-self: flex-start;
     border: 1px solid #ccc;
     border-bottom-left-radius: 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
 
 /* === QUICK BUTTONS === */
@@ -136,6 +204,21 @@ header {
     background: #f0f4fb;
     border-top: 1px solid #ccc;
     flex-shrink: 0;
+}
+
+.quick-btn {
+    background: #81b4ff;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.quick-btn:hover {
+    background: #4f8ef7;
+    transform: scale(1.05);
 }
 
 /* === INPUT === */
@@ -162,13 +245,24 @@ header {
     font-weight: bold;
 }
 
-/* === MOBILE FIX === */
+#input-container button:hover {
+    background: #3a6fdc;
+    transform: scale(1.05);
+}
+
+/* === MOBILE === */
 @media (max-width: 480px) {
     input, button {
         font-size: 16px !important;
     }
+
+    header {
+        font-size: 1.2rem;
+        padding: 10px;
+    }
 }
 </style>
+
 
 
 </head>
