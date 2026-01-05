@@ -32,356 +32,144 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
 
 <style>
-    /* === Global styles === */
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #f0f4f8;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100%;
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-    }
+/* === Global styles === */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* ⛔ body НЕ скроллится */
+}
 
-    #app-container {
-        width: 420px;
-        background: #fff;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        margin: 10px;
-        box-sizing: border-box;
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
 
-        /* 🔥 ЕДИНСТВЕННЫЙ источник высоты */
-        height: calc(var(--vh, 1vh) * 100);
-        position: relative; /* для sticky внутренних элементов */
-    }
+/* === APP CONTAINER === */
+#app-container {
+    width: 420px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 10px;
+    box-sizing: border-box;
 
-    header {
-        background-color: #4f8ef7;
-        color: white;
-        text-align: center;
-        font-size: 1.5em;
-        font-weight: bold;
-        padding: 15px;
-    }
+    height: calc(var(--vh, 1vh) * 100);
+}
 
-    .hidden { display: none; }
+/* === HEADER === */
+header {
+    background-color: #4f8ef7;
+    color: white;
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    padding: 15px;
+    flex-shrink: 0;
+}
 
-    /* Top buttons */
-    #top-buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        padding: 10px;
-    }
-    .top-btn {
-        padding: 6px 12px;
-        border: none;
-        border-radius: 8px;
-        background: #4f8ef7;
-        color: white;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-    .top-btn.active { background: #3a6fdc; }
+.hidden { display: none; }
 
-    /* Auth container */
-    #auth-container {
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    .auth-tabs {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 15px;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        width: 100%;
-    }
-    .auth-tabs button {
-        flex: 1;
-        padding: 12px;
-        border: none;
-        cursor: pointer;
-        background: #e6edf7;
-        font-weight: bold;
-        transition: background 0.3s, color 0.3s;
-    }
-    .auth-tabs button.active {
-        background: #4f8ef7;
-        color: white;
-    }
-    .auth-form {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        width: 100%;
-        margin: 0;
-    }
-    .auth-form.hidden { display: none !important; }
-    .auth-form input {
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        font-size: 0.9em;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    .auth-form button {
-        padding: 12px;
-        border-radius: 8px;
-        border: none;
-        background: #4f8ef7;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-        transition: background 0.3s, transform 0.2s;
-        width: 100%;
-    }
-    .auth-form button:hover {
-        background: #3a6fdc;
-        transform: scale(1.03);
-    }
+/* === TOP BUTTONS === */
+#top-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px;
+    flex-shrink: 0;
+}
 
-    /* Chat dropdown */
-    #chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
-    #chat-dropdown-btn {
-        width: 100%;
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
-        background: #f7faff;
-        cursor: pointer;
-        text-align: left;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    #chat-dropdown-btn::after { content: '▾'; transition: transform 0.25s; }
-    #chat-list {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        transform: translateY(-10px);
-        width: 100%;
-        max-height: 0;
-        overflow: hidden;
-        background: #f7faff;
-        border: 1px solid #ccc;
-        border-radius: 0 0 12px 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: all 0.25s ease;
-        z-index: 100;
-        border-top: none;
-        opacity: 0;
-    }
-    #chat-list.show {
-        max-height: 200px;
-        overflow-y: auto;
-        opacity: 1;
-        transform: translateY(0);
-    }
-    #chat-list div {
-        padding: 10px;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    #chat-list div:hover { background: #e6edf7; }
-    #chat-dropdown-btn.open::after { transform: rotate(180deg); }
+/* === CHAT === */
+#chat-container {
+    flex: 1;                 /* 🔥 ГЛАВНОЕ */
+    min-height: 0;           /* 🔥 ГЛАВНОЕ */
+    overflow-y: auto;        /* ✅ ТОЛЬКО ТУТ СКРОЛЛ */
+    -webkit-overflow-scrolling: touch;
 
-    /* Delete chat */
-    #delete-chat-btn {
-        margin: 5px 10px;
-        background: #f54242;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 40px 8px 12px;
-        cursor: pointer;
-        position: relative;
-        transition: 0.2s;
-    }
-    #delete-chat-btn:hover { background: #d13030; transform: scale(1.05); }
-    #delete-chat-btn::after {
-        content: '🗑';
-        position: absolute;
-        top: 50%;
-        right: 12px;
-        transform: translate(-50%, -50%);
-        font-size: 14px;
-    }
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 
-    /* Chat container */
-    #chat-container {
-        flex: 1;
-        padding: 10px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        background: linear-gradient(180deg, #e9f0fb, #dde7f5);
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
-        margin-bottom: 60px;
-    }
-    .message {
-        max-width: 75%;
-        padding: 10px 15px;
-        border-radius: 15px;
-        line-height: 1.4;
-        word-wrap: break-word;
-        animation: fadeInMove 0.35s ease forwards;
-        white-space: pre-wrap;
-    }
-    .user {
-        background: #4f8ef7;
-        color: white;
-        align-self: flex-end;
-        border-bottom-right-radius: 0;
-        box-shadow: 0 3px 10px rgba(79, 142, 247, 0.35);
-    }
-    .ai {
-        background: #fff;
-        color: #333;
-        align-self: flex-start;
-        border: 1px solid #ccc;
-        border-bottom-left-radius: 0;
-        background: linear-gradient(180deg, #ffffff, #f5f7fb);
-        animation: aiAppear 0.35s ease-out forwards;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        backdrop-filter: blur(2px);
-    }
+    background: linear-gradient(180deg, #e9f0fb, #dde7f5);
+}
 
-    @keyframes aiAppear {
-        from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-    }
+/* === MESSAGES === */
+.message {
+    max-width: 75%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
 
-    .typing { font-style: italic; opacity: 0.75; animation: typingPulse 1.2s ease-in-out infinite; }
-    .fade-out { opacity: 0; transition: opacity 0.5s ease; }
+.user {
+    background: #4f8ef7;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 0;
+}
 
-    @keyframes fadeInMove { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes typingPulse { 0% { opacity: 0.4; } 50% { opacity: 0.85; } 100% { opacity: 0.4; } }
+.ai {
+    background: #fff;
+    color: #333;
+    align-self: flex-start;
+    border: 1px solid #ccc;
+    border-bottom-left-radius: 0;
+}
 
-    /* Quick buttons */
-    #quick-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 10px;
-        background: #f0f4fb;
-        border-top: 1px solid #ccc;
-    }
-    .quick-btn {
-        background: #81b4ff;
-        color: white;
-        border: none;
-        padding: 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        position: relative;
-        transition: 0.2s;
-    }
-    .quick-btn:hover { background: #4f8ef7; transform: scale(1.05); }
-    .quick-btn::after { content: '⚡'; margin-left: 6px; }
-    .quick-btn .delete-btn {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: red;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .quick-btn .delete-btn:hover { background: darkred; }
+/* === QUICK BUTTONS === */
+#quick-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    background: #f0f4fb;
+    border-top: 1px solid #ccc;
+    flex-shrink: 0;
+}
 
-    /* Input container фиксированный */
-    #input-container {
-        display: flex;
-        gap: 5px;
-        padding: 10px;
-        background: #fff;
-        border-top: 1px solid #ccc;
-        position: sticky;
-        bottom: 0;
-        z-index: 100;
-    }
-    #input-container input {
-        flex: 1;
-        padding: 8px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-    }
-    #input-container button {
-        padding: 8px 12px;
-        border-radius: 8px;
-        border: none;
-        background: #4f8ef7;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    #input-container button:hover { background: #3a6fdc; transform: scale(1.05); }
-    #input-container button::after { content: '➡'; margin-left: 4px; }
+/* === INPUT === */
+#input-container {
+    display: flex;
+    gap: 5px;
+    padding: 10px;
+    flex-shrink: 0;
+}
 
-    /* New chat */
-    #new-chat-container {
-        display: flex;
-        gap: 5px;
-        margin: 10px;
-    }
-    #new-chat-container input {
-        flex: 1;
-        padding: 8px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-    }
-    #new-chat-container button {
-        padding: 8px 12px;
-        border-radius: 8px;
-        border: none;
-        background: #4f8ef7;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    #new-chat-container button:hover { background: #3a6fdc; transform: scale(1.05); }
-    #new-chat-container button::after { content: '+'; margin-left: 4px; }
+#input-container input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
 
-    /* === Media Queries === */
-    @media (max-width: 480px) {
-       input, button, select, textarea {
-           font-size: 16px !important;
-           -webkit-text-size-adjust: 100%;
-       }
+#input-container button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4f8ef7;
+    color: white;
+    font-weight: bold;
+}
 
-       header { font-size: 1.2rem; padding: 10px; }
-
-       #chat-container {
-           flex: 1;
-           overflow-y: auto;
-           -webkit-overflow-scrolling: touch;
-           margin-bottom: 60px; /* пространство под фиксированный input */
-       }
-
-       #input-container { padding: 8px; }
+/* === MOBILE FIX === */
+@media (max-width: 480px) {
+    input, button {
+        font-size: 16px !important;
     }
+}
 </style>
+
 
 </head>
 <body>
