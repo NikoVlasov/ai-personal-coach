@@ -196,6 +196,16 @@ const chatModule = (() => {
         return msgDiv;
     }
 
+    async function typeWriterEffect(element, text, delay = 18) {
+        element.textContent = "";
+        for (let i = 0; i < text.length; i++) {
+            element.textContent += text.charAt(i);
+            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+
+
     async function sendMessage(predefined=null){
         const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Сначала выберите чат!"); return; }
         const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
@@ -204,9 +214,13 @@ const chatModule = (() => {
 
         const res=await fetch("/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
         const data=await res.json(); clearInterval(typingInterval);
-        typingDiv.classList.add("fade-out");
-        setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
+        typingDiv.classList.remove("typing");
+        typingDiv.textContent = "";
+
+        await typeWriterEffect(typingDiv, data.reply || "...");
     }
+
+
 
     async function deleteChat(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
