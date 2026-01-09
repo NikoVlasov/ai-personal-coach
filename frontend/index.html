@@ -7,7 +7,7 @@
 <style>
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
 #app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
-header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
+header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top));}
 .hidden { display: none; }
 
 /* Верхние кнопки */
@@ -55,7 +55,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .quick-btn .delete-btn:hover { background: darkred; }
 
 /* Input */
-#input-container { display:flex; gap:5px; padding:10px; }
+#input-container { display:flex; gap:5px; padding:10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); background: white; z-index: 10;}
 #input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
@@ -340,6 +340,19 @@ window.addEventListener('DOMContentLoaded', ()=>{
     authModule.showForm('login');
     setLanguage('ru');
 });
+
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        const input = document.getElementById('input-container');
+        if (!input) return;
+
+        const offset = window.innerHeight - window.visualViewport.height;
+        input.style.transform = offset > 0
+            ? `translateY(-${offset}px)`
+            : 'translateY(0)';
+    });
+}
+
 </script>
 </body>
 </html>
