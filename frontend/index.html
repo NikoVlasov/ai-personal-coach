@@ -55,7 +55,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .quick-btn .delete-btn:hover { background: darkred; }
 
 /* Input */
-#input-container { display:flex; gap:5px; padding:10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); background: white; z-index: 10;}
+#input-container { display:flex; gap:5px; padding:10px; padding-bottom: env(safe-area-inset-bottom); background: white; flex-shrink: 0; }
 #input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
