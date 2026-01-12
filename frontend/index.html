@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Personal Coach - MVP</title>
 <style>
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100%; overflow: hidden; overscroll-behavior: none; }
-#app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; height: 100dvh;}
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; overflow: hidden; overscroll-behavior: none; height: 100dvh;}
+#app-container { width: 420px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; height: 100dvh;}
 header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top));}
 .hidden { display: none; }
 
-#chat-ui { flex: 1 1 auto; display: flex; flex-direction: column; flex-direction: column; }
+#chat-ui { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; }
 
 /* Верхние кнопки */
 #top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
@@ -41,7 +41,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 #delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
 #chat-dropdown-btn.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
 
-#chat-container { flex: 1 1 auto; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 0; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#chat-container { flex: 1 1 auto; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; }
 .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
 .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
