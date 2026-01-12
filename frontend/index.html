@@ -287,46 +287,31 @@ const authModule = (() => {
 })();
 
 function setLanguage(lang) {
-    // визуальное выделение активной кнопки
     document.getElementById("btn-ru").classList.toggle("active", lang === 'ru');
     document.getElementById("btn-en").classList.toggle("active", lang === 'en');
 
-    // вкладки входа / регистрации
     document.getElementById("login-tab").textContent = lang === 'ru' ? "Вход" : "Login";
     document.getElementById("register-tab").textContent = lang === 'ru' ? "Регистрация" : "Register";
 
-    // кнопки форм
     document.querySelector("#login-form button").textContent = lang === 'ru' ? "Войти" : "Login";
     document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Register";
 
-    // плейсхолдеры для форм
     document.getElementById("login-email").placeholder = lang === 'ru' ? "Email" : "Email";
     document.getElementById("login-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
     document.getElementById("register-email").placeholder = lang === 'ru' ? "Email" : "Email";
     document.getElementById("register-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
 
-    // выбор чата
     document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
-
-    // кнопка удаления
     document.getElementById("delete-chat-btn").textContent = lang === 'ru' ? "Удалить чат" : "Delete chat";
 
-    // поле ввода нового чата
     document.getElementById("new-chat-title").placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
     document.querySelector("#new-chat-container button").textContent = lang === 'ru' ? "Создать" : "Create";
 
-    // поле ввода сообщения
     document.getElementById("message-input").placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type a message...";
     document.querySelector("#input-container button").textContent = lang === 'ru' ? "Отправить" : "Send";
 
-    // кнопка logout
     document.getElementById("btn-logout").textContent = lang === 'ru' ? "Выйти" : "Logout";
-
-    // главное название "AI Personal Coach" остаётся неизменным
 }
-
-
-
 
 function toggleChatList() {
   const list = document.getElementById("chat-list");
@@ -335,26 +320,12 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById("auth-container").style.display="block";
     authModule.showForm('login');
     setLanguage('ru');
 });
-
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-        const input = document.getElementById('input-container');
-        if (!input) return;
-
-        const offset = window.innerHeight - window.visualViewport.height;
-        input.style.transform = offset > 0
-            ? `translateY(-${offset}px)`
-            : 'translateY(0)';
-    });
-}
-
 </script>
 </body>
 </html>
