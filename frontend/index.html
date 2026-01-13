@@ -5,12 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Personal Coach - MVP</title>
 <style>
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; overflow: hidden; overscroll-behavior: none; height: 100dvh;}
-#app-container { width: 420px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; height: 100dvh;}
-header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; padding-top: calc(15px + env(safe-area-inset-top));}
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+#app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
 .hidden { display: none; }
-
-#chat-ui { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; }
 
 /* Верхние кнопки */
 #top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
@@ -41,7 +39,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 #delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
 #chat-dropdown-btn.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
 
-#chat-container { flex: 1 1 auto; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
 .message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; }
 .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
 .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
@@ -57,7 +55,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .quick-btn .delete-btn:hover { background: darkred; }
 
 /* Input */
-#input-container { display:flex; gap:5px; padding:10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); background: white; flex-shrink: 0; border-top: 1px solid #ccc; z-index: 10; }
+#input-container { display:flex; gap:5px; padding:10px; }
 #input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
@@ -198,16 +196,6 @@ const chatModule = (() => {
         return msgDiv;
     }
 
-    async function typeWriterEffect(element, text, delay = 18) {
-        element.textContent = "";
-        for (let i = 0; i < text.length; i++) {
-            element.textContent += text.charAt(i);
-            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-
-
     async function sendMessage(predefined=null){
         const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Сначала выберите чат!"); return; }
         const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
@@ -216,13 +204,9 @@ const chatModule = (() => {
 
         const res=await fetch("/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
         const data=await res.json(); clearInterval(typingInterval);
-        typingDiv.classList.remove("typing");
-        typingDiv.textContent = "";
-
-        await typeWriterEffect(typingDiv, data.reply || "...");
+        typingDiv.classList.add("fade-out");
+        setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
     }
-
-
 
     async function deleteChat(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
@@ -287,31 +271,46 @@ const authModule = (() => {
 })();
 
 function setLanguage(lang) {
+    // визуальное выделение активной кнопки
     document.getElementById("btn-ru").classList.toggle("active", lang === 'ru');
     document.getElementById("btn-en").classList.toggle("active", lang === 'en');
 
+    // вкладки входа / регистрации
     document.getElementById("login-tab").textContent = lang === 'ru' ? "Вход" : "Login";
     document.getElementById("register-tab").textContent = lang === 'ru' ? "Регистрация" : "Register";
 
+    // кнопки форм
     document.querySelector("#login-form button").textContent = lang === 'ru' ? "Войти" : "Login";
     document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Register";
 
+    // плейсхолдеры для форм
     document.getElementById("login-email").placeholder = lang === 'ru' ? "Email" : "Email";
     document.getElementById("login-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
     document.getElementById("register-email").placeholder = lang === 'ru' ? "Email" : "Email";
     document.getElementById("register-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
 
+    // выбор чата
     document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
+
+    // кнопка удаления
     document.getElementById("delete-chat-btn").textContent = lang === 'ru' ? "Удалить чат" : "Delete chat";
 
+    // поле ввода нового чата
     document.getElementById("new-chat-title").placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
     document.querySelector("#new-chat-container button").textContent = lang === 'ru' ? "Создать" : "Create";
 
+    // поле ввода сообщения
     document.getElementById("message-input").placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type a message...";
     document.querySelector("#input-container button").textContent = lang === 'ru' ? "Отправить" : "Send";
 
+    // кнопка logout
     document.getElementById("btn-logout").textContent = lang === 'ru' ? "Выйти" : "Logout";
+
+    // главное название "AI Personal Coach" остаётся неизменным
 }
+
+
+
 
 function toggleChatList() {
   const list = document.getElementById("chat-list");
@@ -319,6 +318,7 @@ function toggleChatList() {
   const isOpen = list.classList.toggle("show");
   btn.classList.toggle("open", isOpen);
 }
+
 
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', ()=>{
