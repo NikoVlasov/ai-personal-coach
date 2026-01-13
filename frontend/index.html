@@ -200,41 +200,49 @@ const chatModule = (() => {
     }
 
     async function typeWriterEffect(element, text, delay = 18) {
-        element.innerHTML = '<span class="cursor">▍</span>';
-
-        const cursor = element.querySelector('.cursor');
+        element.classList.remove("typing");
+        element.textContent = "";
 
         for (let i = 0; i < text.length; i++) {
-            cursor.insertAdjacentText('beforebegin', text.charAt(i));
+            element.textContent += text.charAt(i);
             mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
             await new Promise(resolve => setTimeout(resolve, delay));
         }
-
-        cursor.remove(); // курсор исчезает в конце
     }
 
 
 
-    async function sendMessage(predefined=null){
+
+    async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
-        if(!chatId){
-            alert("Please select a chat first!");
+        if (!chatId) {
+            alert("Select a chat first");
             return;
         }
 
         const text = predefined || mainModule.inputField.value.trim();
-        if(!text) return;
+        if (!text) return;
 
+        // user message
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // AI is typing…
+        // AI typing placeholder
         const typingDiv = document.createElement("div");
-        typingDiv.className = "message ai typing-indicator";
-        typingDiv.innerHTML = 'AI is typing<span class="cursor">▍</span>';
+        typingDiv.className = "message ai typing";
+        typingDiv.textContent = "AI is typing";
         mainModule.chatContainer.appendChild(typingDiv);
         mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
 
+        // animated dots
+        let dots = 0;
+        const typingInterval = setInterval(() => {
+            dots = (dots + 1) % 4;
+            typingDiv.textContent = "AI is typing" + ".".repeat(dots);
+            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+        }, 500);
+
+        // request to backend
         const res = await fetch("/coach", {
             method: "POST",
             headers: {
@@ -250,12 +258,13 @@ const chatModule = (() => {
 
         const data = await res.json();
 
-        // превращаем typing → настоящее сообщение
-        typingDiv.classList.remove("typing-indicator");
-        typingDiv.innerHTML = "";
+        // stop typing animation
+        clearInterval(typingInterval);
 
+        // smooth typing effect
         await typeWriterEffect(typingDiv, data.reply || "...");
     }
+
 
 
     async function deleteChat(){
