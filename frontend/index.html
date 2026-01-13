@@ -196,17 +196,62 @@ const chatModule = (() => {
         return msgDiv;
     }
 
-    async function sendMessage(predefined=null){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Сначала выберите чат!"); return; }
-        const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
-        const typingDiv=addMessage("AI печатает","ai"); typingDiv.classList.add("typing");
-        let dots=0; const typingInterval=setInterval(()=>{ dots=(dots+1)%4; typingDiv.textContent="AI печатает"+'.'.repeat(dots); },500);
-
-        const res=await fetch("/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
-        const data=await res.json(); clearInterval(typingInterval);
-        typingDiv.classList.add("fade-out");
-        setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
+    async function typeWriterEffect(element, text, delay = 18) {
+        element.textContent = "";
+        for (let i = 0; i < text.length; i++) {
+            element.textContent += text.charAt(i);
+            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
     }
+
+
+    async function sendMessage(predefined=null){
+        const chatId = mainModule.getCurrentChatId();
+        if(!chatId){
+            alert("Сначала выберите чат!");
+            return;
+        }
+
+        const text = predefined || mainModule.inputField.value.trim();
+        if(!text) return;
+
+        addMessage(text, "user");
+        mainModule.inputField.value = "";
+
+        // индикатор печати
+        const typingDiv = addMessage("AI печатает", "ai");
+        typingDiv.classList.add("typing");
+
+        let dots = 0;
+        const typingInterval = setInterval(() => {
+            dots = (dots + 1) % 4;
+            typingDiv.textContent = "AI печатает" + ".".repeat(dots);
+        }, 500);
+
+        const res = await fetch("/coach", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                user_id: mainModule.getUserId(),
+                text
+            })
+        });
+
+        const data = await res.json();
+
+        clearInterval(typingInterval);
+        typingDiv.classList.remove("typing");
+        typingDiv.textContent = "";
+
+        // ⬇️ ВОТ ОНА — ПЛАВНАЯ ПЕЧАТЬ
+        await typeWriterEffect(typingDiv, data.reply || "...");
+    }
+
 
     async function deleteChat(){
         const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
