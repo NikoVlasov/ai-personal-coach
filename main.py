@@ -208,7 +208,19 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
     db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
     db.commit()
 
-    history = [{"role": "system", "content": "You are a personal mentor. Support and motivate the user."}]
+    history = [{
+        "role": "system",
+        "content": (
+            "You are an AI personal coach.\n"
+            "Be supportive, clear, and practical.\n"
+            "Use simple language.\n\n"
+            "IMPORTANT RULE:\n"
+            "Always finish every response with a section titled 'Next steps:'.\n"
+            "Provide 1–3 short, actionable bullet points.\n"
+            "Do not skip this section."
+        )
+    }]
+
     last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.id.desc()).limit(10).all()
     for m in reversed(last_msgs):
         history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
