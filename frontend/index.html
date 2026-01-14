@@ -72,10 +72,9 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
 .app-title { font-size: 1.1em; font-weight: 600; color: #111; }
 .menu-btn { background: transparent; border: none; font-size: 22px; cursor: pointer;  color: #000; }
-#menu-wrapper { position: relative; }
-#menu-dropdown { position: absolute; right: 0; top: 36px; background: white; border-radius: 10px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); min-width: 120px; z-index: 1000 }
-.menu-item { padding: 10px 14px; cursor: pointer; front-size: 14px; }
-.menu-item:hover { background: #f0f4f8; }
+.logout-text { cursor: pointer; font-weight: bold; color: #4f8ef7; margin-left: 15px; transition: color 0.2s; }
+.logout-text:hover { color: #3a6fdc; }
+
 </style>
 </head>
 <body>
@@ -83,14 +82,9 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 
     <header class="app-header">
         <div class="app-title">AI Personal Coach</div>
-
-        <div id="menu-wrapper">
-            <button class="menu-btn" onclick="toggleMenu()">⋯</button>
-            <div id="menu-dropdown" class="hidden">
-                <div class="menu-item" onclick="mainModule.logout()">Log out</div>
-            </div>
-        </div>
+        <span class="logout-text" onclick="mainModule.logout()">Logout</span>
     </header>
+
 
     <!-- AUTH -->
     <div id="auth-container">
@@ -352,23 +346,10 @@ const authModule = (() => {
       btn.classList.toggle("open", isOpen);
     }
 
-    function toggleMenu() {
-      const menu = document.getElementById("menu-dropdown");
-      menu.classList.toggle("hidden");
-    }
-
-    document.addEventListener("click", (e) => {
-      const wrapper = document.getElementById("menu-wrapper");
-      if (wrapper && !wrapper.contains(e.target)) {
-        document.getElementById("menu-dropdown")?.classList.add("hidden");
-      }
-    });
-
     window.addEventListener('DOMContentLoaded', ()=>{
         document.getElementById("auth-container").style.display = "block";
         authModule.showForm('login');
     });
-
 
 </script>
 </body>
