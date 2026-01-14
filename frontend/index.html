@@ -69,17 +69,23 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .cursor { display: inline-block; margin-left: 2px; animation: blink 1s steps(2, start) infinite; font-weight: bold; }
 @keyframes blink { to { visibility: hidden; visibility: hidden; } }
 .typing-indicator { font-style: italic; opacity: 0.75; }
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
+.app-title { font-size: 1.1em; font-weight: 600; color: #111; }
+.menu-btn { background: none; border: none; font-size: 1.4em; cursor: pointer;  color: #555; }
 
 </style>
 </head>
 <body>
 <div id="app-container">
-    <header>AI Personal Coach</header>
+    <header class="app-header">
+    <div class="app-title">AI Personal Coach</div>
+    <button class="menu-btn" onclick="mainModule.logout()">⋯</button>
+</header>
 
 
-    <div id="top-buttons">
-        <button id="btn-logout" class="top-btn" onclick="mainModule.logout()">Logout</button>
-    </div>
+
+
+
 
     <!-- AUTH -->
     <div id="auth-container">
