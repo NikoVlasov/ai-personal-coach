@@ -72,16 +72,16 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
 .app-title { font-size: 1.1em; font-weight: 600; color: #111; }
 .menu-btn { background: transparent; border: none; font-size: 22px; cursor: pointer;  color: #000; }
-.logout-text { cursor: pointer; font-weight: bold; color: #4f8ef7; margin-left: 15px; transition: color 0.2s; }
-.logout-text:hover { color: #3a6fdc; }
+.logout-text { cursor: pointer;  color: #4f8ef7;  transition: color 0.2s, text-decoration-color 0.2s; user-select: none; }
+.logout-text:hover { text-decoration: underline; color: #3a6fdc; }
 
 </style>
 </head>
 <body>
 <div id="app-container">
 
-    <header class="app-header">
-        <div class="app-title">AI Personal Coach</div>
+    <header class="app-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #fff; border-bottom: 1px solid #ddd;">
+        <div class="app-title" style="font-size: 1.5em; font-weight: bold; color: #333;">AI Personal Coach</div>
         <span class="logout-text" onclick="mainModule.logout()">Logout</span>
     </header>
 
