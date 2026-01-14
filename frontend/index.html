@@ -71,21 +71,26 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 .typing-indicator { font-style: italic; opacity: 0.75; }
 .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
 .app-title { font-size: 1.1em; font-weight: 600; color: #111; }
-.menu-btn { background: none; border: none; font-size: 1.4em; cursor: pointer;  color: #555; }
-
+.menu-btn { background: transparent; border: none; font-size: 22px; cursor: pointer;  color: #000; }
+#menu-wrapper { position: relative; }
+#menu-dropdown { position: absolute; right: 0; top: 36px; background: white; border-radius: 10px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); min-width: 120px; z-index: 1000 }
+.menu-item { padding: 10px 14px; cursor: pointer; front-size: 14px; }
+.menu-item:hover { background: #f0f4f8; }
 </style>
 </head>
 <body>
 <div id="app-container">
+
     <header class="app-header">
-    <div class="app-title">AI Personal Coach</div>
-    <button class="menu-btn" onclick="mainModule.logout()">⋯</button>
-</header>
+        <div class="app-title">AI Personal Coach</div>
 
-
-
-
-
+        <div id="menu-wrapper">
+            <button class="menu-btn" onclick="toggleMenu()">⋯</button>
+            <div id="menu-dropdown" class="hidden">
+                <div class="menu-item" onclick="mainModule.logout()">Log out</div>
+            </div>
+        </div>
+    </header>
 
     <!-- AUTH -->
     <div id="auth-container">
@@ -93,11 +98,13 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
             <button id="login-tab" class="active">Login</button>
             <button id="register-tab">Register</button>
         </div>
+
         <form id="login-form" class="auth-form">
             <input type="email" id="login-email" placeholder="Email" required>
             <input type="password" id="login-password" placeholder="Password" required>
             <button type="button" onclick="authModule.login()">Enter</button>
         </form>
+
         <form id="register-form" class="auth-form hidden">
             <input type="email" id="register-email" placeholder="Email" required>
             <input type="password" id="register-password" placeholder="Password" required>
@@ -111,10 +118,12 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
             <div id="chat-dropdown-btn" onclick="toggleChatList()">Select chat</div>
             <div id="chat-list"></div>
         </div>
+
         <div id="new-chat-container">
             <input type="text" id="new-chat-title" placeholder="New chat title">
             <button onclick="chatModule.createChat()">Create</button>
         </div>
+
         <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete</button>
 
         <div id="chat-container"></div>
@@ -125,6 +134,7 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
             <button onclick="chatModule.sendMessage()">Send</button>
         </div>
     </div>
+
 </div>
 
 <script>
@@ -335,23 +345,30 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
+    function toggleChatList() {
+      const list = document.getElementById("chat-list");
+      const btn = document.getElementById("chat-dropdown-btn");
+      const isOpen = list.classList.toggle("show");
+      btn.classList.toggle("open", isOpen);
+    }
 
+    function toggleMenu() {
+      const menu = document.getElementById("menu-dropdown");
+      menu.classList.toggle("hidden");
+    }
 
+    document.addEventListener("click", (e) => {
+      const wrapper = document.getElementById("menu-wrapper");
+      if (wrapper && !wrapper.contains(e.target)) {
+        document.getElementById("menu-dropdown")?.classList.add("hidden");
+      }
+    });
 
+    window.addEventListener('DOMContentLoaded', ()=>{
+        document.getElementById("auth-container").style.display = "block";
+        authModule.showForm('login');
+    });
 
-
-function toggleChatList() {
-  const list = document.getElementById("chat-list");
-  const btn = document.getElementById("chat-dropdown-btn");
-  const isOpen = list.classList.toggle("show");
-  btn.classList.toggle("open", isOpen);
-}
-
-
-window.addEventListener('DOMContentLoaded', ()=>{
-    document.getElementById("auth-container").style.display = "block";
-    authModule.showForm('login');
-});
 
 </script>
 </body>
