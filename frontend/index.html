@@ -35,8 +35,8 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 #chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
 #chat-list div:hover { background:#e6edf7; }
 #chat-dropdown-btn.open::after { transform: rotate(180deg); }
-#delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px; cursor:pointer; transition: 0.2s; }
-#delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
+#delete-chat-btn { margin: 10px; padding: 12px; width: calc(100% - 20px); border-radius: 12px; border: 1px solid #f0b4b4; background: #fff; color: #d9534f; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.15s; }
+#delete-chat-btn:hover { background:#fdeaea; transform: scale(1.01); }
 #chat-dropdown-btn.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
 
 #chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
