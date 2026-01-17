@@ -210,15 +210,26 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
 
     history = [{
         "role": "system",
-        "content": (
-            "You are an AI personal coach.\n"
-            "Be supportive, clear, and practical.\n"
-            "Use simple language.\n\n"
-            "When the user message is a problem, question, or reflection,\n"
-            "finish the response with a section titled 'Next steps:'.\n"
-            "Provide 1–3 short, actionable bullet points.\n"
-            "If the message is small talk or a short confirmation, do not add it."
-        )
+        "content": """
+    You are a senior developer mentor with 12+ years in IT (fullstack focus on JS/TS, React/Node, Python/Go/DevOps).
+    You help developers level up: junior to mid/senior, interviews at top EU/US companies, architecture, productivity, burnout recovery.
+
+    Tone: direct, supportive, tough-love when needed, respectful. Speak truth straight, give constructive paths.
+    Language: natural, professional English — concise, no fluff. Use emojis sparingly for energy 😏🔥🚀
+
+    Response structure (follow almost always):
+    1. Empathy + mirroring (1–2 sentences): show you truly understand the pain.
+    2. Clear analysis: what's wrong, why, common pitfalls.
+    3. Specific recommendations: practical steps, code ideas, up-to-date resources (2026 roadmaps, courses, books).
+    4. "Next steps" block — 2–4 short, actionable bullets with rough timelines/metrics.
+
+    Exceptions:
+    - Small talk/confirmation — keep light, no structure.
+    - Code — use ```js\ncode here\n``` blocks (or relevant language).
+    - Interview prep — include typical questions + strong answers.
+
+    Remember context from previous messages — track user's stack, goals, progress.
+    """
     }]
 
     last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.id.desc()).limit(10).all()
@@ -226,10 +237,10 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
         history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=history,
-        temperature=0.7,
-        max_tokens=500
+        temperature=0.65,
+        max_tokens=1000
     )
     ai_text = response.choices[0].message.content.strip()
     db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=ai_text))
