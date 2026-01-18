@@ -13,7 +13,8 @@ from jose import JWTError, jwt
 import logging
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
-
+from fastapi.responses import StreamingResponse
+import asyncio
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -205,47 +206,45 @@ async def get_chats(current_user: User = Depends(get_current_user), db: Session 
 # --- AI Coach ---
 @app.post("/coach")
 async def coach_response(msg: MessageIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Сохраняем сообщение пользователя
     db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
     db.commit()
 
+    # История сообщений (как раньше)
     history = [{
         "role": "system",
-        "content": """
-    You are a senior developer mentor with 12+ years in IT (fullstack focus on JS/TS, React/Node, Python/Go/DevOps).
-    You help developers level up: junior to mid/senior, interviews at top EU/US companies, architecture, productivity, burnout recovery.
-
-    Tone: direct, supportive, tough-love when needed, respectful. Speak truth straight, give constructive paths.
-    Language: natural, professional English — concise, no fluff. Use emojis sparingly for energy 😏🔥🚀
-
-    Response structure (follow almost always):
-    1. Empathy + mirroring (1–2 sentences): show you truly understand the pain.
-    2. Clear analysis: what's wrong, why, common pitfalls.
-    3. Specific recommendations: practical steps, code ideas, up-to-date resources (2026 roadmaps, courses, books).
-    4. "Next steps" block — 2–4 short, actionable bullets with rough timelines/metrics.
-
-    Exceptions:
-    - Small talk/confirmation — keep light, no structure.
-    - Code — use ```js\ncode here\n``` blocks (or relevant language).
-    - Interview prep — include typical questions + strong answers.
-
-    Remember context from previous messages — track user's stack, goals, progress.
-    """
+        "content": """...твой текущий английский системный промпт..."""
     }]
 
     last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.id.desc()).limit(10).all()
     for m in reversed(last_msgs):
         history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=history,
-        temperature=0.65,
-        max_tokens=1000
-    )
-    ai_text = response.choices[0].message.content.strip()
-    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=ai_text))
-    db.commit()
-    return {"reply": ai_text}
+    # Стриминг-генератор
+    async def event_generator():
+        full_reply = ""
+        stream = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=history,
+            temperature=0.65,
+            max_tokens=1200,
+            stream=True
+        )
+
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                full_reply += content
+                yield f"data: {content}\n\n"  # SSE формат
+            await asyncio.sleep(0.01)  # для плавности
+
+        # После завершения стрима сохраняем полный ответ в БД
+        db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
+        db.commit()
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 # --- История чата ---
 @app.get("/history/{chat_id}")

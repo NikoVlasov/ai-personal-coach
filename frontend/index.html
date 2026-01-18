@@ -245,46 +245,46 @@ const chatModule = (() => {
         const text = predefined || mainModule.inputField.value.trim();
         if (!text) return;
 
-        // user message
+        // Добавляем сообщение пользователя
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // AI typing placeholder
-        const typingDiv = document.createElement("div");
-        typingDiv.className = "message ai typing";
-        typingDiv.textContent = "AI is typing";
-        mainModule.chatContainer.appendChild(typingDiv);
+        // Создаём placeholder для AI
+        const aiMessage = document.createElement("div");
+        aiMessage.className = "message ai";
+        aiMessage.textContent = "";
+        mainModule.chatContainer.appendChild(aiMessage);
         mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
 
-        // animated dots
-        let dots = 0;
-        const typingInterval = setInterval(() => {
-            dots = (dots + 1) % 4;
-            typingDiv.textContent = "AI is typing" + ".".repeat(dots);
-            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
-        }, 500);
+        // SSE соединение
+        const es = new EventSource(`/coach?chat_id=${chatId}`);  // или используй POST через отдельный endpoint если нужно
 
-        // request to backend
-        const res = await fetch("/coach", {
+        let fullText = "";
+
+        es.onmessage = function(event) {
+            if (event.data === "[DONE]") {
+                es.close();
+                return;
+            }
+            fullText += event.data;
+            aiMessage.textContent = fullText;
+            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+        };
+
+        es.onerror = function() {
+            es.close();
+            aiMessage.textContent += "\n\n[Error occurred]";
+        };
+
+        // Отправляем сообщение пользователя (через POST, так как EventSource не поддерживает body)
+        fetch("/coach", {  // это просто для отправки текста пользователя, но стрим идёт через GET
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: "Bearer " + mainModule.getToken()
             },
-            body: JSON.stringify({
-                chat_id: chatId,
-                user_id: mainModule.getUserId(),
-                text
-            })
+            body: JSON.stringify({ chat_id: chatId, text })
         });
-
-        const data = await res.json();
-
-        // stop typing animation
-        clearInterval(typingInterval);
-
-        // smooth typing effect
-        await typeWriterEffect(typingDiv, data.reply || "...");
     }
 
 
