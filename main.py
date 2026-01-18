@@ -15,7 +15,8 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey,
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from fastapi.responses import StreamingResponse
 import asyncio
-from fastapi import Query
+from fastapi import Query, HTTPException, status
+
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -284,11 +285,23 @@ async def delete_chat(chat_id: int, current_user: User = Depends(get_current_use
 @app.get("/coach_stream")
 async def coach_stream(
     chat_id: int = Query(...),
-    text: str = Query(...),          # передаём текст сообщения в query (ограничение ~4KB)
-    current_user: User = Depends(get_current_user),
+    text: str = Query(...),
+    token: str = Query(...),  # ← новый параметр для токена
     db: Session = Depends(get_db)
 ):
-    # Сохраняем сообщение пользователя (если ещё не сохранено)
+    # Вручную валидируем токен (копируем логику из get_current_user)
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        current_user = db.query(User).filter(User.email == email).first()
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Дальше как раньше: сохраняем сообщение пользователя, генерируем историю...
     db.add(Message(chat_id=chat_id, user_id=current_user.id, sender="user", text=text))
     db.commit()
 

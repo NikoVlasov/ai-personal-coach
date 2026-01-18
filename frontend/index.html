@@ -146,37 +146,59 @@ header { background-color: #4f8ef7; color: white; text-align: center; font-size:
 <script>
 // ===== MAIN MODULE =====
 const mainModule = (() => {
-    let token=null, user_id=null, current_chat_id=null;
-    const chatContainer=document.getElementById("chat-container");
-    const quickButtonsDiv=document.getElementById("quick-buttons");
-    const inputField=document.getElementById("message-input");
-    const chatListDiv=document.getElementById("chat-list");
-    const chatDropdownBtn=document.getElementById("chat-dropdown-btn");
+    let token = null;
+    let user_id = null;
+    let current_chat_id = null;
 
-    function setToken(t){ token=t; }
-    function setUserId(id){ user_id=id; }
-    function setCurrentChatId(id){
-        current_chat_id=id;
-        chatDropdownBtn.textContent = chatListDiv.querySelector(`[data-id='${id}']`)?.textContent || "Please select a chat first";
+    const chatContainer = document.getElementById("chat-container");
+    const quickButtonsDiv = document.getElementById("quick-buttons");
+    const inputField = document.getElementById("message-input");
+    const chatListDiv = document.getElementById("chat-list");
+    const chatDropdownBtn = document.getElementById("chat-dropdown-btn");
+
+    function setToken(t) { token = t; }
+    function setUserId(id) { user_id = id; }
+    function setCurrentChatId(id) {
+        current_chat_id = id;
+        const selected = chatListDiv.querySelector(`[data-id='${id}']`);
+        chatDropdownBtn.textContent = selected ? selected.textContent : "Please select a chat first";
         chatListDiv.classList.remove("show");
     }
-    function getToken(){ return token; }
-    function getUserId(){ return user_id; }
-    function getCurrentChatId(){ return current_chat_id; }
 
-    function logout(){
-        token=null; user_id=null; current_chat_id=null;
-        localStorage.removeItem('token'); localStorage.removeItem('user_id');
+    function getToken() { return token; }
+    function getUserId() { return user_id; }
+    function getCurrentChatId() { return current_chat_id; }
+
+    function logout() {
+        token = null;
+        user_id = null;
+        current_chat_id = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user_id');
         document.getElementById("chat-ui").classList.add("hidden");
-        document.getElementById("auth-container").style.display="block";
-        chatContainer.innerHTML=""; quickButtonsDiv.innerHTML=""; chatListDiv.innerHTML="";
-        chatDropdownBtn.textContent="Select a chat";
+        document.getElementById("auth-container").style.display = "block";
+        chatContainer.innerHTML = "";
+        quickButtonsDiv.innerHTML = "";
+        chatListDiv.innerHTML = "";
+        chatDropdownBtn.textContent = "Select a chat";
         authModule.showForm('login');
     }
 
-    return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
+    // Экспортируем всё, что нужно другим модулям
+    return {
+        setToken,
+        setUserId,
+        setCurrentChatId,
+        getToken,
+        getUserId,
+        getCurrentChatId,
+        logout,
+        chatContainer,
+        quickButtonsDiv,
+        inputField,
+        chatListDiv
+    };
 })();
-
 // ===== CHAT MODULE =====
 const chatModule = (() => {
     async function fetchChats(){
@@ -247,33 +269,46 @@ const chatModule = (() => {
 
         // Placeholder для AI
         const aiMessage = document.createElement("div");
-        aiMessage.className = "message ai";
-        aiMessage.textContent = "";
-        mainModule.chatContainer.appendChild(aiMessage);
-        mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+    aiMessage.className = "message ai";
+    aiMessage.textContent = "";
+    mainModule.chatContainer.appendChild(aiMessage);
+    mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
 
-        // SSE через GET с параметрами
-        const url = `/coach_stream?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
-        const es = new EventSource(url);
+    const token = mainModule.getToken();
 
-        let fullText = "";
+    const response = await fetch("/coach_stream", {  // можно использовать тот же GET или переделать на POST
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "text/event-stream"
+        }
+    });
 
-        es.onmessage = function(event) {
-            if (event.data === "[DONE]") {
-                es.close();
-                return;
+    if (!response.body) return aiMessage.textContent = "Error: no stream";
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let fullText = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+            if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") break;
+                fullText += data;
+                aiMessage.textContent = fullText;
+                mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
             }
-            fullText += event.data;
-            aiMessage.textContent = fullText;
-            mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
-        };
-
-        es.onerror = function(err) {
-            console.error("SSE error:", err);
-            es.close();
-            aiMessage.textContent += "\n\n[Connection error]";
-        };
+        }
     }
+}
 
 
 
