@@ -15,6 +15,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey,
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from fastapi.responses import StreamingResponse
 import asyncio
+from fastapi import Query
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -279,3 +280,45 @@ async def delete_chat(chat_id: int, current_user: User = Depends(get_current_use
     db.query(Chat).filter(Chat.id == chat_id).delete()
     db.commit()
     return {"status": "ok"}
+
+@app.get("/coach_stream")
+async def coach_stream(
+    chat_id: int = Query(...),
+    text: str = Query(...),          # передаём текст сообщения в query (ограничение ~4KB)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Сохраняем сообщение пользователя (если ещё не сохранено)
+    db.add(Message(chat_id=chat_id, user_id=current_user.id, sender="user", text=text))
+    db.commit()
+
+    # История (как раньше)
+    history = [{"role": "system", "content": "...твой промпт..."}]
+    last_msgs = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id.desc()).limit(10).all()
+    for m in reversed(last_msgs):
+        history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
+
+    async def event_generator():
+        full_reply = ""
+        stream = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=history,
+            temperature=0.65,
+            max_tokens=1200,
+            stream=True
+        )
+
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                full_reply += content
+                yield f"data: {content}\n\n"
+            await asyncio.sleep(0.01)
+
+        # Сохраняем полный ответ
+        db.add(Message(chat_id=chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
+        db.commit()
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

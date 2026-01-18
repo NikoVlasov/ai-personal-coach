@@ -237,27 +237,24 @@ const chatModule = (() => {
 
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
-        if (!chatId) {
-            alert("Select a chat first");
-            return;
-        }
+        if (!chatId) return alert("Select a chat first");
 
         const text = predefined || mainModule.inputField.value.trim();
         if (!text) return;
 
-        // Добавляем сообщение пользователя
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // Создаём placeholder для AI
+        // Placeholder для AI
         const aiMessage = document.createElement("div");
         aiMessage.className = "message ai";
         aiMessage.textContent = "";
         mainModule.chatContainer.appendChild(aiMessage);
         mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
 
-        // SSE соединение
-        const es = new EventSource(`/coach?chat_id=${chatId}`);  // или используй POST через отдельный endpoint если нужно
+        // SSE через GET с параметрами
+        const url = `/coach_stream?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
+        const es = new EventSource(url);
 
         let fullText = "";
 
@@ -271,20 +268,11 @@ const chatModule = (() => {
             mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
         };
 
-        es.onerror = function() {
+        es.onerror = function(err) {
+            console.error("SSE error:", err);
             es.close();
-            aiMessage.textContent += "\n\n[Error occurred]";
+            aiMessage.textContent += "\n\n[Connection error]";
         };
-
-        // Отправляем сообщение пользователя (через POST, так как EventSource не поддерживает body)
-        fetch("/coach", {  // это просто для отправки текста пользователя, но стрим идёт через GET
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + mainModule.getToken()
-            },
-            body: JSON.stringify({ chat_id: chatId, text })
-        });
     }
 
 
