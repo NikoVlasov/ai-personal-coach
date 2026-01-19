@@ -283,6 +283,15 @@ const chatModule = (() => {
         return div;
     }
 
+    async function typeWriterEffect(element, text, delay = 15) {
+        element.textContent = "";
+        for (let i = 0; i < text.length; i++) {
+            element.textContent += text.charAt(i);
+            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) return alert("Select a chat first");
@@ -317,9 +326,6 @@ const chatModule = (() => {
             const decoder = new TextDecoder();
             let fullText = "";
 
-            aiMsg.classList.remove("typing");
-            aiMsg.textContent = "";
-
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -329,26 +335,20 @@ const chatModule = (() => {
 
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
-                        let data = line.slice(6).trimStart();
-
+                        const data = line.slice(6);
                         if (data === "[DONE]") continue;
-
-                        // Фикс пробелов: добавляем только между словами (не внутри)
-                        if (fullText.length > 0 &&
-                            /[a-zA-Zа-яА-Я0-9]$/.test(fullText) &&  // заканчивается буквой/цифрой
-                            /^[a-zA-Zа-яА-Я0-9]/.test(data)) {      // начинается с буквы/цифры
-                            fullText += " ";
-                        }
-
                         fullText += data;
-
-                        // Нормализация: убираем двойные пробелы
-                        aiMsg.textContent = fullText.replace(/\s{2,}/g, ' ').trim();
-
-                        mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
                     }
                 }
             }
+
+            // Нормализация всего текста после стрима
+            fullText = fullText.replace(/\s{2,}/g, ' ').trim();
+
+            aiMsg.classList.remove("typing");
+            aiMsg.textContent = "";
+            await typeWriterEffect(aiMsg, fullText, 15);
+
         } catch (err) {
             console.error("Streaming error:", err);
             aiMsg.textContent = "Something went wrong... Try again 😔";
@@ -373,7 +373,7 @@ const chatModule = (() => {
         }
     }
 
-    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
+    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat, typeWriterEffect };
 })();
 
 // QUICK BUTTONS
