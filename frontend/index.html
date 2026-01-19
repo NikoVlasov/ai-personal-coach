@@ -75,7 +75,7 @@
     }
     .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
     .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
-    .typing { font-style: italic; opacity: 0.7; background: #fff; }
+    .typing { font-style: italic; opacity: 0.7; background: #fff; padding: 10px 15px; border-radius: 15px; }
 
     #quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
     .quick-btn { background: #81b4ff; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; }
@@ -157,7 +157,7 @@
 </div>
 
 <script>
-// ===== MAIN MODULE =====
+// MAIN MODULE
 const mainModule = (() => {
     let token = null;
     let user_id = null;
@@ -204,7 +204,7 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, elements };
 })();
 
-// ===== CHAT MODULE =====
+// CHAT MODULE
 const chatModule = (() => {
     async function fetchChats() {
         try {
@@ -224,7 +224,8 @@ const chatModule = (() => {
                 };
                 list.appendChild(div);
             });
-        } catch {
+        } catch (e) {
+            console.error("Error loading chats:", e);
             alert("Error loading chats");
         }
     }
@@ -239,13 +240,14 @@ const chatModule = (() => {
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${mainModule.getToken()}` },
                 body: JSON.stringify({ title })
             });
-            if (!res.ok) throw new Error();
+            if (!res.ok) throw new Error(await res.text());
             const data = await res.json();
             document.getElementById("new-chat-title").value = "";
             await fetchChats();
             mainModule.setCurrentChatId(data.chat_id);
             fetchHistory();
-        } catch {
+        } catch (e) {
+            console.error("Create chat error:", e);
             alert("Failed to create chat");
         }
     }
@@ -260,7 +262,9 @@ const chatModule = (() => {
             mainModule.elements.chatContainer.innerHTML = "";
             data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.created_at));
             mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        } catch {}
+        } catch (e) {
+            console.error("History error:", e);
+        }
     }
 
     function addMessage(text, sender, timestamp = null) {
@@ -329,15 +333,17 @@ const chatModule = (() => {
 
                         if (data === "[DONE]") continue;
 
+                        // Фикс пробелов: добавляем только между словами (не внутри)
                         if (fullText.length > 0 &&
-                            !/[\s.,!?;:]$/.test(fullText) &&
-                            !/^[.,!?;:]/.test(data)) {
+                            /[a-zA-Zа-яА-Я0-9]$/.test(fullText) &&  // заканчивается буквой/цифрой
+                            /^[a-zA-Zа-яА-Я0-9]/.test(data)) {      // начинается с буквы/цифры
                             fullText += " ";
                         }
 
                         fullText += data;
 
-                        aiMsg.textContent = fullText.replace(/\s{2,}/g, ' ').trimStart();
+                        // Нормализация: убираем двойные пробелы
+                        aiMsg.textContent = fullText.replace(/\s{2,}/g, ' ').trim();
 
                         mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
                     }
@@ -370,7 +376,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// ===== QUICK BUTTONS =====
+// QUICK BUTTONS
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -400,12 +406,14 @@ const quickButtonsModule = (() => {
                 b.appendChild(del);
                 mainModule.elements.quickButtonsDiv.appendChild(b);
             });
-        } catch {}
+        } catch (e) {
+            console.error("Quick buttons error:", e);
+        }
     }
     return { fetchQuickButtons };
 })();
 
-// ===== AUTH MODULE =====
+// AUTH MODULE
 const authModule = (() => {
     function showForm(type) {
         document.getElementById("login-form").classList.toggle("hidden", type !== 'login');
@@ -468,7 +476,7 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
+// ИНИЦИАЛИЗАЦИЯ
 document.addEventListener('DOMContentLoaded', () => {
     // Автологин
     const savedToken = localStorage.getItem('token');
