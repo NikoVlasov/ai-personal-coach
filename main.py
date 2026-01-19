@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException, Body, Depends, status
+from fastapi import FastAPI, HTTPException, Body, Depends, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from groq import Groq
@@ -13,9 +13,7 @@ from jose import JWTError, jwt
 import logging
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
-from fastapi.responses import StreamingResponse
 import asyncio
-from fastapi import Query, HTTPException, status
 
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
@@ -26,8 +24,11 @@ load_dotenv()
 API_KEY = os.getenv("GROQ_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 часа — удобнее для разработки
 DATABASE_URL = os.getenv("DATABASE_URL")  # из Render
+
+if not API_KEY:
+    raise RuntimeError("GROQ_API_KEY не найден в .env или переменных окружения")
 
 client = Groq(api_key=API_KEY)
 
@@ -35,7 +36,7 @@ client = Groq(api_key=API_KEY)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # В продакшене укажи конкретные домены!
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,7 +52,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
-# --- Модели ---
+# --- Модели БД ---
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -88,7 +89,7 @@ class QuickButton(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="buttons")
 
-# --- Создаём таблицы ---
+# Создаём таблицы
 Base.metadata.create_all(bind=engine)
 
 # --- Пароли ---
@@ -173,7 +174,7 @@ async def register(user: UserRegister, db: Session = Depends(get_db)):
     hashed_password = hash_password(user.password)
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email is already registered")
+        raise HTTPException(status_code=400, detail="Email already registered")
     new_user = User(email=user.email, password=hashed_password)
     db.add(new_user)
     db.commit()
@@ -203,56 +204,90 @@ async def create_chat(chat: ChatCreate, current_user: User = Depends(get_current
 @app.get("/chats")
 async def get_chats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     chats = db.query(Chat).filter(Chat.user_id == current_user.id).order_by(Chat.created_at.desc()).all()
-    return {"chats": [{"id": c.id, "title": c.title, "created_at": c.created_at} for c in chats]}
+    return {"chats": [{"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()} for c in chats]}
 
-# --- AI Coach ---
+# --- AI Coach (единственный стриминговый эндпоинт) ---
 @app.post("/coach")
 async def coach_response(msg: MessageIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Проверяем, что чат принадлежит пользователю
+    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == current_user.id).first()
+    if not chat:
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+
     # Сохраняем сообщение пользователя
     db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
     db.commit()
 
-    # История сообщений (как раньше)
+    # Сильный русскоязычный системный промпт
     history = [{
         "role": "system",
-        "content": """...твой текущий английский системный промпт..."""
+        "content": """
+Ты — русскоязычный senior-разработчик и ментор с 12+ годами опыта (Fullstack → сейчас фокус на JS/TS, React/Node, иногда Python/Go/DevOps).
+Помогаешь разработчикам из СНГ/Восточной Европы расти: от джуна до мидла/сеньора, собеседования в Европе, архитектура, продуктивность, выгорание.
+
+Тон: прямой, честный, поддерживающий, иногда жёстко мотивирующий (как старший брат). Говоришь правду в лицо, но всегда конструктивно.
+Язык: живой русский, без воды. Эмодзи умеренно 😏🔥🚀
+
+Структура ответа почти всегда:
+1. Эмпатия + зеркало (1–2 предложения)
+2. Чёткий разбор ситуации
+3. Конкретные рекомендации (код, ресурсы 2026 года)
+4. "Следующие шаги" — 2–4 actionable пункта с сроками/метриками
+
+Исключения: small talk — легко и коротко.
+Код всегда в ```js\nкод\n``` или нужный язык.
+Помни контекст из предыдущих сообщений.
+        """
     }]
 
-    last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.id.desc()).limit(10).all()
+    # Берём последние 20 сообщений (лучше контекст)
+    last_msgs = db.query(Message).filter(Message.chat_id == msg.chat_id)\
+                                 .order_by(Message.id.desc()).limit(20).all()
+
     for m in reversed(last_msgs):
-        history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
+        history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1500]})
 
     # Стриминг-генератор
     async def event_generator():
         full_reply = ""
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=history,
-            temperature=0.65,
-            max_tokens=1200,
-            stream=True
-        )
+        try:
+            stream = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=history,
+                temperature=0.65,
+                max_tokens=1200,
+                stream=True
+            )
 
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                content = chunk.choices[0].delta.content
-                full_reply += content
-                yield f"data: {content}\n\n"  # SSE формат
-            await asyncio.sleep(0.01)  # для плавности
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    content = chunk.choices[0].delta.content
+                    full_reply += content
+                    yield f"data: {content}\n\n"
+                await asyncio.sleep(0.01)  # плавность
 
-        # После завершения стрима сохраняем полный ответ в БД
-        db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
-        db.commit()
+            # Сохраняем полный ответ после завершения
+            db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
+            db.commit()
 
-        yield "data: [DONE]\n\n"
+            yield "data: [DONE]\n\n"
+
+        except Exception as e:
+            logger.error(f"Groq streaming error: {str(e)}")
+            yield "data: Ошибка генерации ответа. Попробуй позже.\n\n"
+            yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 # --- История чата ---
 @app.get("/history/{chat_id}")
 async def get_history(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == current_user.id).first()
+    if not chat:
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+
     messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id.asc()).all()
-    return {"messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at} for m in messages]}
+    return {"messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at.isoformat()} for m in messages]}
 
 # --- Быстрые кнопки ---
 @app.get("/quick_buttons")
@@ -277,61 +312,12 @@ async def delete_quick_button(body: dict = Body(...), current_user: User = Depen
 
 @app.delete("/chats/{chat_id}")
 async def delete_chat(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == current_user.id).first()
+    if not chat:
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+
     db.query(Message).filter(Message.chat_id == chat_id).delete()
     db.query(Chat).filter(Chat.id == chat_id).delete()
     db.commit()
     return {"status": "ok"}
 
-@app.get("/coach_stream")
-async def coach_stream(
-    chat_id: int = Query(...),
-    text: str = Query(...),
-    token: str = Query(...),  # ← новый параметр для токена
-    db: Session = Depends(get_db)
-):
-    # Вручную валидируем токен (копируем логику из get_current_user)
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        current_user = db.query(User).filter(User.email == email).first()
-        if current_user is None:
-            raise HTTPException(status_code=401, detail="User not found")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    # Дальше как раньше: сохраняем сообщение пользователя, генерируем историю...
-    db.add(Message(chat_id=chat_id, user_id=current_user.id, sender="user", text=text))
-    db.commit()
-
-    # История (как раньше)
-    history = [{"role": "system", "content": "...твой промпт..."}]
-    last_msgs = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id.desc()).limit(10).all()
-    for m in reversed(last_msgs):
-        history.append({"role": "user" if m.sender == "user" else "assistant", "content": m.text[:1000]})
-
-    async def event_generator():
-        full_reply = ""
-        stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=history,
-            temperature=0.65,
-            max_tokens=1200,
-            stream=True
-        )
-
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                content = chunk.choices[0].delta.content
-                full_reply += content
-                yield f"data: {content}\n\n"
-            await asyncio.sleep(0.01)
-
-        # Сохраняем полный ответ
-        db.add(Message(chat_id=chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
-        db.commit()
-
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
