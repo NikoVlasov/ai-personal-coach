@@ -75,7 +75,7 @@
     }
     .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
     .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
-    .typing { font-style: italic; opacity: 0.7; background: #fff; }
+    .typing { font-style: italic; opacity: 0.7; background: #fff; padding: 10px 15px; border-radius: 15px; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     #quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
@@ -135,7 +135,7 @@
     <!-- CHAT -->
     <div id="chat-ui" class="hidden">
         <div id="chat-dropdown-container">
-            <div id="chat-dropdown-btn" id="chat-select-btn">Выберите чат</div>
+            <div id="chat-dropdown-btn">Выберите чат</div>
             <div id="chat-list"></div>
         </div>
 
@@ -232,39 +232,22 @@ const chatModule = (() => {
 
     async function createChat() {
         const title = document.getElementById("new-chat-title").value.trim();
-        if (!title) return alert("Введите название чата");
+        if (!title) return alert("Введите название");
 
         try {
             const res = await fetch("/chats", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${mainModule.getToken()}`
-                },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${mainModule.getToken()}` },
                 body: JSON.stringify({ title })
             });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Ошибка создания чата");
-            }
-
+            if (!res.ok) throw new Error();
             const data = await res.json();
-            console.log("Создан чат:", data); // ← для отладки, смотри в консоль
-
             document.getElementById("new-chat-title").value = "";
-
-            // Сначала обновляем список чатов
-            await fetchChats();
-
-            // Только после обновления списка выбираем новый чат
-            mainModule.setCurrentChatId(data.chat_id);
-
-            // Дополнительно: можно автоматически загрузить историю нового чата
-            fetchHistory();
-        } catch (err) {
-            console.error("Ошибка при создании чата:", err);
-            alert(err.message || "Не удалось создать чат");
+            await fetchChats();               // сначала обновляем список
+            mainModule.setCurrentChatId(data.chat_id); // потом выбираем
+            fetchHistory();                    // загружаем пустую историю нового чата
+        } catch (e) {
+            alert("Не удалось создать чат: " + (e.message || ""));
         }
     }
 
@@ -278,9 +261,7 @@ const chatModule = (() => {
             mainModule.elements.chatContainer.innerHTML = "";
             data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.created_at));
             mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        } catch (e) {
-            console.error(e);
-        }
+        } catch {}
     }
 
     function addMessage(text, sender, timestamp = null) {
@@ -345,22 +326,34 @@ const chatModule = (() => {
 
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
-                        let data = line.slice(6).trim();
+                        let data = line.slice(6);
+
+                        // Фикс пробелов №1: убираем лишние ведущие пробелы в дельте
+                        data = data.trimStart();
+
                         if (data === "[DONE]") continue;
 
-                        // Исправление проблемы с пробелами
+                        // Фикс №2: добавляем пробел перед новым куском, если нужно
+                        if (fullText.length > 0 &&
+                            !/[\s.,!?;:]$/.test(fullText) &&
+                            !/^[.,!?;:]/.test(data)) {
+                            fullText += " ";
+                        }
+
                         fullText += data;
-                        // Нормализация: убираем множественные пробелы и лишние в начале/конце
-                        aiMsg.textContent = fullText.replace(/\s+/g, ' ').trim();
+
+                        // Фикс №3: нормализация всех пробелов
+                        aiMsg.textContent = fullText.replace(/\s{2,}/g, ' ').trimStart();
+
                         mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
                     }
                 }
             }
         } catch (err) {
-            console.error("Ошибка стриминга:", err);
+            console.error("Ошибка:", err);
             aiMsg.textContent = err.message.includes("429")
                 ? "Слишком много запросов. Подождите минуту 🔥"
-                : "Что-то пошло не так... Попробуйте снова 😔";
+                : "Ошибка. Попробуйте снова 😔";
             aiMsg.classList.remove("typing");
         }
     }
@@ -445,7 +438,7 @@ const authModule = (() => {
                 showForm("login");
             } else {
                 const err = await r.json();
-                alert(err.detail || "Ошибка регистрации");
+                alert(err.detail || "Ошибка");
             }
         } catch {
             alert("Ошибка сети");
