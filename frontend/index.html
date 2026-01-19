@@ -232,20 +232,39 @@ const chatModule = (() => {
 
     async function createChat() {
         const title = document.getElementById("new-chat-title").value.trim();
-        if (!title) return;
+        if (!title) return alert("Введите название чата");
+
         try {
             const res = await fetch("/chats", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${mainModule.getToken()}` },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${mainModule.getToken()}`
+                },
                 body: JSON.stringify({ title })
             });
-            if (!res.ok) throw new Error();
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Ошибка создания чата");
+            }
+
             const data = await res.json();
+            console.log("Создан чат:", data); // ← для отладки, смотри в консоль
+
             document.getElementById("new-chat-title").value = "";
-            fetchChats();
+
+            // Сначала обновляем список чатов
+            await fetchChats();
+
+            // Только после обновления списка выбираем новый чат
             mainModule.setCurrentChatId(data.chat_id);
-        } catch {
-            alert("Не удалось создать чат");
+
+            // Дополнительно: можно автоматически загрузить историю нового чата
+            fetchHistory();
+        } catch (err) {
+            console.error("Ошибка при создании чата:", err);
+            alert(err.message || "Не удалось создать чат");
         }
     }
 
