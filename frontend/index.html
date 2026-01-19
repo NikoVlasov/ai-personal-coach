@@ -360,8 +360,15 @@ const chatModule = (() => {
                     if (line.startsWith("data: ")) {
                         const data = line.slice(6).trim();
                         if (data === "[DONE]") continue;
+                        let fullText = "";
+
+                        ...
+
+                        if (data === "[DONE]") continue;
+
+                        // Просто конкатенация + нормализация пробелов в конце
                         fullText += data;
-                        aiMessage.textContent = fullText;
+                        aiMessage.textContent = fullText.replace(/\s+/g, ' ').trim();  // убираем двойные пробелы
                         mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
                     }
                 }
