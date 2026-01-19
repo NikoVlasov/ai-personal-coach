@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,8 +75,7 @@
     }
     .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
     .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
-    .typing { font-style: italic; opacity: 0.7; background: #fff; padding: 10px 15px; border-radius: 15px; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .typing { font-style: italic; opacity: 0.7; background: #fff; }
 
     #quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
     .quick-btn { background: #81b4ff; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; }
@@ -109,49 +108,49 @@
             <div class="app-name">Mentra</div>
             <div class="app-subtitle">AI Personal Coach</div>
         </div>
-        <span class="logout-text" id="logout-btn">Выйти</span>
+        <span class="logout-text" id="logout-btn">Logout</span>
     </header>
 
     <!-- AUTH -->
     <div id="auth-container">
         <div class="auth-tabs">
-            <button id="login-tab" class="active">Вход</button>
-            <button id="register-tab">Регистрация</button>
+            <button id="login-tab" class="active">Login</button>
+            <button id="register-tab">Register</button>
         </div>
 
         <form id="login-form" class="auth-form">
             <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Пароль" required>
-            <button type="button" id="login-btn">Войти</button>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="button" id="login-btn">Enter</button>
         </form>
 
         <form id="register-form" class="auth-form hidden">
             <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Пароль" required>
-            <button type="button" id="register-btn">Зарегистрироваться</button>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <button type="button" id="register-btn">Register</button>
         </form>
     </div>
 
     <!-- CHAT -->
     <div id="chat-ui" class="hidden">
         <div id="chat-dropdown-container">
-            <div id="chat-dropdown-btn">Выберите чат</div>
+            <div id="chat-dropdown-btn">Select chat</div>
             <div id="chat-list"></div>
         </div>
 
         <div id="new-chat-container">
-            <input type="text" id="new-chat-title" placeholder="Название нового чата">
-            <button id="create-chat-btn">Создать</button>
+            <input type="text" id="new-chat-title" placeholder="New chat title">
+            <button id="create-chat-btn">Create</button>
         </div>
 
-        <button id="delete-chat-btn">Удалить этот чат</button>
+        <button id="delete-chat-btn">Delete this chat</button>
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
         <div id="input-container">
-            <input type="text" id="message-input" placeholder="Напишите сообщение...">
-            <button id="send-btn">Отправить</button>
+            <input type="text" id="message-input" placeholder="Message input...">
+            <button id="send-btn">Send</button>
         </div>
     </div>
 
@@ -179,7 +178,7 @@ const mainModule = (() => {
     function setCurrentChatId(id) {
         current_chat_id = id;
         const selected = elements.chatListDiv.querySelector(`[data-id='${id}']`);
-        elements.chatDropdownBtn.textContent = selected ? selected.textContent : "Выберите чат";
+        elements.chatDropdownBtn.textContent = selected ? selected.textContent : "Select chat";
         elements.chatListDiv.classList.remove("show");
     }
 
@@ -198,7 +197,7 @@ const mainModule = (() => {
         elements.chatContainer.innerHTML = "";
         elements.quickButtonsDiv.innerHTML = "";
         elements.chatListDiv.innerHTML = "";
-        elements.chatDropdownBtn.textContent = "Выберите чат";
+        elements.chatDropdownBtn.textContent = "Select chat";
         authModule.showForm('login');
     }
 
@@ -226,13 +225,13 @@ const chatModule = (() => {
                 list.appendChild(div);
             });
         } catch {
-            alert("Ошибка загрузки чатов");
+            alert("Error loading chats");
         }
     }
 
     async function createChat() {
         const title = document.getElementById("new-chat-title").value.trim();
-        if (!title) return alert("Введите название");
+        if (!title) return alert("Enter title");
 
         try {
             const res = await fetch("/chats", {
@@ -243,11 +242,11 @@ const chatModule = (() => {
             if (!res.ok) throw new Error();
             const data = await res.json();
             document.getElementById("new-chat-title").value = "";
-            await fetchChats();               // сначала обновляем список
-            mainModule.setCurrentChatId(data.chat_id); // потом выбираем
-            fetchHistory();                    // загружаем пустую историю нового чата
-        } catch (e) {
-            alert("Не удалось создать чат: " + (e.message || ""));
+            await fetchChats();
+            mainModule.setCurrentChatId(data.chat_id);
+            fetchHistory();
+        } catch {
+            alert("Failed to create chat");
         }
     }
 
@@ -282,7 +281,7 @@ const chatModule = (() => {
 
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return alert("Сначала выберите чат");
+        if (!chatId) return alert("Select a chat first");
 
         const text = predefined || mainModule.elements.inputField.value.trim();
         if (!text) return;
@@ -292,7 +291,7 @@ const chatModule = (() => {
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
-        aiMsg.textContent = "Mentra думает...";
+        aiMsg.textContent = "AI is thinking...";
         mainModule.elements.chatContainer.appendChild(aiMsg);
         mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
 
@@ -308,7 +307,7 @@ const chatModule = (() => {
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-            if (!res.body) throw new Error("Нет стрима");
+            if (!res.body) throw new Error("No stream");
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
@@ -326,14 +325,10 @@ const chatModule = (() => {
 
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
-                        let data = line.slice(6);
-
-                        // Фикс пробелов №1: убираем лишние ведущие пробелы в дельте
-                        data = data.trimStart();
+                        let data = line.slice(6).trimStart();
 
                         if (data === "[DONE]") continue;
 
-                        // Фикс №2: добавляем пробел перед новым куском, если нужно
                         if (fullText.length > 0 &&
                             !/[\s.,!?;:]$/.test(fullText) &&
                             !/^[.,!?;:]/.test(data)) {
@@ -342,7 +337,6 @@ const chatModule = (() => {
 
                         fullText += data;
 
-                        // Фикс №3: нормализация всех пробелов
                         aiMsg.textContent = fullText.replace(/\s{2,}/g, ' ').trimStart();
 
                         mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
@@ -350,17 +344,15 @@ const chatModule = (() => {
                 }
             }
         } catch (err) {
-            console.error("Ошибка:", err);
-            aiMsg.textContent = err.message.includes("429")
-                ? "Слишком много запросов. Подождите минуту 🔥"
-                : "Ошибка. Попробуйте снова 😔";
+            console.error("Streaming error:", err);
+            aiMsg.textContent = "Something went wrong... Try again 😔";
             aiMsg.classList.remove("typing");
         }
     }
 
     async function deleteChat() {
         const chatId = mainModule.getCurrentChatId();
-        if (!chatId || !confirm("Удалить чат?")) return;
+        if (!chatId || !confirm("Delete this chat?")) return;
         try {
             await fetch(`/chats/${chatId}`, {
                 method: "DELETE",
@@ -371,7 +363,7 @@ const chatModule = (() => {
             mainModule.elements.chatListDiv.innerHTML = "";
             fetchChats();
         } catch {
-            alert("Ошибка удаления");
+            alert("Error deleting chat");
         }
     }
 
@@ -425,7 +417,7 @@ const authModule = (() => {
     async function register() {
         const email = document.getElementById("register-email").value.trim();
         const password = document.getElementById("register-password").value.trim();
-        if (!email || !password) return alert("Заполните поля");
+        if (!email || !password) return alert("Fill all fields");
 
         try {
             const r = await fetch("/register", {
@@ -434,21 +426,21 @@ const authModule = (() => {
                 body: JSON.stringify({ email, password })
             });
             if (r.ok) {
-                alert("Регистрация успешна! Войдите.");
+                alert("Registration successful! Please log in.");
                 showForm("login");
             } else {
                 const err = await r.json();
-                alert(err.detail || "Ошибка");
+                alert(err.detail || "Registration error");
             }
         } catch {
-            alert("Ошибка сети");
+            alert("Network error");
         }
     }
 
     async function login() {
         const email = document.getElementById("login-email").value.trim();
         const password = document.getElementById("login-password").value.trim();
-        if (!email || !password) return alert("Заполните поля");
+        if (!email || !password) return alert("Fill all fields");
 
         try {
             const r = await fetch("/login", {
@@ -466,10 +458,10 @@ const authModule = (() => {
                 mainModule.elements.chatUi.classList.remove("hidden");
                 chatModule.fetchChats();
             } else {
-                alert("Неверные данные");
+                alert("Invalid email or password");
             }
         } catch {
-            alert("Ошибка входа");
+            alert("Login error");
         }
     }
 
