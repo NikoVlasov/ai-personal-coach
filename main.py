@@ -252,7 +252,7 @@ Remember context from previous messages.
         full_reply = ""
         try:
             stream = client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=history,
                 temperature=0.65,
                 max_tokens=1200,
