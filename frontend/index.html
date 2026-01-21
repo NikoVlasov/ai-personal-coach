@@ -1,567 +1,331 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mentra — AI Personal Coach</title>
+<title>AI Personal Coach - MVP</title>
 <style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #f0f4f8;
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding-top: 20px; /* небольшой отступ сверху на десктопе */
-    }
-    #app-container {
-        width: 420px;
-        min-height: 700px;
-        max-height: 95vh; /* не даёт растягиваться больше экрана */
-        background: #fff;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    header.app-header {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #fff;
-        border-bottom: 1px solid #e6e6e6;
-    }
-    .hidden { display: none; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+#app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
+.hidden { display: none; }
 
-    #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
-    .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
-    .auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
-    .auth-tabs button.active { background: #4f8ef7; color: white; }
-    .auth-form { display: flex; flex-direction: column; gap: 12px; width:100%; margin:0; }
-    .auth-form.hidden { display: none !important; }
-    .auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
-    .auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
-    .auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
+/* Верхние кнопки */
+#top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
+.top-btn { padding:6px 12px; border:none; border-radius:8px; background:#4f8ef7; color:white; cursor:pointer; transition:none; }
+.top-btn.active { background:#3a6fdc; }
 
-    #chat-dropdown-container, #new-chat-container, #delete-chat-btn {
-        position: sticky;
-        top: 60px; /* высота header */
-        z-index: 10;
-        background: #fff;
-        padding: 10px;
-        margin: 0 10px;
-    }
-    #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
-    #chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
-    #chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
-    #chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
-    #chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
-    #chat-list div:hover { background:#e6edf7; }
-    #chat-dropdown-btn.open::after { transform: rotate(180deg); }
+/* AUTH */
+#auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
+.auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
+.auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
+.auth-tabs button.active { background: #4f8ef7; color: white; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; width:100%; margin:0; }
+.auth-form.hidden { display: none !important; }
+.auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
+.auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
+.auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
 
-    #delete-chat-btn { margin: 10px 10px 0 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid #f0b4b4; background: #fff; color: #d9534f; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
-    #delete-chat-btn:hover { background: #fdeaea; transform: scale(1.02); }
+/* Чаты */
+#chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
+#chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
+#chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
+#chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
+#chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
+#chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
+#chat-list div:hover { background:#e6edf7; }
+#chat-dropdown-btn.open::after { transform: rotate(180deg); }
+#delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px; cursor:pointer; transition: 0.2s; }
+#delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
+#chat-dropdown-btn.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
 
-    #chat-container {
-        flex: 1 1 auto;
-        padding: 10px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        background: #e6edf7;
-        scroll-behavior: smooth;
-    }
-    .message {
-        max-width: 75%;
-        padding: 10px 15px;
-        border-radius: 15px;
-        line-height: 1.4;
-        word-wrap: break-word;
-        animation: fadeIn 0.3s ease-in;
-    }
-    .user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
-    .ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
-    .typing { font-style: italic; opacity: 0.7; background: #fff; padding: 10px 15px; border-radius: 15px; }
+#chat-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #e6edf7; max-height: 400px; }
+.message { max-width: 75%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.3s ease-in; }
+.user { background: #4f8ef7; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+.ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #ccc; border-bottom-left-radius: 0; }
+.typing { font-style: italic; opacity: 0.7; }
+.fade-out { opacity: 0; transition: opacity 0.5s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    #quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
-    .quick-btn { background: #81b4ff; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; }
-    .quick-btn:hover { background: #4f8ef7; transform: scale(1.05); }
-    .quick-btn .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; transition: 0.2s; }
-    .quick-btn .delete-btn:hover { background: darkred; }
+/* Quick buttons */
+#quick-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #f0f4fb; border-top: 1px solid #ccc; }
+.quick-btn { background: #81b4ff; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; position: relative; transition: 0.2s; }
+.quick-btn:hover { background: #4f8ef7; transform: scale(1.05); }
+.quick-btn .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+.quick-btn .delete-btn:hover { background: darkred; }
 
-    #input-container {
-        display:flex;
-        gap:5px;
-        padding:10px;
-        background: #fff;
-        border-top: 1px solid #ccc;
-        position: sticky;
-        bottom: 0;
-        z-index: 10;
-    }
-    #input-container input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    #input-container button { padding:12px 16px; border-radius:12px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
-    #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
+/* Input */
+#input-container { display:flex; gap:5px; padding:10px; }
+#input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
+#input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
+#input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
 
-    #new-chat-container { display:flex; gap:5px; margin:10px; }
-    #new-chat-container input { flex:1; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    #new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
+/* Создание нового чата */
+#new-chat-container { display:flex; gap:5px; margin:10px; }
+#new-chat-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
+#new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
+#new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
 
-    .app-title { display: flex; flex-direction: column; line-height: 1.1; }
-    .app-name { font-size: 18px; font-weight: 700; color: #111; }
-    .app-subtitle { font-size: 12px; color: #666; margin-top: 2px; }
-    .logout-text { cursor: pointer; color: #4f8ef7; transition: color 0.2s; font-size: 13px; }
-    .logout-text:hover { color: #d9534f; text-decoration: underline; }
 </style>
 </head>
 <body>
 <div id="app-container">
+    <header>AI Personal Coach</header>
 
-    <header class="app-header">
-        <div class="app-title">
-            <div class="app-name">Mentra</div>
-            <div class="app-subtitle">AI Personal Coach</div>
-        </div>
-        <span class="logout-text" id="logout-btn">Logout</span>
-    </header>
+    <div id="top-buttons">
+        <button id="btn-ru" class="top-btn active" onclick="setLanguage('ru')">RU</button>
+        <button id="btn-en" class="top-btn" onclick="setLanguage('en')">EN</button>
+        <button id="btn-logout" class="top-btn" onclick="mainModule.logout()">Logout</button>
+    </div>
 
     <!-- AUTH -->
     <div id="auth-container">
         <div class="auth-tabs">
-            <button id="login-tab" class="active">Login</button>
-            <button id="register-tab">Register</button>
+            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Вход</button>
+            <button id="register-tab" onclick="authModule.showForm('register')">Регистрация</button>
         </div>
-
         <form id="login-form" class="auth-form">
             <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button type="button" id="login-btn">Enter</button>
+            <input type="password" id="login-password" placeholder="Пароль" required>
+            <button type="button" onclick="authModule.login()">Войти</button>
         </form>
-
         <form id="register-form" class="auth-form hidden">
             <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Password" required>
-            <button type="button" id="register-btn">Register</button>
+            <input type="password" id="register-password" placeholder="Пароль" required>
+            <button type="button" onclick="authModule.register()">Зарегистрироваться</button>
         </form>
     </div>
 
     <!-- CHAT -->
     <div id="chat-ui" class="hidden">
         <div id="chat-dropdown-container">
-            <div id="chat-dropdown-btn">Select chat</div>
+            <div id="chat-dropdown-btn" onclick="toggleChatList()">Выберите чат</div>
             <div id="chat-list"></div>
         </div>
-
         <div id="new-chat-container">
-            <input type="text" id="new-chat-title" placeholder="New chat title">
-            <button id="create-chat-btn">Create</button>
+            <input type="text" id="new-chat-title" placeholder="Название нового чата">
+            <button onclick="chatModule.createChat()">Создать</button>
         </div>
-
-        <button id="delete-chat-btn">Delete this chat</button>
+        <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Удалить чат</button>
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
         <div id="input-container">
-            <input type="text" id="message-input" placeholder="Message input...">
-            <button id="send-btn">Send</button>
+            <input type="text" id="message-input" placeholder="Напиши сообщение...">
+            <button onclick="chatModule.sendMessage()">Отправить</button>
         </div>
     </div>
-
 </div>
 
 <script>
-// MAIN MODULE
+// ===== MAIN MODULE =====
 const mainModule = (() => {
-    let token = null;
-    let user_id = null;
-    let current_chat_id = null;
+    let token=null, user_id=null, current_chat_id=null;
+    const chatContainer=document.getElementById("chat-container");
+    const quickButtonsDiv=document.getElementById("quick-buttons");
+    const inputField=document.getElementById("message-input");
+    const chatListDiv=document.getElementById("chat-list");
+    const chatDropdownBtn=document.getElementById("chat-dropdown-btn");
 
-    const elements = {
-        chatContainer: document.getElementById("chat-container"),
-        quickButtonsDiv: document.getElementById("quick-buttons"),
-        inputField: document.getElementById("message-input"),
-        chatListDiv: document.getElementById("chat-list"),
-        chatDropdownBtn: document.getElementById("chat-dropdown-btn"),
-        chatUi: document.getElementById("chat-ui"),
-        authContainer: document.getElementById("auth-container")
-    };
-
-    function setToken(t) { token = t; }
-    function setUserId(id) { user_id = id; }
-    function setCurrentChatId(id) {
-        current_chat_id = id;
-        const selected = elements.chatListDiv.querySelector(`[data-id='${id}']`);
-        elements.chatDropdownBtn.textContent = selected ? selected.textContent : "Select chat";
-        elements.chatListDiv.classList.remove("show");
+    function setToken(t){ token=t; }
+    function setUserId(id){ user_id=id; }
+    function setCurrentChatId(id){
+        current_chat_id=id;
+        chatDropdownBtn.textContent = chatListDiv.querySelector(`[data-id='${id}']`)?.textContent || "Выберите чат";
+        chatListDiv.classList.remove("show");
     }
+    function getToken(){ return token; }
+    function getUserId(){ return user_id; }
+    function getCurrentChatId(){ return current_chat_id; }
 
-    function getToken() { return token; }
-    function getUserId() { return user_id; }
-    function getCurrentChatId() { return current_chat_id; }
-
-    function logout() {
-        token = null;
-        user_id = null;
-        current_chat_id = null;
-        localStorage.removeItem('token');
-        localStorage.removeItem('user_id');
-        elements.chatUi.classList.add("hidden");
-        elements.authContainer.style.display = "block";
-        elements.chatContainer.innerHTML = "";
-        elements.quickButtonsDiv.innerHTML = "";
-        elements.chatListDiv.innerHTML = "";
-        elements.chatDropdownBtn.textContent = "Select chat";
+    function logout(){
+        token=null; user_id=null; current_chat_id=null;
+        localStorage.removeItem('token'); localStorage.removeItem('user_id');
+        document.getElementById("chat-ui").classList.add("hidden");
+        document.getElementById("auth-container").style.display="block";
+        chatContainer.innerHTML=""; quickButtonsDiv.innerHTML=""; chatListDiv.innerHTML="";
+        chatDropdownBtn.textContent="Выберите чат";
         authModule.showForm('login');
     }
 
-    return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, elements };
+    return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
 })();
 
-// CHAT MODULE
+// ===== CHAT MODULE =====
 const chatModule = (() => {
-    async function fetchChats() {
-        try {
-            const res = await fetch(`/chats`, { headers: { Authorization: `Bearer ${mainModule.getToken()}` } });
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            const list = mainModule.elements.chatListDiv;
-            list.innerHTML = "";
-            data.chats.forEach(chat => {
+    async function fetchChats(){
+        try{
+            const res=await fetch(`/chats`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+            const data=await res.json();
+            const chatListDiv = mainModule.chatListDiv;
+            chatListDiv.innerHTML="";
+            data.chats.forEach(chat=>{
                 const div = document.createElement("div");
                 div.textContent = chat.title;
                 div.dataset.id = chat.id;
-                div.onclick = () => {
-                    mainModule.setCurrentChatId(chat.id);
-                    fetchHistory();
-                    quickButtonsModule.fetchQuickButtons();
-                };
-                list.appendChild(div);
+                div.onclick = () => { mainModule.setCurrentChatId(chat.id); fetchHistory(); quickButtonsModule.fetchQuickButtons(); };
+                chatListDiv.appendChild(div);
             });
-        } catch (e) {
-            console.error("Error loading chats:", e);
-            alert("Error loading chats");
-        }
+        } catch(e){ alert("Ошибка при получении чатов"); }
     }
 
-    async function createChat() {
-        const title = document.getElementById("new-chat-title").value.trim();
-        if (!title) return alert("Enter title");
-
-        try {
-            const res = await fetch("/chats", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${mainModule.getToken()}` },
-                body: JSON.stringify({ title })
-            });
-            if (!res.ok) throw new Error(await res.text());
-            const data = await res.json();
-            document.getElementById("new-chat-title").value = "";
-            await fetchChats();
-            mainModule.setCurrentChatId(data.chat_id);
-            fetchHistory();
-        } catch (e) {
-            console.error("Create chat error:", e);
-            alert("Failed to create chat");
-        }
+    async function createChat(){
+        const title=document.getElementById("new-chat-title").value.trim(); if(!title) return;
+        const res=await fetch(`/chats`,{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ title }) });
+        const data=await res.json();
+        document.getElementById("new-chat-title").value="";
+        fetchChats();
+        mainModule.setCurrentChatId(data.chat_id);
     }
 
-    async function fetchHistory() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return;
-        try {
-            const res = await fetch(`/history/${chatId}`, { headers: { Authorization: `Bearer ${mainModule.getToken()}` } });
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            mainModule.elements.chatContainer.innerHTML = "";
-            data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.created_at));
-            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        } catch (e) {
-            console.error("History error:", e);
-        }
+    async function fetchHistory(){
+        const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
+        const res=await fetch(`/history/${chatId}`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+        const data=await res.json(); mainModule.chatContainer.innerHTML="";
+        data.messages.forEach(msg=>addMessage(msg.text,msg.sender,msg.timestamp));
+        mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
     }
 
-    function addMessage(text, sender, timestamp = null) {
-        const div = document.createElement("div");
-        div.className = `message ${sender}`;
-        div.textContent = text;
+    function addMessage(text,sender,timestamp=null){
+        const msgDiv=document.createElement("div"); msgDiv.className=`message ${sender}`;
+        msgDiv.textContent=text + (timestamp?` (${timestamp})`:'');
 
-        if (timestamp) {
-            const time = document.createElement("small");
-            time.style.opacity = "0.6";
-            time.style.display = "block";
-            time.textContent = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            div.appendChild(time);
-        }
-
-        // Добавляем сообщение в контейнер
-        mainModule.elements.chatContainer.appendChild(div);
-
-        // Немедленный скролл + небольшая задержка (на случай, если браузер ещё не отрисовал)
-        mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        setTimeout(() => {
-            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        }, 50);
-
-        return div;
+        mainModule.chatContainer.appendChild(msgDiv);
+        mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight;
+        return msgDiv;
     }
 
-    async function typeWriterEffect(element, text, delay = 15) {
-        element.textContent = "";
-        for (let i = 0; i < text.length; i++) {
-            element.textContent += text.charAt(i);
-            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        // Финальный скролл с задержкой на всякий случай
-        setTimeout(() => {
-            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        }, 100);
+    async function sendMessage(predefined=null){
+        const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Сначала выберите чат!"); return; }
+        const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
+        const typingDiv=addMessage("AI печатает","ai"); typingDiv.classList.add("typing");
+        let dots=0; const typingInterval=setInterval(()=>{ dots=(dots+1)%4; typingDiv.textContent="AI печатает"+'.'.repeat(dots); },500);
+
+        const res=await fetch("/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
+        const data=await res.json(); clearInterval(typingInterval);
+        typingDiv.classList.add("fade-out");
+        setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
     }
 
-    async function sendMessage(predefined = null) {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return alert("Select a chat first");
-
-        const text = predefined || mainModule.elements.inputField.value.trim();
-        if (!text) return;
-
-        addMessage(text, "user");
-        mainModule.elements.inputField.value = "";
-
-        const aiMsg = document.createElement("div");
-        aiMsg.className = "message ai typing";
-        aiMsg.textContent = "AI is thinking...";
-        mainModule.elements.chatContainer.appendChild(aiMsg);
-        setTimeout(() => {
-            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
-        }, 100);
-
-        try {
-            const res = await fetch("/coach", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${mainModule.getToken()}`
-                },
-                body: JSON.stringify({ chat_id: chatId, text })
-            });
-
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-            if (!res.body) throw new Error("No stream");
-
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let fullText = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split("\n");
-
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const data = line.slice(6);
-                        if (data === "[DONE]") continue;
-                        fullText += data;
-                    }
-                }
-            }
-
-            fullText = fullText.replace(/\s{2,}/g, ' ').trim();
-
-            aiMsg.classList.remove("typing");
-            aiMsg.textContent = "";
-            await typeWriterEffect(aiMsg, fullText, 15);
-
-        } catch (err) {
-            console.error("Streaming error:", err);
-            aiMsg.textContent = "Something went wrong... Try again 😔";
-            aiMsg.classList.remove("typing");
-        }
+    async function deleteChat(){
+        const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
+        await fetch(`/chats/${chatId}`,{ method:"DELETE", headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+        mainModule.setCurrentChatId(null);
+        mainModule.chatContainer.innerHTML="";
+        mainModule.chatListDiv.innerHTML="";
+        fetchChats();
     }
 
-    async function deleteChat() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId || !confirm("Delete this chat?")) return;
-        try {
-            await fetch(`/chats/${chatId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${mainModule.getToken()}` }
-            });
-            mainModule.setCurrentChatId(null);
-            mainModule.elements.chatContainer.innerHTML = "";
-            mainModule.elements.chatListDiv.innerHTML = "";
-            fetchChats();
-        } catch {
-            alert("Error deleting chat");
-        }
-    }
-
-    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat, typeWriterEffect };
+    return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS
+// ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
-    async function fetchQuickButtons() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return;
-        try {
-            const res = await fetch(`/quick_buttons`, { headers: { Authorization: `Bearer ${mainModule.getToken()}` } });
-            const data = await res.json();
-            mainModule.elements.quickButtonsDiv.innerHTML = "";
-            data.buttons.forEach(btn => {
-                const b = document.createElement("button");
-                b.className = "quick-btn";
-                b.textContent = btn;
-                b.onclick = () => chatModule.sendMessage(btn);
-
-                const del = document.createElement("button");
-                del.className = "delete-btn";
-                del.textContent = "×";
-                del.onclick = async e => {
-                    e.stopPropagation();
-                    await fetch(`/quick_buttons`, {
-                        method: "DELETE",
-                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${mainModule.getToken()}` },
-                        body: JSON.stringify({ text: btn })
-                    });
-                    fetchQuickButtons();
-                };
-                b.appendChild(del);
-                mainModule.elements.quickButtonsDiv.appendChild(b);
-            });
-        } catch (e) {
-            console.error("Quick buttons error:", e);
-        }
+    async function fetchQuickButtons(){
+        const chatId=mainModule.getCurrentChatId(); if(!chatId) return;
+        const res=await fetch(`/quick_buttons`,{ headers:{ Authorization:"Bearer "+mainModule.getToken() } });
+        const data=await res.json(); mainModule.quickButtonsDiv.innerHTML="";
+        data.buttons.forEach(btn=>{
+            const button=document.createElement("button"); button.className="quick-btn"; button.textContent=btn; button.onclick=()=>chatModule.sendMessage(btn);
+            const deleteBtn=document.createElement("button"); deleteBtn.className="delete-btn"; deleteBtn.textContent="×"; deleteBtn.onclick=async e=>{ e.stopPropagation(); await fetch(`/quick_buttons`,{ method:"DELETE", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({text:btn}) }); fetchQuickButtons(); };
+            button.appendChild(deleteBtn); mainModule.quickButtonsDiv.appendChild(button);
+        });
     }
     return { fetchQuickButtons };
 })();
 
-// AUTH MODULE
+// ===== AUTH MODULE =====
 const authModule = (() => {
-    function showForm(type) {
-        document.getElementById("login-form").classList.toggle("hidden", type !== 'login');
-        document.getElementById("register-form").classList.toggle("hidden", type === 'login');
-        document.getElementById("login-tab").classList.toggle("active", type === 'login');
-        document.getElementById("register-tab").classList.toggle("active", type !== 'login');
+    function showForm(type){
+        const loginForm=document.getElementById("login-form");
+        const registerForm=document.getElementById("register-form");
+        const loginTab=document.getElementById("login-tab");
+        const registerTab=document.getElementById("register-tab");
+        if(type==='login'){ loginForm.classList.remove("hidden"); registerForm.classList.add("hidden"); loginTab.classList.add("active"); registerTab.classList.remove("active"); }
+        else{ loginForm.classList.add("hidden"); registerForm.classList.remove("hidden"); loginTab.classList.remove("active"); registerTab.classList.add("active"); }
     }
 
-    async function register() {
-        const email = document.getElementById("register-email").value.trim();
-        const password = document.getElementById("register-password").value.trim();
-        if (!email || !password) return alert("Fill all fields");
-
-        try {
-            const r = await fetch("/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
-            });
-            if (r.ok) {
-                alert("Registration successful! Please log in.");
-                showForm("login");
-            } else {
-                const err = await r.json();
-                alert(err.detail || "Registration error");
-            }
-        } catch {
-            alert("Network error");
-        }
+    async function register(){
+        const email=document.getElementById("register-email").value;
+        const password=document.getElementById("register-password").value;
+        const res=await fetch("/register",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
+        if(res.ok){ alert("Регистрация успешна! Теперь войдите."); showForm("login"); }
+        else{ const err=await res.json(); alert("Ошибка: "+err.detail); }
     }
 
-    async function login() {
-        const email = document.getElementById("login-email").value.trim();
-        const password = document.getElementById("login-password").value.trim();
-        if (!email || !password) return alert("Fill all fields");
-
-        try {
-            const r = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
-            });
-            if (r.ok) {
-                const data = await r.json();
-                mainModule.setToken(data.access_token);
-                mainModule.setUserId(data.user_id);
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('user_id', data.user_id);
-                mainModule.elements.authContainer.style.display = "none";
-                mainModule.elements.chatUi.classList.remove("hidden");
-                chatModule.fetchChats();
-            } else {
-                alert("Invalid email or password");
-            }
-        } catch {
-            alert("Login error");
-        }
+    async function login(){
+        const email=document.getElementById("login-email").value;
+        const password=document.getElementById("login-password").value;
+        const res=await fetch("/login",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
+        if(res.ok){
+            const data=await res.json();
+            mainModule.setToken(data.access_token); mainModule.setUserId(data.user_id);
+            document.getElementById("auth-container").style.display="none";
+            document.getElementById("chat-ui").classList.remove("hidden");
+            chatModule.fetchChats();
+        } else { alert("Неверный email или пароль"); }
     }
 
     return { showForm, register, login };
 })();
 
-// ИНИЦИАЛИЗАЦИЯ
-document.addEventListener('DOMContentLoaded', () => {
-    // Автологин
-    const savedToken = localStorage.getItem('token');
-    const savedUserId = localStorage.getItem('user_id');
-    if (savedToken && savedUserId) {
-        mainModule.setToken(savedToken);
-        mainModule.setUserId(savedUserId);
-        mainModule.elements.authContainer.style.display = "none";
-        mainModule.elements.chatUi.classList.remove("hidden");
-        chatModule.fetchChats();
-    } else {
-        mainModule.elements.authContainer.style.display = "block";
-        authModule.showForm('login');
-    }
+function setLanguage(lang) {
+    // визуальное выделение активной кнопки
+    document.getElementById("btn-ru").classList.toggle("active", lang === 'ru');
+    document.getElementById("btn-en").classList.toggle("active", lang === 'en');
 
-    // Обработчики кнопок
-    document.getElementById("create-chat-btn")?.addEventListener("click", chatModule.createChat);
-    document.getElementById("send-btn")?.addEventListener("click", () => chatModule.sendMessage());
-    document.getElementById("delete-chat-btn")?.addEventListener("click", chatModule.deleteChat);
-    document.getElementById("login-btn")?.addEventListener("click", authModule.login);
-    document.getElementById("register-btn")?.addEventListener("click", authModule.register);
-    document.getElementById("logout-btn")?.addEventListener("click", mainModule.logout);
+    // вкладки входа / регистрации
+    document.getElementById("login-tab").textContent = lang === 'ru' ? "Вход" : "Login";
+    document.getElementById("register-tab").textContent = lang === 'ru' ? "Регистрация" : "Register";
 
-    // Переключение табов
-    document.getElementById("login-tab")?.addEventListener("click", () => authModule.showForm("login"));
-    document.getElementById("register-tab")?.addEventListener("click", () => authModule.showForm("register"));
+    // кнопки форм
+    document.querySelector("#login-form button").textContent = lang === 'ru' ? "Войти" : "Login";
+    document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Register";
 
-    // Отправка по Enter
-    mainModule.elements.inputField.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatModule.sendMessage();
-        }
-    });
+    // плейсхолдеры для форм
+    document.getElementById("login-email").placeholder = lang === 'ru' ? "Email" : "Email";
+    document.getElementById("login-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
+    document.getElementById("register-email").placeholder = lang === 'ru' ? "Email" : "Email";
+    document.getElementById("register-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
+
+    // выбор чата
+    document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
+
+    // кнопка удаления
+    document.getElementById("delete-chat-btn").textContent = lang === 'ru' ? "Удалить чат" : "Delete chat";
+
+    // поле ввода нового чата
+    document.getElementById("new-chat-title").placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
+    document.querySelector("#new-chat-container button").textContent = lang === 'ru' ? "Создать" : "Create";
+
+    // поле ввода сообщения
+    document.getElementById("message-input").placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type a message...";
+    document.querySelector("#input-container button").textContent = lang === 'ru' ? "Отправить" : "Send";
+
+    // кнопка logout
+    document.getElementById("btn-logout").textContent = lang === 'ru' ? "Выйти" : "Logout";
+
+    // главное название "AI Personal Coach" остаётся неизменным
+}
+
+
+
+
+function toggleChatList() {
+  const list = document.getElementById("chat-list");
+  const btn = document.getElementById("chat-dropdown-btn");
+  const isOpen = list.classList.toggle("show");
+  btn.classList.toggle("open", isOpen);
+}
+
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById("auth-container").style.display="block";
+    authModule.showForm('login');
+    setLanguage('ru');
 });
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
