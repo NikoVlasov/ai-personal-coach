@@ -5,11 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mentra — AI Personal Coach</title>
 <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    #app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
-    header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f4f8;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    #app-container {
+        width: 420px;
+        min-height: 700px; /* ← вернул как было, не растягивается */
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    header.app-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #fff;
+    }
     .hidden { display: none; }
-    header.app-header { position: sticky; top: 0; z-index: 10; background: #fff; }
 
     #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
     .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
@@ -21,8 +42,15 @@
     .auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
     .auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
 
-    #chat-dropdown-container { position: sticky; top: 60px; z-index: 10; background: #fff; padding: 10px; margin: 0 10px; }
-    #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
+    #chat-dropdown-container {
+        position: sticky;
+        top: 60px; /* под header */
+        z-index: 5;
+        background: #fff;
+        padding: 10px;
+        margin: 0 10px;
+    }
+    #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
     #chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
     #chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
     #chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
@@ -30,19 +58,31 @@
     #chat-list div:hover { background:#e6edf7; }
     #chat-dropdown-btn.open::after { transform: rotate(180deg); }
 
-    #delete-chat-btn { margin: 10px 10px 0 10px; padding: 10px 14px; width: auto; align-self: flex-start; border-radius: 10px; border: 1px solid #f0b4b4; background: #fff; color: #d9534f; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; position: sticky; top: 120px; z-index: 5; }
+    #delete-chat-btn {
+        margin: 10px 10px 0 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #f0b4b4;
+        background: #fff;
+        color: #d9534f;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.15s;
+        position: sticky;
+        top: 120px; /* под dropdown */
+        z-index: 5;
+    }
     #delete-chat-btn:hover { background: #fdeaea; transform: scale(1.02); }
 
     #chat-container {
-        flex: 1 1 auto;
+        flex: 1;
         padding: 10px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 8px;
         background: #e6edf7;
-        scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
     }
     .message {
         max-width: 75%;
@@ -62,7 +102,7 @@
     .quick-btn .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; transition: 0.2s; }
     .quick-btn .delete-btn:hover { background: darkred; }
 
-    #input-container { display:flex; gap:5px; padding:10px; background: #fff; border-top: 1px solid #ccc; }
+    #input-container { display:flex; gap:5px; padding:10px; }
     #input-container input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     #input-container button { padding:12px 16px; border-radius:12px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
     #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
