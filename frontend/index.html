@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
 <style>
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
 #app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
 .hidden { display: none; }
 
 /* Обновлённая шапка */
@@ -19,9 +20,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     align-items: center;
     font-size: 1.4em;
     font-weight: bold;
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 .app-name { margin: 0; }
 .logout-text {
@@ -33,10 +31,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .logout-text:hover { background: rgba(255,255,255,0.2); }
 
-/* Остальные стили без изменений */
-#top-buttons { display:flex; justify-content:flex-end; gap:8px; padding:10px; }
-.top-btn { padding:6px 12px; border:none; border-radius:8px; background:#4f8ef7; color:white; cursor:pointer; transition:none; }
-.top-btn.active { background:#3a6fdc; }
+/* AUTH */
 #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
 .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
 .auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
@@ -46,6 +41,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
 .auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
 .auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
+
 /* Чаты */
 #chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
 #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
@@ -89,49 +85,44 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
         <span class="logout-text" id="btn-logout" onclick="mainModule.logout()">Logout</span>
     </header>
 
-    <div id="top-buttons">
-        <button id="btn-ru" class="top-btn active" onclick="setLanguage('ru')">RU</button>
-        <button id="btn-en" class="top-btn" onclick="setLanguage('en')">EN</button>
-    </div>
-
     <!-- AUTH -->
     <div id="auth-container">
         <div class="auth-tabs">
-            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Вход</button>
-            <button id="register-tab" onclick="authModule.showForm('register')">Регистрация</button>
+            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Login</button>
+            <button id="register-tab" onclick="authModule.showForm('register')">Register</button>
         </div>
         <form id="login-form" class="auth-form">
             <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Пароль" required>
-            <button type="button" onclick="authModule.login()">Войти</button>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="button" onclick="authModule.login()">Enter</button>
         </form>
         <form id="register-form" class="auth-form hidden">
             <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Пароль" required>
-            <button type="button" onclick="authModule.register()">Зарегистрироваться</button>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <button type="button" onclick="authModule.register()">Register</button>
         </form>
     </div>
 
     <!-- CHAT -->
     <div id="chat-ui" class="hidden">
         <div id="chat-dropdown-container">
-            <div id="chat-dropdown-btn" onclick="toggleChatList()">Выберите чат</div>
+            <div id="chat-dropdown-btn" onclick="toggleChatList()">Select chat</div>
             <div id="chat-list"></div>
         </div>
 
         <div id="new-chat-container">
-            <input type="text" id="new-chat-title" placeholder="Название нового чата">
-            <button onclick="chatModule.createChat()">Создать</button>
+            <input type="text" id="new-chat-title" placeholder="New chat title">
+            <button onclick="chatModule.createChat()">Create</button>
         </div>
 
-        <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Удалить чат</button>
+        <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete chat</button>
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
         <div id="input-container">
-            <input type="text" id="message-input" placeholder="Напиши сообщение...">
-            <button onclick="chatModule.sendMessage()">Отправить</button>
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button onclick="chatModule.sendMessage()">Send</button>
         </div>
     </div>
 </div>
@@ -149,7 +140,7 @@ const mainModule = (() => {
     function setUserId(id){ user_id=id; }
     function setCurrentChatId(id){
         current_chat_id=id;
-        chatDropdownBtn.textContent = chatListDiv.querySelector(`[data-id='${id}']`)?.textContent || "Выберите чат";
+        chatDropdownBtn.textContent = chatListDiv.querySelector(`[data-id='${id}']`)?.textContent || "Select chat";
         chatListDiv.classList.remove("show");
     }
     function getToken(){ return token; }
@@ -161,7 +152,7 @@ const mainModule = (() => {
         document.getElementById("chat-ui").classList.add("hidden");
         document.getElementById("auth-container").style.display="block";
         chatContainer.innerHTML=""; quickButtonsDiv.innerHTML=""; chatListDiv.innerHTML="";
-        chatDropdownBtn.textContent="Выберите чат";
+        chatDropdownBtn.textContent="Select chat";
         authModule.showForm('login');
     }
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
@@ -182,7 +173,10 @@ const chatModule = (() => {
                 div.onclick = () => { mainModule.setCurrentChatId(chat.id); fetchHistory(); quickButtonsModule.fetchQuickButtons(); };
                 chatListDiv.appendChild(div);
             });
-        } catch(e){ alert("Ошибка при получении чатов"); }
+        } catch(e){
+            console.error("Fetch chats error:", e);
+            alert("Error fetching chats");
+        }
     }
     async function createChat(){
         const title=document.getElementById("new-chat-title").value.trim(); if(!title) return;
@@ -207,17 +201,67 @@ const chatModule = (() => {
         return msgDiv;
     }
     async function sendMessage(predefined=null){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Сначала выберите чат!"); return; }
-        const text=predefined||mainModule.inputField.value.trim(); if(!text) return; addMessage(text,"user"); mainModule.inputField.value="";
-        const typingDiv=addMessage("AI печатает","ai"); typingDiv.classList.add("typing");
-        let dots=0; const typingInterval=setInterval(()=>{ dots=(dots+1)%4; typingDiv.textContent="AI печатает"+'.'.repeat(dots); },500);
-        const res=await fetch("/coach",{ method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+mainModule.getToken() }, body:JSON.stringify({ chat_id:chatId, user_id:mainModule.getUserId(), text }) });
-        const data=await res.json(); clearInterval(typingInterval);
-        typingDiv.classList.add("fade-out");
-        setTimeout(()=>{ typingDiv.textContent=data.reply; typingDiv.classList.remove("typing","fade-out"); mainModule.chatContainer.scrollTop=mainModule.chatContainer.scrollHeight; },500);
+        const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Select a chat first!"); return; }
+        const text=predefined||mainModule.inputField.value.trim(); if(!text) return;
+        addMessage(text,"user"); mainModule.inputField.value="";
+
+        const aiMsg = document.createElement("div");
+        aiMsg.className = "message ai typing";
+        aiMsg.textContent = "AI is thinking...";
+        mainModule.chatContainer.appendChild(aiMsg);
+        mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+
+        try {
+            const res = await fetch("/coach", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mainModule.getToken()}`
+                },
+                body: JSON.stringify({ chat_id: chatId, text })
+            });
+
+            if (!res.ok) {
+                console.error("Coach error:", res.status);
+                throw new Error("HTTP " + res.status);
+            }
+
+            if (!res.body) throw new Error("No stream");
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split("\n");
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const data = line.slice(6);
+                        if (data === "[DONE]") continue;
+                        fullText += data;
+                    }
+                }
+            }
+
+            fullText = fullText.replace(/\s{2,}/g, ' ').trim();
+
+            aiMsg.classList.remove("typing");
+            aiMsg.textContent = "";
+            await typeWriterEffect(aiMsg, fullText, 15);
+
+        } catch (err) {
+            console.error("Send message error:", err);
+            aiMsg.textContent = "Something went wrong... Try again 😔";
+            aiMsg.classList.remove("typing");
+        }
     }
     async function deleteChat(){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Вы уверены, что хотите удалить этот чат?")) return;
+        const chatId=mainModule.getCurrentChatId(); if(!chatId) return; if(!confirm("Are you sure you want to delete this chat?")) return;
         await fetch(`/chats/${chatId}`,{ method:"DELETE", headers:{ Authorization:"Bearer "+mainModule.getToken() } });
         mainModule.setCurrentChatId(null);
         mainModule.chatContainer.innerHTML="";
@@ -251,56 +295,42 @@ const authModule = (() => {
         else{ loginForm.classList.add("hidden"); registerForm.classList.remove("hidden"); loginTab.classList.remove("active"); registerTab.classList.add("active"); }
     }
     async function register(){
-        const email=document.getElementById("register-email").value;
-        const password=document.getElementById("register-password").value;
+        const email=document.getElementById("register-email").value.trim();
+        const password=document.getElementById("register-password").value.trim();
+        if (!email || !password) return alert("Fill all fields");
         const res=await fetch("/register",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
-        if(res.ok){ alert("Регистрация успешна! Теперь войдите."); showForm("login"); }
-        else{ const err=await res.json(); alert("Ошибка: "+err.detail); }
+        if(res.ok){ alert("Registration successful! Please log in."); showForm("login"); }
+        else{ const err=await res.json(); alert("Error: "+ (err.detail || "Unknown error")); }
     }
     async function login(){
-        const email=document.getElementById("login-email").value;
-        const password=document.getElementById("login-password").value;
+        const email=document.getElementById("login-email").value.trim();
+        const password=document.getElementById("login-password").value.trim();
+        if (!email || !password) return alert("Fill all fields");
         const res=await fetch("/login",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
         if(res.ok){
             const data=await res.json();
             mainModule.setToken(data.access_token); mainModule.setUserId(data.user_id);
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('user_id', data.user_id);
             document.getElementById("auth-container").style.display="none";
             document.getElementById("chat-ui").classList.remove("hidden");
             chatModule.fetchChats();
-        } else { alert("Неверный email или пароль"); }
+        } else { alert("Invalid email or password"); }
     }
     return { showForm, register, login };
 })();
-function setLanguage(lang) {
-    document.getElementById("btn-ru").classList.toggle("active", lang === 'ru');
-    document.getElementById("btn-en").classList.toggle("active", lang === 'en');
-    document.getElementById("login-tab").textContent = lang === 'ru' ? "Вход" : "Login";
-    document.getElementById("register-tab").textContent = lang === 'ru' ? "Регистрация" : "Register";
-    document.querySelector("#login-form button").textContent = lang === 'ru' ? "Войти" : "Login";
-    document.querySelector("#register-form button").textContent = lang === 'ru' ? "Зарегистрироваться" : "Register";
-    document.getElementById("login-email").placeholder = lang === 'ru' ? "Email" : "Email";
-    document.getElementById("login-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
-    document.getElementById("register-email").placeholder = lang === 'ru' ? "Email" : "Email";
-    document.getElementById("register-password").placeholder = lang === 'ru' ? "Пароль" : "Password";
-    document.getElementById("chat-dropdown-btn").textContent = lang === 'ru' ? "Выберите чат" : "Select chat";
-    document.getElementById("delete-chat-btn").textContent = lang === 'ru' ? "Удалить чат" : "Delete chat";
-    document.getElementById("new-chat-title").placeholder = lang === 'ru' ? "Название нового чата" : "New chat title";
-    document.querySelector("#new-chat-container button").textContent = lang === 'ru' ? "Создать" : "Create";
-    document.getElementById("message-input").placeholder = lang === 'ru' ? "Напиши сообщение..." : "Type a message...";
-    document.querySelector("#input-container button").textContent = lang === 'ru' ? "Отправить" : "Send";
-    document.getElementById("btn-logout").textContent = lang === 'ru' ? "Выйти" : "Logout";
-}
+
 function toggleChatList() {
   const list = document.getElementById("chat-list");
   const btn = document.getElementById("chat-dropdown-btn");
   const isOpen = list.classList.toggle("show");
   btn.classList.toggle("open", isOpen);
 }
+
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById("auth-container").style.display="block";
     authModule.showForm('login');
-    setLanguage('ru');
 });
 </script>
 </body>
