@@ -5,34 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mentra — AI Personal Coach</title>
 <style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #f0f4f8;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    #app-container {
-        width: 420px;
-        min-height: 700px;
-        background: #fff;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    header {
-        background-color: #4f8ef7;
-        color: white;
-        text-align: center;
-        font-size: 1.5em;
-        font-weight: bold;
-        padding: 15px;
-    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    #app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+    header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
     .hidden { display: none; }
+    header.app-header { position: sticky; top: 0; z-index: 10; background: #fff; }
 
     #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
     .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
@@ -53,17 +30,18 @@
     #chat-list div:hover { background:#e6edf7; }
     #chat-dropdown-btn.open::after { transform: rotate(180deg); }
 
-    #delete-chat-btn { margin: 10px 10px 0 10px; padding: 10px 14px; width: auto; align-self: flex-start; border-radius: 10px; border: 1px solid #f0b4b4; background: #fff; color: #d9534f; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+    #delete-chat-btn { margin: 0 10px; padding: 10px ; align-self: flex-start; border-radius: 10px; border: 1px solid #f0b4b4; background: #fff; color: #d9534f; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; position: sticky; top: 60px; z-index: 5; }
     #delete-chat-btn:hover { background: #fdeaea; transform: scale(1.02); }
 
     #chat-container {
-        flex: 1;
+        flex: 1 1 auto;
         padding: 10px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 8px;
         background: #e6edf7;
+        margin-top: 10px;
     }
     .message {
         max-width: 75%;
@@ -503,7 +481,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Переключение табов
     document.getElementById("login-tab")?.addEventListener("click", () => authModule.showForm("login"));
     document.getElementById("register-tab")?.addEventListener("click", () => authModule.showForm("register"));
+
+    mainModule.elements.inputField.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {  // Enter без Shift — отправить
+        e.preventDefault();
+        chatModule.sendMessage();
+    }
 });
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
