@@ -10,7 +10,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 header { background-color: #4f8ef7; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 15px; }
 .hidden { display: none; }
 
-/* Обновлённая шапка */
+/* Шапка */
 .app-header {
     background-color: #4f8ef7;
     color: white;
@@ -158,6 +158,21 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
 })();
 
+// ===== TYPEWRITER EFFECT (вынесена наружу, чтобы была доступна) =====
+async function typeWriterEffect(element, text, delay = 15) {
+    element.textContent = "";
+    for (let i = 0; i < text.length; i++) {
+        element.textContent += text.charAt(i);
+        const container = mainModule.chatContainer;
+        container.scrollTop = container.scrollHeight;
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    setTimeout(() => {
+        const container = mainModule.chatContainer;
+        container.scrollTop = container.scrollHeight;
+    }, 100);
+}
+
 // ===== CHAT MODULE =====
 const chatModule = (() => {
     async function fetchChats(){
@@ -201,9 +216,14 @@ const chatModule = (() => {
         return msgDiv;
     }
     async function sendMessage(predefined=null){
-        const chatId=mainModule.getCurrentChatId(); if(!chatId){ alert("Select a chat first!"); return; }
-        const text=predefined||mainModule.inputField.value.trim(); if(!text) return;
-        addMessage(text,"user"); mainModule.inputField.value="";
+        const chatId=mainModule.getCurrentChatId();
+        if(!chatId){ alert("Select a chat first!"); return; }
+
+        const text=predefined||mainModule.inputField.value.trim();
+        if(!text) return;
+
+        addMessage(text,"user");
+        mainModule.inputField.value="";
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
@@ -222,7 +242,7 @@ const chatModule = (() => {
             });
 
             if (!res.ok) {
-                console.error("Coach error:", res.status);
+                console.error("Coach HTTP error:", res.status);
                 throw new Error("HTTP " + res.status);
             }
 
