@@ -72,6 +72,7 @@
         flex-direction: column;
         gap: 8px;
         background: #e6edf7;
+        scroll-behavior: smooth;
     }
     .message {
         max-width: 75%;
@@ -287,15 +288,24 @@ const chatModule = (() => {
         const div = document.createElement("div");
         div.className = `message ${sender}`;
         div.textContent = text;
+
         if (timestamp) {
             const time = document.createElement("small");
             time.style.opacity = "0.6";
             time.style.display = "block";
-            time.textContent = new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            time.textContent = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             div.appendChild(time);
         }
+
+        // Добавляем сообщение в контейнер
         mainModule.elements.chatContainer.appendChild(div);
+
+        // Немедленный скролл + небольшая задержка (на случай, если браузер ещё не отрисовал)
         mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
+        setTimeout(() => {
+            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
+        }, 50);
+
         return div;
     }
 
@@ -306,6 +316,10 @@ const chatModule = (() => {
             mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
             await new Promise(resolve => setTimeout(resolve, delay));
         }
+        // Финальный скролл с задержкой на всякий случай
+        setTimeout(() => {
+            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
+        }, 100);
     }
 
     async function sendMessage(predefined = null) {
@@ -322,7 +336,9 @@ const chatModule = (() => {
         aiMsg.className = "message ai typing";
         aiMsg.textContent = "AI is thinking...";
         mainModule.elements.chatContainer.appendChild(aiMsg);
-        mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
+        setTimeout(() => {
+            mainModule.elements.chatContainer.scrollTop = mainModule.elements.chatContainer.scrollHeight;
+        }, 100);
 
         try {
             const res = await fetch("/coach", {
