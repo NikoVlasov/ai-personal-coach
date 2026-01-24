@@ -9,7 +9,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 #app-container { width: 420px; min-height: 700px; background: #fff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
 .hidden { display: none; }
 
-/* Обновлённая шапка — белый фон, чёрные буквы */
+/* Обновлённая шапка — белый фон, чёрные буквы, красивая кнопка Logout */
 .app-header {
     background: #fff;
     color: #000;
@@ -19,18 +19,26 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     align-items: center;
     font-size: 1.4em;
     font-weight: bold;
-    border-bottom: 1px solid #eee; /* лёгкая граница снизу */
+    border-bottom: 1px solid #eee;
 }
-.app-name { margin: 0; }
+.app-name {
+    margin: 0;
+    font-weight: 600;
+}
 .logout-text {
     cursor: pointer;
-    font-size: 0.9em;
-    padding: 6px 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 5px 10px;
     border-radius: 6px;
-    color: #000;
-    transition: background 0.2s;
+    color: #333;
+    transition: all 0.2s ease;
 }
-.logout-text:hover { background: #f5f5f5; }
+.logout-text:hover {
+    background: #f8f9fa;
+    color: #000;
+}
 
 /* Остальные стили без изменений */
 #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
