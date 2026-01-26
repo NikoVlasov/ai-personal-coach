@@ -34,7 +34,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .logout-text:hover { background: #f8f9fa; color: #000; }
 
-/* Остальные стили без изменений */
+/* AUTH */
 #auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
 .auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
 .auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
@@ -45,14 +45,13 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
 .auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
 
-/* Чаты и остальное */
+/* Чаты */
 #chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
 #chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
 #chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
 #chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
 #chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
-#chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; }
-#chat-list div:hover { background:#e6edf7; }
+#chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; font-size: 14px; }
 #chat-dropdown-btn.open::after { transform: rotate(180deg); }
 #delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px; cursor:pointer; transition: 0.2s; }
 #delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
@@ -69,14 +68,21 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .quick-btn:hover { background: #4f8ef7; transform: scale(1.05); }
 .quick-btn .delete-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; transition: 0.2s; }
 .quick-btn .delete-btn:hover { background: darkred; }
-/* Input */
+/* Input — шрифт теперь такой же, как в списке чатов */
 #input-container { display:flex; gap:5px; padding:10px; }
-#input-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
+#message-input, #new-chat-title {
+    flex:1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;           /* ← такой же размер, как в #chat-list div */
+    background: #f7faff;
+    box-sizing: border-box;
+}
 #input-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #input-container button:hover { background:#3a6fdc; transform:scale(1.05); }
 /* Создание нового чата */
 #new-chat-container { display:flex; gap:5px; margin:10px; }
-#new-chat-container input { flex:1; padding:8px; border-radius:8px; border:1px solid #ccc; }
 #new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
 </style>
@@ -131,7 +137,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 </div>
 
 <script>
-// ===== TYPEWRITER EFFECT (вынесена наверх, чтобы была доступна) =====
+// ===== TYPEWRITER EFFECT =====
 async function typeWriterEffect(element, text, delay = 15) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
