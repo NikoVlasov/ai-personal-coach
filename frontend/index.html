@@ -85,7 +85,67 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 #new-chat-container { display:flex; gap:5px; margin:10px; }
 #new-chat-container button { padding:8px 12px; border-radius:8px; border:none; background:#4f8ef7; color:white; font-weight:bold; cursor:pointer; }
 #new-chat-container button:hover { background:#3a6fdc; transform:scale(1.05); }
+.message.ai { line-height: 1.6; word-break: break-word; }
+.message.ai h1, .ai h2, .ai h3, .ai h4, .ai h5, .ai h6 { margin: 1.2em 0 0.6em; font-weight: 600; color: #111; }
+.message.ai p { margin: 0.8em 0; }
+.message.ai ul, .ai ol { margin: 0.8em 0 0.8em 1.8em; padding-left: 0; }
+.message.ai li { margin-bottom: 0.4em; }
+.message.ai code { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.95em; color: #e83e8c; }
+.message.ai pre { background: #f5f5f5; padding: 1em; border-radius: 6px; overflow-x: auto; margin: 1em 0; font-size: 0.95em; }
+.message.ai pre code { background: none; padding: 0; color: inherit; }
+.message.ai blockquote { border-left: 4px solid #4f8ef7; margin: 1em 0; padding-left: 1em; color: #555; font-style: italic; }
+.message.ai a { color: #4f8ef7; text-decoration: underline; }
+.message {
+    position: relative;
+    padding-left: 50px; /* место для аватарки слева */
+    padding-right: 50px;
+}
+
+.message.user {
+    padding-left: 10px;
+    padding-right: 60px;
+    text-align: right;
+}
+
+.message.ai {
+    padding-left: 60px;
+    padding-right: 10px;
+}
+
+.message::before {
+    content: '';
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-size: cover;
+    top: 8px;
+}
+
+.message.user::before {
+    right: 8px;
+    background-image: url('https://api.dicebear.com/9.x/personas/svg?seed=User'); /* аватарка пользователя */
+}
+
+.message.ai::before {
+    left: 8px;
+    background-image: url('https://api.dicebear.com/9.x/bottts/svg?seed=AI'); /* аватарка ИИ */
+}
+/* Анимация точек для "AI is thinking..." */
+.typing-dots::after {
+    content: '.';
+    animation: dots 1.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20%   { content: '.'; }
+    40%       { content: '..'; }
+    60%       { content: '...'; }
+    80%, 100% { content: ''; }
+}
+
 </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 </head>
 <body>
 <div id="app-container">
@@ -252,9 +312,9 @@ const chatModule = (() => {
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
-        aiMsg.textContent = "AI is thinking...";
+        aiMsg.textContent = "AI is thinking<span class='typing-dots'></span>";
         mainModule.chatContainer.appendChild(aiMsg);
-        mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+        scrollToBottom();  // предполагаем, что у тебя есть эта функция
 
         try {
             const res = await fetch("/coach", {
@@ -293,16 +353,31 @@ const chatModule = (() => {
                 }
             }
 
+            // Очистка лишних пробелов
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
+            // Рендерим Markdown
+            const renderedHtml = marked.parse(fullText, {
+                breaks: true,          // переносы строк → <br>
+                gfm: true,             // GitHub Flavored Markdown (таблицы, задачи и т.д.)
+                headerIds: false,      // не генерировать id для заголовков
+                sanitize: true,        // базовая защита от XSS
+                smartypants: true      // красивые кавычки и тире
+            });
+
+            // Убираем typing и вставляем готовый HTML
             aiMsg.classList.remove("typing");
-            aiMsg.textContent = "";
-            await typeWriterEffect(aiMsg, fullText, 15);
+            aiMsg.innerHTML = renderedHtml;
+
+            // Финальный скролл
+            scrollToBottom();
+            setTimeout(scrollToBottom, 100);
 
         } catch (err) {
             console.error("Send message error:", err);
             aiMsg.textContent = "Something went wrong... Try again 😔";
             aiMsg.classList.remove("typing");
+            scrollToBottom();
         }
     }
 
