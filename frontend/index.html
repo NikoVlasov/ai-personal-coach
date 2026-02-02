@@ -320,9 +320,9 @@ const chatModule = (() => {
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
-        aiMsg.textContent = "AI is thinking...";
+        aiMsg.innerHTML = "AI is thinking<span class='typing-dots'></span>";
         mainModule.chatContainer.appendChild(aiMsg);
-        scrollToBottom();  // ← теперь работает
+        scrollToBottom();
 
         try {
             const res = await fetch("/coach", {
@@ -363,12 +363,19 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            aiMsg.classList.remove("typing");
-            aiMsg.textContent = "";
-            await typeWriterEffect(aiMsg, fullText, 15);
+            // Рендерим Markdown
+            const renderedHtml = marked.parse(fullText, {
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                sanitize: true
+            });
 
-            scrollToBottom();          // после typewriter
-            setTimeout(scrollToBottom, 100);  // дополнительная задержка на всякий случай
+            aiMsg.classList.remove("typing");
+            aiMsg.innerHTML = renderedHtml;
+
+            scrollToBottom();
+            setTimeout(scrollToBottom, 100);
 
         } catch (err) {
             console.error("Send message error:", err);
