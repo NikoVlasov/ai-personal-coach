@@ -310,29 +310,50 @@ const chatModule = (() => {
     async function fetchHistory() {
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) return;
-        const res = await fetch(`/history/${chatId}`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
-        const data = await res.json();
-        mainModule.chatContainer.innerHTML = "";
-        data.messages.forEach(msg => addMessage(msg.text, msg.sender, msg.timestamp));
-        mainModule.chatContainer.scrollTop = mainModule.chatContainer.scrollHeight;
+        try {
+            const res = await fetch(`/history/${chatId}`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
+            const data = await res.json();
+            mainModule.chatContainer.innerHTML = "";
+            data.messages.forEach(msg => {
+                addMessage(msg.text, msg.sender, msg.timestamp);  // ← теперь addMessage сам рендерит markdown для AI
+            });
+            scrollToBottom();
+        } catch (e) {
+            console.error("History error:", e);
+        }
     }
 
     function addMessage(text, sender, timestamp = null) {
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${sender}`;
 
-        // Если сообщение от AI — добавляем кнопку копирования
+        // Если сообщение от AI — рендерим Markdown
         if (sender === "ai") {
+            const renderedHtml = marked.parse(text, {
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                sanitize: true
+            });
+
+            // Контейнер для контента (чтобы кнопка была поверх)
+            const contentDiv = document.createElement("div");
+            contentDiv.innerHTML = renderedHtml;
+            msgDiv.appendChild(contentDiv);
+
+            // Кнопка копирования — копирует чистый текст (без HTML)
             const copyBtn = document.createElement("button");
+            copyBtn.className = "copy-btn";
             copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-            copyBtn.textContent = "Copy";
+
             copyBtn.onclick = () => {
-                // Копируем чистый текст (без HTML)
-                navigator.clipboard.writeText(text).then(() => {
-                    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                // Копируем чистый текст (удаляем HTML-теги)
+                const plainText = text; // берём исходный текст без HTML
+                navigator.clipboard.writeText(plainText).then(() => {
+                    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
                     copyBtn.classList.add("copied");
                     setTimeout(() => {
-                        copyBtn.textContent = "Copy";
+                        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
                         copyBtn.classList.remove("copied");
                     }, 2000);
                 }).catch(err => {
@@ -340,13 +361,14 @@ const chatModule = (() => {
                     alert("Не удалось скопировать");
                 });
             };
-            msgDiv.appendChild(copyBtn);
-        }
 
-        // Текст сообщения
-        const contentDiv = document.createElement("div");
-        contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
-        msgDiv.appendChild(contentDiv);
+            msgDiv.appendChild(copyBtn);
+        } else {
+            // Для пользователя — просто текст
+            const contentDiv = document.createElement("div");
+            contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
+            msgDiv.appendChild(contentDiv);
+        }
 
         mainModule.chatContainer.appendChild(msgDiv);
         scrollToBottom();
