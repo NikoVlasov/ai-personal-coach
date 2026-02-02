@@ -297,6 +297,14 @@ const chatModule = (() => {
         return msgDiv;
     }
 
+    // Вспомогательная функция скролла (добавь один раз где-нибудь в скрипте, например перед sendMessage)
+    function scrollToBottom() {
+        const container = mainModule.chatContainer; // или mainModule.elements.chatContainer, если у тебя так
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) {
@@ -312,9 +320,9 @@ const chatModule = (() => {
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
-        aiMsg.textContent = "AI is thinking<span class='typing-dots'></span>";
+        aiMsg.textContent = "AI is thinking...";
         mainModule.chatContainer.appendChild(aiMsg);
-        scrollToBottom();  // предполагаем, что у тебя есть эта функция
+        scrollToBottom();  // ← теперь работает
 
         try {
             const res = await fetch("/coach", {
@@ -353,25 +361,14 @@ const chatModule = (() => {
                 }
             }
 
-            // Очистка лишних пробелов
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Рендерим Markdown
-            const renderedHtml = marked.parse(fullText, {
-                breaks: true,          // переносы строк → <br>
-                gfm: true,             // GitHub Flavored Markdown (таблицы, задачи и т.д.)
-                headerIds: false,      // не генерировать id для заголовков
-                sanitize: true,        // базовая защита от XSS
-                smartypants: true      // красивые кавычки и тире
-            });
-
-            // Убираем typing и вставляем готовый HTML
             aiMsg.classList.remove("typing");
-            aiMsg.innerHTML = renderedHtml;
+            aiMsg.textContent = "";
+            await typeWriterEffect(aiMsg, fullText, 15);
 
-            // Финальный скролл
-            scrollToBottom();
-            setTimeout(scrollToBottom, 100);
+            scrollToBottom();          // после typewriter
+            setTimeout(scrollToBottom, 100);  // дополнительная задержка на всякий случай
 
         } catch (err) {
             console.error("Send message error:", err);
