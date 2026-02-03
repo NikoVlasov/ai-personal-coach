@@ -312,10 +312,13 @@ const chatModule = (() => {
         if (!chatId) return;
         try {
             const res = await fetch(`/history/${chatId}`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
+            if (!res.ok) throw new Error("History fetch failed");
             const data = await res.json();
             mainModule.chatContainer.innerHTML = "";
             data.messages.forEach(msg => {
-                addMessage(msg.text, msg.sender, msg.timestamp);  // ← теперь addMessage добавляет кнопку и markdown для AI
+                // Убедимся, что sender приходит как "user" или "ai" (или нормализуем)
+                const normalizedSender = msg.sender.toLowerCase() === "ai" ? "ai" : "user";
+                addMessage(msg.text, normalizedSender, msg.timestamp);
             });
             scrollToBottom();
         } catch (e) {
@@ -327,10 +330,13 @@ const chatModule = (() => {
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${sender}`;
 
-        // Контейнер для контента (чтобы кнопка была поверх)
+        // Нормализуем sender на всякий случай (иногда приходит "AI" или "ai" из базы)
+        const isAI = sender.toLowerCase() === "ai";
+
+        // Контейнер для контента
         const contentDiv = document.createElement("div");
 
-        if (sender === "ai") {
+        if (isAI) {
             // Рендерим markdown для AI
             const renderedHtml = marked.parse(text, {
                 breaks: true,
@@ -340,21 +346,14 @@ const chatModule = (() => {
             });
             contentDiv.innerHTML = renderedHtml;
 
-            // Кнопка копирования — копирует чистый текст (весь ответ)
+            // Кнопка копирования — всегда добавляется для AI
             const copyBtn = document.createElement("button");
             copyBtn.className = "copy-btn";
             copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 
             copyBtn.onclick = () => {
-                // Ищем первый блок кода в сообщении
-                const codeBlock = contentDiv.querySelector('pre code');
-                let toCopy = text; // по умолчанию весь текст
-
-                if (codeBlock) {
-                    toCopy = codeBlock.textContent.trim(); // только код
-                }
-
-                navigator.clipboard.writeText(toCopy).then(() => {
+                // Копируем чистый текст сообщения (без HTML)
+                navigator.clipboard.writeText(text).then(() => {
                     copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
                     copyBtn.classList.add("copied");
                     setTimeout(() => {
