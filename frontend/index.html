@@ -182,18 +182,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     color: white;
     opacity: 1;
 }
-    #clear-chat-btn {
-    margin: 5px 10px;
-    background: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-}
-#clear-chat-btn:hover {
-    background: #5a6268;
-}
+
 </style>
     <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 </head>
@@ -235,9 +224,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
         </div>
 
         <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete chat</button>
-        <button id="clear-chat-btn" style="margin:5px 10px; background:#6c757d; color:white; border:none; border-radius:8px; padding:8px 12px; cursor:pointer;">
-            Clear chat
-        </button>
+
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
@@ -295,7 +282,7 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
 })();
 
-// ===== AUTH MODULE ===== (ПЕРЕМЕСТИЛИ ВВЕРХ, ЧТОБЫ БЫЛ ДО КНОПОК)
+// ===== AUTH MODULE =====
 const authModule = (() => {
     function showForm(type) {
         const loginForm = document.getElementById("login-form");
@@ -583,27 +570,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
 
-    document.getElementById("clear-chat-btn")?.addEventListener("click", async () => {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return alert("No chat selected");
-
-        if (confirm("Delete ALL messages in this chat forever?")) {
-            try {
-                const res = await fetch(`/chats/${chatId}/messages`, {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${mainModule.getToken()}` }
-                });
-                if (!res.ok) throw new Error(await res.text());
-                mainModule.chatContainer.innerHTML = "";
-                scrollToBottom();
-                alert("Chat cleared!");
-            } catch (err) {
-                console.error(err);
-                alert("Error: " + err.message);
-            }
-        }
-    });
-
     // Отправка по Enter для поля сообщений
     mainModule.inputField.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -621,5 +587,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
+
 </body>
 </html>
