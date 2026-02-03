@@ -273,7 +273,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 </div>
 
 <script>
-// ===== SCROLL TO BOTTOM (переместили наверх, чтобы была доступна везде) =====
+// ===== SCROLL TO BOTTOM =====
 function scrollToBottom() {
     const container = mainModule.chatContainer;
     if (container) {
@@ -289,13 +289,11 @@ async function typeWriterEffect(element, text, delay = 10) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
         element.textContent += text.charAt(i);
-        // Прокрутка каждые 5 символов, чтобы не дёргалось слишком часто
         if (i % 5 === 0 || i === text.length - 1) {
             scrollToBottom();
         }
         await new Promise(resolve => setTimeout(resolve, delay));
     }
-    // Финальная прокрутка после печати
     scrollToBottom();
 }
 
@@ -442,7 +440,6 @@ const chatModule = (() => {
                 breaks: true,
                 gfm: true,
                 headerIds: false
-                // sanitize убрали — он устарел и не нужен
             });
             contentDiv.innerHTML = renderedHtml;
 
@@ -544,23 +541,46 @@ const chatModule = (() => {
             // Удаляем индикатор "thinking"
             mainModule.chatContainer.removeChild(tempAiMsg);
 
-            // Создаём новое сообщение для typewriter
+            // Создаём временное сообщение для typewriter (без markdown и кнопки)
             const aiMsg = document.createElement("div");
             aiMsg.className = "message ai";
             mainModule.chatContainer.appendChild(aiMsg);
             scrollToBottom();
 
-            // Запускаем плавную печать
-            await typeWriterEffect(aiMsg, fullText, 10);  // delay = 10 — комфортная скорость
+            // Печатаем текст как есть (plain text)
+            await typeWriterEffect(aiMsg, fullText, 10);
 
-            // После печати применяем markdown
+            // После печати заменяем на markdown + добавляем кнопку копирования
+            aiMsg.innerHTML = ""; // очищаем plain text
+            const contentDiv = document.createElement("div");
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
-                // sanitize убрали — он устарел и не нужен
             });
-            aiMsg.innerHTML = renderedHtml;
+            contentDiv.innerHTML = renderedHtml;
+
+            // Добавляем кнопку копирования
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "copy-btn";
+            copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(fullText).then(() => {
+                    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                    copyBtn.classList.add("copied");
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                        copyBtn.classList.remove("copied");
+                    }, 2000);
+                }).catch(err => {
+                    console.error("Clipboard error:", err);
+                    alert("Не удалось скопировать");
+                });
+            };
+
+            aiMsg.appendChild(copyBtn);
+            aiMsg.appendChild(contentDiv);
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
