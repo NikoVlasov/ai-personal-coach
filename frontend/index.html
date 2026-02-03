@@ -283,6 +283,52 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
 })();
 
+// ===== AUTH MODULE ===== (ПЕРЕМЕСТИЛИ ВВЕРХ, ЧТОБЫ БЫЛ ДО КНОПОК)
+const authModule = (() => {
+    function showForm(type) {
+        const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
+        const loginTab = document.getElementById("login-tab");
+        const registerTab = document.getElementById("register-tab");
+        if (type === 'login') {
+            loginForm.classList.remove("hidden");
+            registerForm.classList.add("hidden");
+            loginTab.classList.add("active");
+            registerTab.classList.remove("active");
+        } else {
+            loginForm.classList.add("hidden");
+            registerForm.classList.remove("hidden");
+            loginTab.classList.remove("active");
+            registerTab.classList.add("active");
+        }
+    }
+    async function register() {
+        const email = document.getElementById("register-email").value.trim();
+        const password = document.getElementById("register-password").value.trim();
+        if (!email || !password) return alert("Fill all fields");
+        const res = await fetch("/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+        if (res.ok) { alert("Registration successful! Please log in."); showForm("login"); }
+        else { const err = await res.json(); alert("Error: " + (err.detail || "Unknown error")); }
+    }
+    async function login() {
+        const email = document.getElementById("login-email").value.trim();
+        const password = document.getElementById("login-password").value.trim();
+        if (!email || !password) return alert("Fill all fields");
+        const res = await fetch("/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+        if (res.ok) {
+            const data = await res.json();
+            mainModule.setToken(data.access_token);
+            mainModule.setUserId(data.user_id);
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('user_id', data.user_id);
+            document.getElementById("auth-container").style.display = "none";
+            document.getElementById("chat-ui").classList.remove("hidden");
+            chatModule.fetchChats();
+        } else { alert("Invalid email or password"); }
+    }
+    return { showForm, register, login };
+})();
+
 // ===== CHAT MODULE =====
 const chatModule = (() => {
     async function fetchChats() {
@@ -327,7 +373,6 @@ const chatModule = (() => {
             const data = await res.json();
             mainModule.chatContainer.innerHTML = "";
             data.messages.forEach(msg => {
-                // Убедимся, что sender приходит как "user" или "ai" (или нормализуем)
                 const normalizedSender = msg.sender.toLowerCase() === "ai" ? "ai" : "user";
                 addMessage(msg.text, normalizedSender, msg.timestamp);
             });
@@ -343,11 +388,9 @@ const chatModule = (() => {
 
         const isAI = sender.toLowerCase() === "ai";
 
-        // Контейнер для контента
         const contentDiv = document.createElement("div");
 
         if (isAI) {
-            // Рендерим markdown для всех сообщений AI (и новых, и из истории)
             const renderedHtml = marked.parse(text, {
                 breaks: true,
                 gfm: true,
@@ -356,7 +399,6 @@ const chatModule = (() => {
             });
             contentDiv.innerHTML = renderedHtml;
 
-            // Кнопка копирования — добавляется всегда для AI
             const copyBtn = document.createElement("button");
             copyBtn.className = "copy-btn";
             copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
@@ -377,7 +419,6 @@ const chatModule = (() => {
 
             msgDiv.appendChild(copyBtn);
         } else {
-            // Для пользователя — просто текст
             contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
         }
 
@@ -385,17 +426,14 @@ const chatModule = (() => {
         mainModule.chatContainer.appendChild(msgDiv);
 
         scrollToBottom();
-        setTimeout(scrollToBottom, 100);
-        setTimeout(scrollToBottom, 300);
+        setTimeout(scrollToBottom, 50);
         return msgDiv;
     }
 
     function scrollToBottom() {
         const container = mainModule.chatContainer;
         if (container) {
-            // Немедленный скролл
             container.scrollTop = container.scrollHeight;
-            // Дополнительные скроллы с задержкой (браузер иногда не успевает)
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 150);
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 300);
@@ -415,7 +453,6 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // Показываем "AI is thinking..." как временное сообщение
         const tempAiMsg = document.createElement("div");
         tempAiMsg.className = "message ai typing";
         tempAiMsg.innerHTML = "AI is thinking<span class='typing-dots'></span>";
@@ -461,11 +498,8 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Удаляем временное сообщение "thinking"
             mainModule.chatContainer.removeChild(tempAiMsg);
 
-            // Добавляем полноценное сообщение AI через addMessage
-            // → там уже есть markdown + кнопка копирования
             addMessage(fullText, "ai");
 
             scrollToBottom();
@@ -525,52 +559,6 @@ const quickButtonsModule = (() => {
     return { fetchQuickButtons };
 })();
 
-// ===== AUTH MODULE =====
-const authModule = (() => {
-    function showForm(type) {
-        const loginForm = document.getElementById("login-form");
-        const registerForm = document.getElementById("register-form");
-        const loginTab = document.getElementById("login-tab");
-        const registerTab = document.getElementById("register-tab");
-        if (type === 'login') {
-            loginForm.classList.remove("hidden");
-            registerForm.classList.add("hidden");
-            loginTab.classList.add("active");
-            registerTab.classList.remove("active");
-        } else {
-            loginForm.classList.add("hidden");
-            registerForm.classList.remove("hidden");
-            loginTab.classList.remove("active");
-            registerTab.classList.add("active");
-        }
-    }
-    async function register() {
-        const email = document.getElementById("register-email").value.trim();
-        const password = document.getElementById("register-password").value.trim();
-        if (!email || !password) return alert("Fill all fields");
-        const res = await fetch("/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-        if (res.ok) { alert("Registration successful! Please log in."); showForm("login"); }
-        else { const err = await res.json(); alert("Error: " + (err.detail || "Unknown error")); }
-    }
-    async function login() {
-        const email = document.getElementById("login-email").value.trim();
-        const password = document.getElementById("login-password").value.trim();
-        if (!email || !password) return alert("Fill all fields");
-        const res = await fetch("/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-        if (res.ok) {
-            const data = await res.json();
-            mainModule.setToken(data.access_token);
-            mainModule.setUserId(data.user_id);
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('user_id', data.user_id);
-            document.getElementById("auth-container").style.display = "none";
-            document.getElementById("chat-ui").classList.remove("hidden");
-            chatModule.fetchChats();
-        } else { alert("Invalid email or password"); }
-    }
-    return { showForm, register, login };
-})();
-
 function toggleChatList() {
   const list = document.getElementById("chat-list");
   const btn = document.getElementById("chat-dropdown-btn");
@@ -582,6 +570,7 @@ function toggleChatList() {
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
+
     document.getElementById("clear-chat-btn")?.addEventListener("click", () => {
         if (confirm("Clear current chat content?")) {
             mainModule.chatContainer.innerHTML = "";
@@ -590,19 +579,20 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // Отправка по Enter для поля сообщений
-mainModule.inputField.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        chatModule.sendMessage();
-    }
-});
+    mainModule.inputField.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatModule.sendMessage();
+        }
+    });
 
-// Отправка по Enter для поля создания чата
-document.getElementById("new-chat-title").addEventListener('keypress', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        chatModule.createChat();
-    }
+    // Отправка по Enter для поля создания чата
+    document.getElementById("new-chat-title").addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatModule.createChat();
+        }
+    });
 });
 </script>
 </body>
