@@ -400,10 +400,11 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        const aiMsg = document.createElement("div");
-        aiMsg.className = "message ai typing";
-        aiMsg.innerHTML = "AI is thinking<span class='typing-dots'></span>";
-        mainModule.chatContainer.appendChild(aiMsg);
+        // Показываем "AI is thinking..." как временное сообщение
+        const tempAiMsg = document.createElement("div");
+        tempAiMsg.className = "message ai typing";
+        tempAiMsg.innerHTML = "AI is thinking<span class='typing-dots'></span>";
+        mainModule.chatContainer.appendChild(tempAiMsg);
         scrollToBottom();
 
         try {
@@ -445,34 +446,20 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Удаляем "thinking"
-            mainModule.chatContainer.removeChild(aiMsg);
+            // Удаляем временное сообщение "thinking"
+            mainModule.chatContainer.removeChild(tempAiMsg);
 
-            // Создаём сообщение AI с typewriter
-            const newAiMsg = document.createElement("div");
-            newAiMsg.className = "message ai";
-            mainModule.chatContainer.appendChild(newAiMsg);
-            scrollToBottom();
-
-            // Плавная печать по буквам
-            await typeWriterEffect(newAiMsg, fullText, 15);
-
-            // После typewriter рендерим markdown
-            const renderedHtml = marked.parse(fullText, {
-                breaks: true,
-                gfm: true,
-                headerIds: false,
-                sanitize: true
-            });
-            newAiMsg.innerHTML = renderedHtml;
+            // Добавляем полноценное сообщение AI через addMessage
+            // → там уже есть markdown + кнопка копирования
+            addMessage(fullText, "ai");
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
 
         } catch (err) {
             console.error("Send message error:", err);
-            aiMsg.textContent = "Something went wrong... Try again 😔";
-            aiMsg.classList.remove("typing");
+            tempAiMsg.textContent = "Something went wrong... Try again 😔";
+            tempAiMsg.classList.remove("typing");
             scrollToBottom();
         }
     }
