@@ -330,14 +330,13 @@ const chatModule = (() => {
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${sender}`;
 
-        // Нормализуем sender на всякий случай (иногда приходит "AI" или "ai" из базы)
         const isAI = sender.toLowerCase() === "ai";
 
         // Контейнер для контента
         const contentDiv = document.createElement("div");
 
         if (isAI) {
-            // Рендерим markdown для AI
+            // Рендерим markdown для всех сообщений AI (и новых, и из истории)
             const renderedHtml = marked.parse(text, {
                 breaks: true,
                 gfm: true,
@@ -346,13 +345,12 @@ const chatModule = (() => {
             });
             contentDiv.innerHTML = renderedHtml;
 
-            // Кнопка копирования — всегда добавляется для AI
+            // Кнопка копирования — добавляется всегда для AI
             const copyBtn = document.createElement("button");
             copyBtn.className = "copy-btn";
             copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 
             copyBtn.onclick = () => {
-                // Копируем чистый текст сообщения (без HTML)
                 navigator.clipboard.writeText(text).then(() => {
                     copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
                     copyBtn.classList.add("copied");
@@ -374,6 +372,7 @@ const chatModule = (() => {
 
         msgDiv.appendChild(contentDiv);
         mainModule.chatContainer.appendChild(msgDiv);
+
         scrollToBottom();
         setTimeout(scrollToBottom, 50);
 
