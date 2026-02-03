@@ -9,4 +9,4 @@ groq
 bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
 sqlalchemy
-psycopg2-binary==2.9.9
+psycopg2
