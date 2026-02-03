@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 python-multipart
-python-jose[cryptography]
 pydantic
 requests
 python-dotenv
@@ -9,4 +8,4 @@ groq
 bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
 sqlalchemy
-psycopg2
+python-jose[cryptography]
