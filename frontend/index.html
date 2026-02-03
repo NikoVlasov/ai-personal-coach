@@ -112,7 +112,24 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     padding-right: 10px;
 }
 
-.message::before {
+.message {
+    position: relative;
+    padding-left: 60px;   /* оставляем место слева только для AI */
+    padding-right: 10px;
+}
+
+.message.user {
+    padding-left: 10px;   /* у пользователя места слева не нужно */
+    padding-right: 10px;
+    text-align: right;
+}
+
+.message.ai {
+    padding-left: 60px;
+    padding-right: 10px;
+}
+
+.message.ai::before {
     content: '';
     position: absolute;
     width: 36px;
@@ -120,16 +137,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     border-radius: 50%;
     background-size: cover;
     top: 8px;
-}
-
-.message.user::before {
-    right: 8px;
-    background-image: url('https://api.dicebear.com/9.x/personas/svg?seed=User'); /* аватарка пользователя */
-}
-
-.message.ai::before {
     left: 8px;
-    background-image: url('https://api.dicebear.com/9.x/bottts/svg?seed=AI'); /* аватарка ИИ */
+    background-image: url('https://api.dicebear.com/9.x/bottts/svg?seed=AI');
 }
 /* Анимация точек для "AI is thinking..." */
 .typing-dots::after {
