@@ -278,14 +278,11 @@ async function typeWriterEffect(element, text, delay = 15) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
         element.textContent += text.charAt(i);
-        const container = mainModule.chatContainer;
-        container.scrollTop = container.scrollHeight;
+        scrollToBottom();  // прокрутка во время печати
         await new Promise(resolve => setTimeout(resolve, delay));
     }
-    setTimeout(() => {
-        const container = mainModule.chatContainer;
-        container.scrollTop = container.scrollHeight;
-    }, 100);
+    // Финальная прокрутка после завершения
+    scrollToBottom();
 }
 
 // ===== MAIN MODULE =====
@@ -489,6 +486,7 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
+        // Показываем индикатор "Mentra is thinking..."
         const tempAiMsg = document.createElement("div");
         tempAiMsg.className = "message ai typing";
         tempAiMsg.innerHTML = `
@@ -539,9 +537,26 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
+            // Удаляем индикатор "thinking"
             mainModule.chatContainer.removeChild(tempAiMsg);
 
-            addMessage(fullText, "ai");
+            // Создаём новое сообщение для typewriter
+            const aiMsg = document.createElement("div");
+            aiMsg.className = "message ai";
+            mainModule.chatContainer.appendChild(aiMsg);
+            scrollToBottom();
+
+            // Запускаем плавную печать
+            await typeWriterEffect(aiMsg, fullText, 12);  // delay = 12 — комфортная скорость
+
+            // После печати применяем markdown (чтобы код и списки стали красивыми)
+            const renderedHtml = marked.parse(fullText, {
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                sanitize: true
+            });
+            aiMsg.innerHTML = renderedHtml;
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
