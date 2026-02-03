@@ -400,7 +400,6 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // Создаём пустое сообщение AI
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
         aiMsg.innerHTML = "AI is thinking<span class='typing-dots'></span>";
@@ -446,11 +445,26 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Удаляем временное "thinking" и рендерим как полноценное сообщение AI
+            // Удаляем "thinking"
             mainModule.chatContainer.removeChild(aiMsg);
 
-            // Добавляем сообщение через addMessage — там уже есть markdown и кнопка
-            addMessage(fullText, "ai");
+            // Создаём сообщение AI с typewriter
+            const newAiMsg = document.createElement("div");
+            newAiMsg.className = "message ai";
+            mainModule.chatContainer.appendChild(newAiMsg);
+            scrollToBottom();
+
+            // Плавная печать по буквам
+            await typeWriterEffect(newAiMsg, fullText, 15);
+
+            // После typewriter рендерим markdown
+            const renderedHtml = marked.parse(fullText, {
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                sanitize: true
+            });
+            newAiMsg.innerHTML = renderedHtml;
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
@@ -566,6 +580,21 @@ function toggleChatList() {
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
+});
+    // Отправка по Enter для поля сообщений
+mainModule.inputField.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatModule.sendMessage();
+    }
+});
+
+// Отправка по Enter для поля создания чата
+document.getElementById("new-chat-title").addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatModule.createChat();
+    }
 });
 </script>
 </body>
