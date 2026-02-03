@@ -51,7 +51,7 @@ app.add_middleware(
 
 oauth2_scheme = HTTPBearer()
 
-# --- Модели БД (все в одном файле) ---
+# --- Модели БД ---
 Base = declarative_base()
 
 
@@ -93,7 +93,6 @@ class QuickButton(Base):
     text = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="buttons")
-
 
 # Создаём таблицы
 Base.metadata.create_all(bind=engine)
@@ -152,8 +151,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 # --- Получение текущего пользователя ---
 async def get_current_user(
-        credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
-        db: AsyncSession = Depends(async_session)
+    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(async_session)
 ):
     token = credentials.credentials
     try:
@@ -221,8 +220,7 @@ async def login(user: UserLogin, db: AsyncSession = Depends(async_session)):
 
 # --- Создать чат ---
 @app.post("/chats")
-async def create_chat(chat: ChatCreate, current_user: User = Depends(get_current_user),
-                      db: AsyncSession = Depends(async_session)):
+async def create_chat(chat: ChatCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(async_session)):
     result = await db.execute(
         text("INSERT INTO chats (user_id, title) VALUES (:user_id, :title) RETURNING id"),
         {"user_id": current_user.id, "title": chat.title}
@@ -246,9 +244,9 @@ async def get_chats(current_user: User = Depends(get_current_user), db: AsyncSes
 # --- УДАЛЕНИЕ ВСЕХ СООБЩЕНИЙ В ЧАТЕ ---
 @app.delete("/chats/{chat_id}/messages")
 async def delete_chat_messages(
-        chat_id: int,
-        current_user: User = Depends(get_current_user),
-        db: AsyncSession = Depends(async_session)
+    chat_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(async_session)
 ):
     try:
         result = await db.execute(
@@ -274,8 +272,7 @@ async def delete_chat_messages(
 
 # --- AI Coach (стриминг) ---
 @app.post("/coach")
-async def coach_response(msg: MessageIn, current_user: User = Depends(get_current_user),
-                         db: AsyncSession = Depends(async_session)):
+async def coach_response(msg: MessageIn, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(async_session)):
     result = await db.execute(
         text("SELECT id FROM chats WHERE id = :chat_id AND user_id = :user_id"),
         {"chat_id": msg.chat_id, "user_id": current_user.id}
@@ -355,8 +352,7 @@ Remember context from previous messages.
 
 # --- История чата ---
 @app.get("/history/{chat_id}")
-async def get_history(chat_id: int, current_user: User = Depends(get_current_user),
-                      db: AsyncSession = Depends(async_session)):
+async def get_history(chat_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(async_session)):
     result = await db.execute(
         text("SELECT id FROM chats WHERE id = :chat_id AND user_id = :user_id"),
         {"chat_id": chat_id, "user_id": current_user.id}
@@ -370,7 +366,8 @@ async def get_history(chat_id: int, current_user: User = Depends(get_current_use
     )
     messages = result.fetchall()
     return {
-        "messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at.isoformat()} for m in messages]}
+        "messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at.isoformat()} for m in messages]
+    }
 
 
 # --- Быстрые кнопки ---
@@ -385,8 +382,7 @@ async def get_quick_buttons(current_user: User = Depends(get_current_user), db: 
 
 
 @app.post("/quick_buttons")
-async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_current_user),
-                           db: AsyncSession = Depends(async_session)):
+async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(async_session)):
     await db.execute(
         text("INSERT INTO quick_buttons (user_id, text) VALUES (:user_id, :text)"),
         {"user_id": current_user.id, "text": btn.text}
@@ -396,8 +392,7 @@ async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_
 
 
 @app.delete("/quick_buttons")
-async def delete_quick_button(body: dict = Body(...), current_user: User = Depends(get_current_user),
-                              db: AsyncSession = Depends(async_session)):
+async def delete_quick_button(body: dict = Body(...), current_user: User = Depends(get_current_user), db: AsyncSession = Depends(async_session)):
     text = body.get("text")
     if not text:
         raise HTTPException(status_code=400, detail="Нет текста кнопки для удаления")
@@ -410,8 +405,7 @@ async def delete_quick_button(body: dict = Body(...), current_user: User = Depen
 
 
 @app.delete("/chats/{chat_id}")
-async def delete_chat(chat_id: int, current_user: User = Depends(get_current_user),
-                      db: AsyncSession = Depends(async_session)):
+async def delete_chat(chat_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(async_session)):
     result = await db.execute(
         text("SELECT id FROM chats WHERE id = :chat_id AND user_id = :user_id"),
         {"chat_id": chat_id, "user_id": current_user.id}
