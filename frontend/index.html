@@ -400,6 +400,7 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
+        // Создаём пустое сообщение AI
         const aiMsg = document.createElement("div");
         aiMsg.className = "message ai typing";
         aiMsg.innerHTML = "AI is thinking<span class='typing-dots'></span>";
@@ -445,16 +446,11 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Рендерим Markdown
-            const renderedHtml = marked.parse(fullText, {
-                breaks: true,
-                gfm: true,
-                headerIds: false,
-                sanitize: true
-            });
+            // Удаляем временное "thinking" и рендерим как полноценное сообщение AI
+            mainModule.chatContainer.removeChild(aiMsg);
 
-            aiMsg.classList.remove("typing");
-            aiMsg.innerHTML = renderedHtml;
+            // Добавляем сообщение через addMessage — там уже есть markdown и кнопка
+            addMessage(fullText, "ai");
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
