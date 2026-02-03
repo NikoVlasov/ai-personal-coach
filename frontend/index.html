@@ -273,15 +273,29 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 </div>
 
 <script>
+// ===== SCROLL TO BOTTOM (переместили наверх, чтобы была доступна везде) =====
+function scrollToBottom() {
+    const container = mainModule.chatContainer;
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 150);
+        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 300);
+    }
+}
+
 // ===== TYPEWRITER EFFECT =====
-async function typeWriterEffect(element, text, delay = 15) {
+async function typeWriterEffect(element, text, delay = 10) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
         element.textContent += text.charAt(i);
-        scrollToBottom();  // прокрутка во время печати
+        // Прокрутка каждые 5 символов, чтобы не дёргалось слишком часто
+        if (i % 5 === 0 || i === text.length - 1) {
+            scrollToBottom();
+        }
         await new Promise(resolve => setTimeout(resolve, delay));
     }
-    // Финальная прокрутка после завершения
+    // Финальная прокрутка после печати
     scrollToBottom();
 }
 
@@ -427,8 +441,8 @@ const chatModule = (() => {
             const renderedHtml = marked.parse(text, {
                 breaks: true,
                 gfm: true,
-                headerIds: false,
-                sanitize: true
+                headerIds: false
+                // sanitize убрали — он устарел и не нужен
             });
             contentDiv.innerHTML = renderedHtml;
 
@@ -461,16 +475,6 @@ const chatModule = (() => {
         scrollToBottom();
         setTimeout(scrollToBottom, 50);
         return msgDiv;
-    }
-
-    function scrollToBottom() {
-        const container = mainModule.chatContainer;
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 150);
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 300);
-        }
     }
 
     async function sendMessage(predefined = null) {
@@ -547,14 +551,14 @@ const chatModule = (() => {
             scrollToBottom();
 
             // Запускаем плавную печать
-            await typeWriterEffect(aiMsg, fullText, 12);  // delay = 12 — комфортная скорость
+            await typeWriterEffect(aiMsg, fullText, 10);  // delay = 10 — комфортная скорость
 
-            // После печати применяем markdown (чтобы код и списки стали красивыми)
+            // После печати применяем markdown
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
-                headerIds: false,
-                sanitize: true
+                headerIds: false
+                // sanitize убрали — он устарел и не нужен
             });
             aiMsg.innerHTML = renderedHtml;
 
