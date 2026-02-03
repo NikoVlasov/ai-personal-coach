@@ -223,7 +223,9 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
         </div>
 
         <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete chat</button>
-
+        <button id="clear-chat-btn" style="margin:5px 10px; background:#6c757d; color:white; border:none; border-radius:8px; padding:8px 12px; cursor:pointer;">
+            Clear chat
+        </button>
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
@@ -383,16 +385,20 @@ const chatModule = (() => {
         mainModule.chatContainer.appendChild(msgDiv);
 
         scrollToBottom();
-        setTimeout(scrollToBottom, 50);
-
+        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 300);
         return msgDiv;
     }
 
-    // Вспомогательная функция скролла (добавь один раз где-нибудь в скрипте, например перед sendMessage)
     function scrollToBottom() {
-        const container = mainModule.chatContainer; // или mainModule.elements.chatContainer, если у тебя так
+        const container = mainModule.chatContainer;
         if (container) {
+            // Немедленный скролл
             container.scrollTop = container.scrollHeight;
+            // Дополнительные скроллы с задержкой (браузер иногда не успевает)
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 150);
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 300);
         }
     }
 
@@ -576,7 +582,13 @@ function toggleChatList() {
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
-});
+    document.getElementById("clear-chat-btn")?.addEventListener("click", () => {
+        if (confirm("Clear current chat content?")) {
+            mainModule.chatContainer.innerHTML = "";
+            scrollToBottom();
+        }
+    });
+
     // Отправка по Enter для поля сообщений
 mainModule.inputField.addEventListener('keypress', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
