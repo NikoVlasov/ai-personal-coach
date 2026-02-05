@@ -517,7 +517,7 @@ const chatModule = (() => {
                         pre.appendChild(copyBtn);
                     }
                 });
-            }, 0);  // следующий тик DOM
+            }, 0);
         } else {
             contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
         }
@@ -603,16 +603,17 @@ const chatModule = (() => {
 
             await typeWriterEffect(textContainer, fullText, 10);
 
-            // Применяем markdown и добавляем кнопки копирования
+            // Применяем markdown и кнопки копирования
+            const renderedHtml = marked.parse(fullText, {
+                breaks: true,
+                gfm: true,
+                headerIds: false
+            });
+
+            // Ключевой момент: используем setTimeout(0) для следующего тика DOM
             setTimeout(() => {
-                const renderedHtml = marked.parse(fullText, {
-                    breaks: true,
-                    gfm: true,
-                    headerIds: false
-                });
                 textContainer.innerHTML = renderedHtml;
 
-                // Кнопки копирования
                 textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                     const pre = codeBlock.parentElement;
                     if (!pre.querySelector('.copy-code-btn')) {
@@ -642,7 +643,7 @@ const chatModule = (() => {
 
                 scrollToBottom();
                 setTimeout(scrollToBottom, 100);
-            }, 0);  // следующий тик DOM — ключевой момент
+            }, 0);
 
         } catch (err) {
             console.error("Send message error:", err);
