@@ -543,7 +543,6 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // Показываем индикатор
         const tempAiMsg = document.createElement("div");
         tempAiMsg.className = "message ai typing";
         tempAiMsg.innerHTML = `
@@ -600,15 +599,15 @@ const chatModule = (() => {
             mainModule.chatContainer.appendChild(aiMsg);
             scrollToBottom();
 
-            // Создаём контейнер для текста (чтобы typewriter работал на нём)
+            // Контейнер для текста (чтобы typewriter работал внутри)
             const textContainer = document.createElement("div");
             textContainer.className = "ai-text-container";
             aiMsg.appendChild(textContainer);
 
-            // Печатаем текст
+            // Печатаем текст как plain text
             await typeWriterEffect(textContainer, fullText, 10);
 
-            // После печати применяем markdown в том же контейнере
+            // После печати применяем markdown **внутри** textContainer
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
@@ -616,7 +615,7 @@ const chatModule = (() => {
             });
             textContainer.innerHTML = renderedHtml;
 
-            // Добавляем кнопки копирования в блоки кода
+            // Добавляем кнопки копирования в блоки кода (сразу после markdown)
             textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                 const pre = codeBlock.parentElement;
                 if (!pre.querySelector('.copy-code-btn')) {
