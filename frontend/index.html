@@ -543,6 +543,7 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
+        // Показываем индикатор
         const tempAiMsg = document.createElement("div");
         tempAiMsg.className = "message ai typing";
         tempAiMsg.innerHTML = `
@@ -590,26 +591,33 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
+            // Удаляем индикатор
             mainModule.chatContainer.removeChild(tempAiMsg);
 
+            // Создаём сообщение AI
             const aiMsg = document.createElement("div");
             aiMsg.className = "message ai";
             mainModule.chatContainer.appendChild(aiMsg);
             scrollToBottom();
 
-            // Печатаем текст как plain text
-            await typeWriterEffect(aiMsg, fullText, 10);
+            // Создаём контейнер для текста (чтобы typewriter работал на нём)
+            const textContainer = document.createElement("div");
+            textContainer.className = "ai-text-container";
+            aiMsg.appendChild(textContainer);
 
-            // После печати применяем markdown
+            // Печатаем текст
+            await typeWriterEffect(textContainer, fullText, 10);
+
+            // После печати применяем markdown в том же контейнере
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
-            aiMsg.innerHTML = renderedHtml;
+            textContainer.innerHTML = renderedHtml;
 
-            // Добавляем кнопки копирования только в блоки кода
-            aiMsg.querySelectorAll('pre code').forEach((codeBlock) => {
+            // Добавляем кнопки копирования в блоки кода
+            textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                 const pre = codeBlock.parentElement;
                 if (!pre.querySelector('.copy-code-btn')) {
                     const copyBtn = document.createElement("button");
@@ -722,6 +730,5 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-
 </body>
 </html>
