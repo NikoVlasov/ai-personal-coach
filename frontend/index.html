@@ -531,95 +531,90 @@ const chatModule = (() => {
     }
 
     async function sendMessage(predefined = null) {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) {
-            alert("Select a chat first!");
-            return;
-        }
+    const chatId = mainModule.getCurrentChatId();
+    if (!chatId) {
+        alert("Select a chat first!");
+        return;
+    }
 
-        const text = predefined || mainModule.inputField.value.trim();
-        if (!text) return;
+    const text = predefined || mainModule.inputField.value.trim();
+    if (!text) return;
 
-        addMessage(text, "user");
-        mainModule.inputField.value = "";
+    addMessage(text, "user");
+    mainModule.inputField.value = "";
 
-        // Показываем "thinking"
-        const tempAiMsg = document.createElement("div");
-        tempAiMsg.className = "message ai typing";
-        tempAiMsg.innerHTML = `
-          <div class="thinking-container">
-            <div class="thinking-robot">🤔</div>
-            <span class="thinking-text">Mentra is thinking<span class="typing-dots">...</span></span>
-          </div>
-        `;
-        mainModule.chatContainer.appendChild(tempAiMsg);
-        scrollToBottom();
+    const tempAiMsg = document.createElement("div");
+    tempAiMsg.className = "message ai typing";
+    tempAiMsg.innerHTML = `
+      <div class="thinking-container">
+        <div class="thinking-robot">🤔</div>
+        <span class="thinking-text">Mentra is thinking<span class="typing-dots">...</span></span>
+      </div>
+    `;
+    mainModule.chatContainer.appendChild(tempAiMsg);
+    scrollToBottom();
 
-        try {
-            const res = await fetch("/coach", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${mainModule.getToken()}`
-                },
-                body: JSON.stringify({ chat_id: chatId, text })
-            });
+    try {
+        const res = await fetch("/coach", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${mainModule.getToken()}`
+            },
+            body: JSON.stringify({ chat_id: chatId, text })
+        });
 
-            if (!res.ok) throw new Error("HTTP " + res.status);
+        if (!res.ok) throw new Error("HTTP " + res.status);
 
-            if (!res.body) throw new Error("No stream");
+        if (!res.body) throw new Error("No stream");
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let fullText = "";
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split("\n");
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n");
 
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const data = line.slice(6);
-                        if (data === "[DONE]") continue;
-                        fullText += data;
-                    }
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    const data = line.slice(6);
+                    if (data === "[DONE]") continue;
+                    fullText += data;
                 }
             }
+        }
 
-            fullText = fullText.replace(/\s{2,}/g, ' ').trim();
+        fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Удаляем "thinking"
-            mainModule.chatContainer.removeChild(tempAiMsg);
+        mainModule.chatContainer.removeChild(tempAiMsg);
 
-            // Создаём сообщение AI
-            const aiMsg = document.createElement("div");
-            aiMsg.className = "message ai";
-            mainModule.chatContainer.appendChild(aiMsg);
-            scrollToBottom();
+        const aiMsg = document.createElement("div");
+        aiMsg.className = "message ai";
+        mainModule.chatContainer.appendChild(aiMsg);
+        scrollToBottom();
 
-            // Контейнер для текста
-            const textContainer = document.createElement("div");
-            textContainer.className = "ai-text-container";
-            aiMsg.appendChild(textContainer);
+        const textContainer = document.createElement("div");
+        textContainer.className = "ai-text-container";
+        aiMsg.appendChild(textContainer);
 
-            // Печатаем plain text
-            await typeWriterEffect(textContainer, fullText, 10);
+        await typeWriterEffect(textContainer, fullText, 10);
 
-            // Применяем markdown внутри textContainer
+        // Ждём 1 тик DOM + небольшой таймаут для marked
+        setTimeout(() => {
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
 
-            // setTimeout(0) — ждём следующий тик DOM
-            setTimeout(() => {
-                textContainer.innerHTML = renderedHtml;
+            textContainer.innerHTML = renderedHtml;
 
-                // Добавляем кнопки копирования
+            // Добавляем кнопки копирования
+            const addCopyButtons = () => {
                 textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                     const pre = codeBlock.parentElement;
                     if (!pre.querySelector('.copy-code-btn')) {
@@ -646,18 +641,24 @@ const chatModule = (() => {
                         pre.appendChild(copyBtn);
                     }
                 });
+            };
 
-                scrollToBottom();
-                setTimeout(scrollToBottom, 100);
-            }, 0);
+            addCopyButtons();
 
-        } catch (err) {
-            console.error("Send message error:", err);
-            tempAiMsg.textContent = "Something went wrong... Try again 😔";
-            tempAiMsg.classList.remove("typing");
+            // Дополнительная проверка через 100 мс (на случай асинхронного рендера marked)
+            setTimeout(addCopyButtons, 100);
+
             scrollToBottom();
-        }
+            setTimeout(scrollToBottom, 100);
+        }, 0);
+
+    } catch (err) {
+        console.error("Send message error:", err);
+        tempAiMsg.textContent = "Something went wrong... Try again 😔";
+        tempAiMsg.classList.remove("typing");
+        scrollToBottom();
     }
+}
 
     async function deleteChat() {
         const chatId = mainModule.getCurrentChatId();
