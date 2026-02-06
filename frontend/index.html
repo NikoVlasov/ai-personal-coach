@@ -543,6 +543,7 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
+        // Показываем "thinking"
         const tempAiMsg = document.createElement("div");
         tempAiMsg.className = "message ai typing";
         tempAiMsg.innerHTML = `
@@ -590,27 +591,31 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
+            // Удаляем "thinking"
             mainModule.chatContainer.removeChild(tempAiMsg);
 
+            // Создаём сообщение AI
             const aiMsg = document.createElement("div");
             aiMsg.className = "message ai";
             mainModule.chatContainer.appendChild(aiMsg);
             scrollToBottom();
 
+            // Контейнер для текста
             const textContainer = document.createElement("div");
             textContainer.className = "ai-text-container";
             aiMsg.appendChild(textContainer);
 
+            // Печатаем plain text
             await typeWriterEffect(textContainer, fullText, 10);
 
-            // Применяем markdown и кнопки
+            // Применяем markdown внутри textContainer
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
 
-            // Самый надёжный способ: setTimeout(0) + повторная проверка
+            // setTimeout(0) — ждём следующий тик DOM
             setTimeout(() => {
                 textContainer.innerHTML = renderedHtml;
 
@@ -642,23 +647,8 @@ const chatModule = (() => {
                     }
                 });
 
-                // Дополнительная проверка через 100 мс (на случай асинхронного рендера marked)
-                setTimeout(() => {
-                    textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
-                        const pre = codeBlock.parentElement;
-                        if (!pre.querySelector('.copy-code-btn')) {
-                            // повторно добавляем, если не добавилось
-                            const copyBtn = document.createElement("button");
-                            copyBtn.className = "copy-code-btn";
-                            copyBtn.textContent = "Copy";
-                            // ... (тот же onclick)
-                            pre.appendChild(copyBtn);
-                        }
-                    });
-                    scrollToBottom();
-                }, 100);
-
                 scrollToBottom();
+                setTimeout(scrollToBottom, 100);
             }, 0);
 
         } catch (err) {
