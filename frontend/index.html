@@ -603,17 +603,18 @@ const chatModule = (() => {
 
             await typeWriterEffect(textContainer, fullText, 10);
 
-            // Применяем markdown и кнопки копирования
+            // Применяем markdown и кнопки
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
 
-            // Ключевой момент: используем setTimeout(0) для следующего тика DOM
+            // Самый надёжный способ: setTimeout(0) + повторная проверка
             setTimeout(() => {
                 textContainer.innerHTML = renderedHtml;
 
+                // Добавляем кнопки копирования
                 textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                     const pre = codeBlock.parentElement;
                     if (!pre.querySelector('.copy-code-btn')) {
@@ -641,8 +642,23 @@ const chatModule = (() => {
                     }
                 });
 
+                // Дополнительная проверка через 100 мс (на случай асинхронного рендера marked)
+                setTimeout(() => {
+                    textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
+                        const pre = codeBlock.parentElement;
+                        if (!pre.querySelector('.copy-code-btn')) {
+                            // повторно добавляем, если не добавилось
+                            const copyBtn = document.createElement("button");
+                            copyBtn.className = "copy-code-btn";
+                            copyBtn.textContent = "Copy";
+                            // ... (тот же onclick)
+                            pre.appendChild(copyBtn);
+                        }
+                    });
+                    scrollToBottom();
+                }, 100);
+
                 scrollToBottom();
-                setTimeout(scrollToBottom, 100);
             }, 0);
 
         } catch (err) {
