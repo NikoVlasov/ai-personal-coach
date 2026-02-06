@@ -603,17 +603,16 @@ const chatModule = (() => {
 
         await typeWriterEffect(textContainer, fullText, 10);
 
-        // Ждём 1 тик DOM + небольшой таймаут для marked
+        // Ждём 1 тик + 100 мс для полного рендера marked
         setTimeout(() => {
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
-
             textContainer.innerHTML = renderedHtml;
 
-            // Добавляем кнопки копирования
+            // Функция добавления кнопок
             const addCopyButtons = () => {
                 textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                     const pre = codeBlock.parentElement;
@@ -643,10 +642,10 @@ const chatModule = (() => {
                 });
             };
 
+            // Запускаем 3 раза с разными задержками
             addCopyButtons();
-
-            // Дополнительная проверка через 100 мс (на случай асинхронного рендера marked)
             setTimeout(addCopyButtons, 100);
+            setTimeout(addCopyButtons, 300);
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
