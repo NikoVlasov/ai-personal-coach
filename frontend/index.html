@@ -603,53 +603,47 @@ const chatModule = (() => {
 
         await typeWriterEffect(textContainer, fullText, 10);
 
-        // Ждём 1 тик + 100 мс для полного рендера marked
+        // Ждём 300 мс для стабильного рендера
         setTimeout(() => {
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
+
             textContainer.innerHTML = renderedHtml;
 
-            // Функция добавления кнопок
-            const addCopyButtons = () => {
-                textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
-                    const pre = codeBlock.parentElement;
-                    if (!pre.querySelector('.copy-code-btn')) {
-                        const copyBtn = document.createElement("button");
-                        copyBtn.className = "copy-code-btn";
-                        copyBtn.textContent = "Copy";
+            // Добавляем кнопки копирования
+            textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
+                const pre = codeBlock.parentElement;
+                if (!pre.querySelector('.copy-code-btn')) {
+                    const copyBtn = document.createElement("button");
+                    copyBtn.className = "copy-code-btn";
+                    copyBtn.textContent = "Copy";
 
-                        copyBtn.onclick = () => {
-                            const codeText = codeBlock.textContent;
-                            navigator.clipboard.writeText(codeText).then(() => {
-                                copyBtn.textContent = "Copied!";
-                                copyBtn.classList.add("copied");
-                                setTimeout(() => {
-                                    copyBtn.textContent = "Copy";
-                                    copyBtn.classList.remove("copied");
-                                }, 2000);
-                            }).catch(err => {
-                                console.error("Clipboard error:", err);
-                                copyBtn.textContent = "Failed";
-                                setTimeout(() => copyBtn.textContent = "Copy", 2000);
-                            });
-                        };
+                    copyBtn.onclick = () => {
+                        const codeText = codeBlock.textContent;
+                        navigator.clipboard.writeText(codeText).then(() => {
+                            copyBtn.textContent = "Copied!";
+                            copyBtn.classList.add("copied");
+                            setTimeout(() => {
+                                copyBtn.textContent = "Copy";
+                                copyBtn.classList.remove("copied");
+                            }, 2000);
+                        }).catch(err => {
+                            console.error("Clipboard error:", err);
+                            copyBtn.textContent = "Failed";
+                            setTimeout(() => copyBtn.textContent = "Copy", 2000);
+                        });
+                    };
 
-                        pre.appendChild(copyBtn);
-                    }
-                });
-            };
-
-            // Запускаем 3 раза с разными задержками
-            addCopyButtons();
-            setTimeout(addCopyButtons, 100);
-            setTimeout(addCopyButtons, 300);
+                    pre.appendChild(copyBtn);
+                }
+            });
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
-        }, 0);
+        }, 300);  // ← 300 мс — ключ к стабильности
 
     } catch (err) {
         console.error("Send message error:", err);
