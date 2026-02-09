@@ -445,7 +445,6 @@ const chatModule = (() => {
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        // Показываем простой индикатор с мигающим троеточием
         const tempAiMsg = document.createElement("div");
         tempAiMsg.className = "message ai typing";
         tempAiMsg.innerHTML = `Mentra is thinking<span class="typing-dots">...</span>`;
@@ -488,16 +487,13 @@ const chatModule = (() => {
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
-            // Удаляем индикатор
             mainModule.chatContainer.removeChild(tempAiMsg);
 
-            // Создаём сообщение AI
             const aiMsg = document.createElement("div");
             aiMsg.className = "message ai";
             mainModule.chatContainer.appendChild(aiMsg);
             scrollToBottom();
 
-            // Печатаем текст
             await typeWriterEffect(aiMsg, fullText, 10);
 
             scrollToBottom();
@@ -554,37 +550,61 @@ const quickButtonsModule = (() => {
             mainModule.quickButtonsDiv.appendChild(button);
         });
 
-        // Добавляем кнопку "Web Search" — она будет всегда
+        // Добавляем кнопку "Web Search" — она всегда будет
         const webSearchBtn = document.createElement("button");
         webSearchBtn.className = "quick-btn";
         webSearchBtn.textContent = "Web Search";
-        webSearchBtn.onclick = () => {
+        webSearchBtn.onclick = async () => {
             const query = prompt("Что искать в интернете? (можно на любом языке)");
-            if (query && query.trim()) {
-                // Отправляем запрос на новый эндпоинт /search
-                fetch("/search", {
+            if (!query || !query.trim()) return;
+
+            // Показываем индикатор "thinking"
+            const tempAiMsg = document.createElement("div");
+            tempAiMsg.className = "message ai typing";
+            tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
+            mainModule.chatContainer.appendChild(tempAiMsg);
+            scrollToBottom();
+
+            try {
+                const res = await fetch("/search", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${mainModule.getToken()}`
                     },
                     body: JSON.stringify({ chat_id: chatId, text: query })
-                })
-                .then(res => {
-                    if (!res.ok) {
-                        throw new Error("Ошибка поиска: " + res.status);
-                    }
-                    // Если хочешь обработать стриминг ответа — добавь здесь логику
-                    return res.text(); // или обработай как стриминг, если нужно
-                })
-                .then(data => {
-                    console.log("Результат поиска:", data);
-                    // Можно показать ответ в чате или в отдельном блоке
-                })
-                .catch(err => {
-                    console.error("Web Search error:", err);
-                    alert("Не удалось выполнить поиск. Проверь консоль.");
                 });
+
+                if (!res.ok) throw new Error("Search failed: " + res.status);
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    fullText += chunk;
+                }
+
+                // Удаляем индикатор
+                mainModule.chatContainer.removeChild(tempAiMsg);
+
+                // Добавляем результат как сообщение AI
+                const aiMsg = document.createElement("div");
+                aiMsg.className = "message ai";
+                aiMsg.textContent = fullText.trim();
+                mainModule.chatContainer.appendChild(aiMsg);
+                scrollToBottom();
+
+            } catch (err) {
+                console.error("Web Search error:", err);
+                if (tempAiMsg.parentNode) {
+                    tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+                }
+                scrollToBottom();
             }
         };
         mainModule.quickButtonsDiv.appendChild(webSearchBtn);
