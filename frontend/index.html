@@ -564,7 +564,7 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-// INIT
+// INIT + ПОСТОЯННАЯ КНОПКА WEB SEARCH
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
@@ -583,11 +583,11 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Кнопка "Web Search" — создаётся ОДИН РАЗ и остаётся навсегда
+    // Создаём кнопку "Web Search" один раз при загрузке страницы
     const webSearchBtn = document.createElement("button");
     webSearchBtn.className = "quick-btn";
     webSearchBtn.textContent = "Web Search";
-    webSearchBtn.id = "web-search-btn";
+    webSearchBtn.id = "web-search-btn"; // уникальный ID
 
     webSearchBtn.onclick = async () => {
         const query = prompt("Что искать в интернете? (можно на любом языке)");
