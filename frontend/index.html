@@ -263,7 +263,7 @@ body {
 </div>
 
 <script>
-// ===== SCROLL TO BOTTOM =====
+// SCROLL TO BOTTOM
 function scrollToBottom() {
     const container = mainModule.chatContainer;
     if (container) {
@@ -274,7 +274,7 @@ function scrollToBottom() {
     }
 }
 
-// ===== TYPEWRITER EFFECT =====
+// TYPEWRITER EFFECT
 async function typeWriterEffect(element, text, delay = 12) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
@@ -287,7 +287,7 @@ async function typeWriterEffect(element, text, delay = 12) {
     scrollToBottom();
 }
 
-// ===== MAIN MODULE =====
+// MAIN MODULE
 const mainModule = (() => {
     let token = null, user_id = null, current_chat_id = null;
     const chatContainer = document.getElementById("chat-container");
@@ -318,7 +318,7 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
 })();
 
-// ===== AUTH MODULE =====
+// AUTH MODULE
 const authModule = (() => {
     function showForm(type) {
         const loginForm = document.getElementById("login-form");
@@ -364,7 +364,7 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
-// ===== CHAT MODULE =====
+// CHAT MODULE
 const chatModule = (() => {
     async function fetchChats() {
         try {
@@ -521,7 +521,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// ===== QUICK BUTTONS MODULE =====
+// QUICK BUTTONS MODULE
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -550,7 +550,7 @@ const quickButtonsModule = (() => {
             mainModule.quickButtonsDiv.appendChild(button);
         });
 
-        // Кнопка "Web Search" — исправленная версия с полной обработкой стрима
+        // Кнопка Web Search
         const webSearchBtn = document.createElement("button");
         webSearchBtn.className = "quick-btn";
         webSearchBtn.textContent = "Web Search";
@@ -620,7 +620,7 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-// ===== INIT =====
+// INIT
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
