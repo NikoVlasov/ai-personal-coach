@@ -521,7 +521,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS MODULE (без кнопки Web Search — она теперь постоянная)
+// QUICK BUTTONS MODULE (без кнопки внутри — она теперь постоянная)
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -583,7 +583,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const webSearchBtn = document.createElement("button");
     webSearchBtn.className = "quick-btn";
     webSearchBtn.textContent = "Web Search";
-    webSearchBtn.id = "web-search-btn"; // для уникальности
+    webSearchBtn.id = "web-search-btn"; // уникальный ID, чтобы легко найти
     webSearchBtn.onclick = async () => {
         const query = prompt("Что искать в интернете? (можно на любом языке)");
         if (!query || !query.trim()) return;
@@ -646,7 +646,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Добавляем кнопку в блок один раз
+    // Добавляем кнопку в блок
     mainModule.quickButtonsDiv.appendChild(webSearchBtn);
 });
 </script>
