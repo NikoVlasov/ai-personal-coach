@@ -553,6 +553,41 @@ const quickButtonsModule = (() => {
             button.appendChild(deleteBtn);
             mainModule.quickButtonsDiv.appendChild(button);
         });
+
+        // Добавляем кнопку "Web Search" — она будет всегда
+        const webSearchBtn = document.createElement("button");
+        webSearchBtn.className = "quick-btn";
+        webSearchBtn.textContent = "Web Search";
+        webSearchBtn.onclick = () => {
+            const query = prompt("Что искать в интернете? (можно на любом языке)");
+            if (query && query.trim()) {
+                // Отправляем запрос на новый эндпоинт /search
+                fetch("/search", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${mainModule.getToken()}`
+                    },
+                    body: JSON.stringify({ chat_id: chatId, text: query })
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error("Ошибка поиска: " + res.status);
+                    }
+                    // Если хочешь обработать стриминг ответа — добавь здесь логику
+                    return res.text(); // или обработай как стриминг, если нужно
+                })
+                .then(data => {
+                    console.log("Результат поиска:", data);
+                    // Можно показать ответ в чате или в отдельном блоке
+                })
+                .catch(err => {
+                    console.error("Web Search error:", err);
+                    alert("Не удалось выполнить поиск. Проверь консоль.");
+                });
+            }
+        };
+        mainModule.quickButtonsDiv.appendChild(webSearchBtn);
     }
     return { fetchQuickButtons };
 })();

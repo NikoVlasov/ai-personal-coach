@@ -10,3 +10,4 @@ passlib[bcrypt]==1.7.4
 sqlalchemy
 python-jose[cryptography]
 psycopg2-binary
+tavily-python

@@ -1,19 +1,20 @@
-from fastapi import FastAPI, HTTPException, Body, Depends, status, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+import logging
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
+import asyncio
+from tavily import TavilyClient
 from groq import Groq
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-import logging
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
-import asyncio
+from fastapi import FastAPI, HTTPException, Body, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
 
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
@@ -21,16 +22,20 @@ logger = logging.getLogger("main")
 
 # --- Настройки ---
 load_dotenv()
-API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 часа — удобнее для разработки
 DATABASE_URL = os.getenv("DATABASE_URL")  # из Render
 
-if not API_KEY:
+if not GROQ_API_KEY:
     raise RuntimeError("GROQ_API_KEY не найден в .env или переменных окружения")
+if not TAVILY_API_KEY:
+    raise RuntimeError("TAVILY_API_KEY не найден в .env или переменных окружения")
 
-client = Groq(api_key=API_KEY)
+groq_client = Groq(api_key=GROQ_API_KEY)
+tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
 
 # --- FastAPI + CORS ---
 app = FastAPI()
@@ -206,8 +211,6 @@ async def get_chats(current_user: User = Depends(get_current_user), db: Session 
     chats = db.query(Chat).filter(Chat.user_id == current_user.id).order_by(Chat.created_at.desc()).all()
     return {"chats": [{"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()} for c in chats]}
 
-
-
 # --- AI Coach (единственный стриминговый эндпоинт) ---
 @app.post("/coach")
 async def coach_response(msg: MessageIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -257,7 +260,7 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
     async def event_generator():
         full_reply = ""
         try:
-            stream = client.chat.completions.create(
+            stream = groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=history,
                 temperature=0.65,
@@ -282,6 +285,59 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
             logger.error(f"Groq streaming error: {str(e)}")
             yield "data: Ошибка генерации ответа. Попробуй позже.\n\n"
             yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+# --- Новый эндпоинт: Поиск в интернете через Tavily ---
+@app.post("/search")
+async def search_web(msg: MessageIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Проверяем доступ к чату
+    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == current_user.id).first()
+    if not chat:
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+
+    # Сохраняем запрос пользователя
+    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
+    db.commit()
+
+    # Ищем через Tavily
+    try:
+        search_results = tavily_client.search(
+            query=msg.text,
+            search_depth="advanced",  # или "basic" для скорости
+            max_results=8,            # 5–10 оптимально
+            include_answer=True,      # даёт готовый краткий ответ
+            include_raw_content=False
+        )
+    except Exception as e:
+        logger.error(f"Tavily error: {str(e)}")
+        full_reply = "Ошибка поиска. Попробуй позже или перефразируй запрос."
+        db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply))
+        db.commit()
+        return StreamingResponse(iter([f"data: {full_reply}\n\ndata: [DONE]\n\n"]), media_type="text/event-stream")
+
+    # Формируем красивый ответ
+    full_reply = f"**Результаты поиска по запросу:** {msg.text}\n\n"
+
+    if search_results.get("answer"):
+        full_reply += f"**Краткий ответ от Tavily:**\n{search_results['answer']}\n\n"
+
+    full_reply += "**Топ-результаты:**\n\n"
+    for i, result in enumerate(search_results.get("results", []), 1):
+        full_reply += f"{i}. **{result['title']}**\n"
+        full_reply += f"{result['content'][:300]}...\n"
+        full_reply += f"[Читать полностью]({result['url']})\n\n"
+
+    # Сохраняем ответ AI
+    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
+    db.commit()
+
+    # Стриминг ответа (как в coach)
+    async def event_generator():
+        for chunk in full_reply.split(" "):
+            yield f"data: {chunk} \n\n"
+            await asyncio.sleep(0.01)
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
