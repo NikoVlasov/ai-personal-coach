@@ -320,7 +320,7 @@ async def search_web(msg: MessageIn, current_user: User = Depends(get_current_us
     full_reply = f"**Результаты поиска по запросу:** {msg.text}\n\n"
 
     if search_results.get("answer"):
-        full_reply += f"**Краткий ответ от Tavily:**\n{search_results['answer']}\n\n"
+        full_reply += f"**Краткий ответ:** {search_results['answer']}\n\n"
 
     full_reply += "**Топ-результаты:**\n\n"
     for i, result in enumerate(search_results.get("results", []), 1):
