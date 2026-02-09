@@ -376,7 +376,11 @@ const chatModule = (() => {
                 const div = document.createElement("div");
                 div.textContent = chat.title;
                 div.dataset.id = chat.id;
-                div.onclick = () => { mainModule.setCurrentChatId(chat.id); fetchHistory(); quickButtonsModule.fetchQuickButtons(); };
+                div.onclick = () => {
+                    mainModule.setCurrentChatId(chat.id);
+                    fetchHistory();
+                    quickButtonsModule.fetchQuickButtons();
+                };
                 chatListDiv.appendChild(div);
             });
         } catch (e) {
@@ -521,14 +525,14 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS MODULE (без кнопки внутри — она теперь постоянная)
+// QUICK BUTTONS MODULE (только серверные кнопки)
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) return;
         const res = await fetch(`/quick_buttons`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
         const data = await res.json();
-        mainModule.quickButtonsDiv.innerHTML = "";
+        mainModule.quickButtonsDiv.innerHTML = ""; // очищаем только серверные кнопки
         data.buttons.forEach(btn => {
             const button = document.createElement("button");
             button.className = "quick-btn";
@@ -560,7 +564,7 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-// INIT + ПОСТОЯННАЯ КНОПКА WEB SEARCH
+// INIT
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
@@ -579,11 +583,12 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Создаём кнопку "Web Search" один раз при загрузке страницы
+    // Кнопка "Web Search" — создаётся ОДИН РАЗ и остаётся навсегда
     const webSearchBtn = document.createElement("button");
     webSearchBtn.className = "quick-btn";
     webSearchBtn.textContent = "Web Search";
-    webSearchBtn.id = "web-search-btn"; // уникальный ID
+    webSearchBtn.id = "web-search-btn";
+
     webSearchBtn.onclick = async () => {
         const query = prompt("Что искать в интернете? (можно на любом языке)");
         if (!query || !query.trim()) return;
