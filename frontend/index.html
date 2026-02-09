@@ -550,11 +550,14 @@ const quickButtonsModule = (() => {
             mainModule.quickButtonsDiv.appendChild(button);
         });
 
+        // Кнопка "Web Search" — исправленная версия с полной обработкой стрима
+        const webSearchBtn = document.createElement("button");
+        webSearchBtn.className = "quick-btn";
+        webSearchBtn.textContent = "Web Search";
         webSearchBtn.onclick = async () => {
             const query = prompt("Что искать в интернете? (можно на любом языке)");
             if (!query || !query.trim()) return;
 
-            // Показываем индикатор "Mentra ищет..."
             const tempAiMsg = document.createElement("div");
             tempAiMsg.className = "message ai typing";
             tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
@@ -571,40 +574,28 @@ const quickButtonsModule = (() => {
                     body: JSON.stringify({ chat_id: chatId, text: query })
                 });
 
-                if (!res.ok) throw new Error("Search failed: " + res.status);
+                if (!res.ok) throw new Error(`Search failed: ${res.status}`);
 
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = "";
 
-                // Читаем стрим как в /coach
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
                     const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split("\n");
-
-                    for (const line of lines) {
-                        if (line.startsWith("data: ")) {
-                            const data = line.slice(6);
-                            if (data === "[DONE]") continue;
-                            fullText += data;
-                        }
-                    }
+                    fullText += chunk;
                 }
 
-                // Удаляем индикатор
                 if (tempAiMsg.parentNode) mainModule.chatContainer.removeChild(tempAiMsg);
 
-                // Создаём сообщение AI
                 const aiMsg = document.createElement("div");
                 aiMsg.className = "message ai";
                 mainModule.chatContainer.appendChild(aiMsg);
                 scrollToBottom();
 
-                // Печатаем красиво typewriter'ом
-                await typeWriterEffect(aiMsg, fullText.trim(), 8);  // 8 мс — быстрее, чем в /coach
+                await typeWriterEffect(aiMsg, fullText.trim(), 8);
 
                 scrollToBottom();
                 setTimeout(scrollToBottom, 100);
@@ -617,6 +608,10 @@ const quickButtonsModule = (() => {
                 scrollToBottom();
             }
         };
+        mainModule.quickButtonsDiv.appendChild(webSearchBtn);
+    }
+    return { fetchQuickButtons };
+})();
 
 function toggleChatList() {
   const list = document.getElementById("chat-list");
