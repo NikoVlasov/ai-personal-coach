@@ -601,9 +601,10 @@ const chatModule = (() => {
         textContainer.className = "ai-text-container";
         aiMsg.appendChild(textContainer);
 
+        // Печатаем plain text
         await typeWriterEffect(textContainer, fullText, 10);
 
-        // Ждём 300 мс для стабильного рендера
+        // Ждём 400 мс — этого хватает на marked + рендер DOM
         setTimeout(() => {
             const renderedHtml = marked.parse(fullText, {
                 breaks: true,
@@ -643,7 +644,7 @@ const chatModule = (() => {
 
             scrollToBottom();
             setTimeout(scrollToBottom, 100);
-        }, 300);  // ← 300 мс — ключ к стабильности
+        }, 400);  // ← 400 мс — надёжный таймаут
 
     } catch (err) {
         console.error("Send message error:", err);
