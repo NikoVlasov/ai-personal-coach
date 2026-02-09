@@ -263,7 +263,7 @@ body {
 </div>
 
 <script>
-// SCROLL TO BOTTOM
+// ===== SCROLL TO BOTTOM =====
 function scrollToBottom() {
     const container = mainModule.chatContainer;
     if (container) {
@@ -274,7 +274,7 @@ function scrollToBottom() {
     }
 }
 
-// TYPEWRITER EFFECT
+// ===== TYPEWRITER EFFECT =====
 async function typeWriterEffect(element, text, delay = 12) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
@@ -287,7 +287,7 @@ async function typeWriterEffect(element, text, delay = 12) {
     scrollToBottom();
 }
 
-// MAIN MODULE
+// ===== MAIN MODULE =====
 const mainModule = (() => {
     let token = null, user_id = null, current_chat_id = null;
     const chatContainer = document.getElementById("chat-container");
@@ -318,7 +318,7 @@ const mainModule = (() => {
     return { setToken, setUserId, setCurrentChatId, getToken, getUserId, getCurrentChatId, logout, chatContainer, quickButtonsDiv, inputField, chatListDiv };
 })();
 
-// AUTH MODULE
+// ===== AUTH MODULE =====
 const authModule = (() => {
     function showForm(type) {
         const loginForm = document.getElementById("login-form");
@@ -364,7 +364,7 @@ const authModule = (() => {
     return { showForm, register, login };
 })();
 
-// CHAT MODULE
+// ===== CHAT MODULE =====
 const chatModule = (() => {
     async function fetchChats() {
         try {
@@ -376,11 +376,7 @@ const chatModule = (() => {
                 const div = document.createElement("div");
                 div.textContent = chat.title;
                 div.dataset.id = chat.id;
-                div.onclick = () => {
-                    mainModule.setCurrentChatId(chat.id);
-                    fetchHistory();
-                    quickButtonsModule.fetchQuickButtons();
-                };
+                div.onclick = () => { mainModule.setCurrentChatId(chat.id); fetchHistory(); quickButtonsModule.fetchQuickButtons(); };
                 chatListDiv.appendChild(div);
             });
         } catch (e) {
@@ -525,7 +521,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS MODULE (только серверные кнопки)
+// ===== QUICK BUTTONS MODULE =====
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -553,6 +549,65 @@ const quickButtonsModule = (() => {
             button.appendChild(deleteBtn);
             mainModule.quickButtonsDiv.appendChild(button);
         });
+
+        // Добавляем кнопку "Web Search" — она всегда будет
+        const webSearchBtn = document.createElement("button");
+        webSearchBtn.className = "quick-btn";
+        webSearchBtn.textContent = "Web Search";
+        webSearchBtn.onclick = async () => {
+            const query = prompt("Что искать в интернете? (можно на любом языке)");
+            if (!query || !query.trim()) return;
+
+            // Показываем индикатор "thinking"
+            const tempAiMsg = document.createElement("div");
+            tempAiMsg.className = "message ai typing";
+            tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
+            mainModule.chatContainer.appendChild(tempAiMsg);
+            scrollToBottom();
+
+            try {
+                const res = await fetch("/search", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${mainModule.getToken()}`
+                    },
+                    body: JSON.stringify({ chat_id: chatId, text: query })
+                });
+
+                if (!res.ok) throw new Error("Search failed: " + res.status);
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    fullText += chunk;
+                }
+
+                // Удаляем индикатор
+                mainModule.chatContainer.removeChild(tempAiMsg);
+
+                // Добавляем результат как сообщение AI
+                const aiMsg = document.createElement("div");
+                aiMsg.className = "message ai";
+                aiMsg.textContent = fullText.trim();
+                mainModule.chatContainer.appendChild(aiMsg);
+                scrollToBottom();
+
+            } catch (err) {
+                console.error("Web Search error:", err);
+                if (tempAiMsg.parentNode) {
+                    tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+                }
+                scrollToBottom();
+            }
+        };
+        mainModule.quickButtonsDiv.appendChild(webSearchBtn);
     }
     return { fetchQuickButtons };
 })();
@@ -564,7 +619,7 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-// INIT + ПОСТОЯННАЯ КНОПКА WEB SEARCH
+// ===== INIT =====
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
@@ -582,78 +637,6 @@ window.addEventListener('DOMContentLoaded', () => {
             chatModule.createChat();
         }
     });
-
-    // Кнопка "Web Search" — создаётся ОДИН РАЗ и остаётся навсегда
-    // Добавляем её после всех инициализаций
-    const webSearchBtn = document.createElement("button");
-    webSearchBtn.id = "web-search-btn";
-    webSearchBtn.className = "quick-btn";
-    webSearchBtn.textContent = "Web Search";
-
-    webSearchBtn.onclick = async () => {
-        const query = prompt("Что искать в интернете? (можно на любом языке)");
-        if (!query || !query.trim()) return;
-
-        const tempAiMsg = document.createElement("div");
-        tempAiMsg.className = "message ai typing";
-        tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
-        mainModule.chatContainer.appendChild(tempAiMsg);
-        scrollToBottom();
-
-        try {
-            const chatId = mainModule.getCurrentChatId();
-            if (!chatId) {
-                alert("Сначала выбери или создай чат!");
-                if (tempAiMsg.parentNode) mainModule.chatContainer.removeChild(tempAiMsg);
-                return;
-            }
-
-            const res = await fetch("/search", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${mainModule.getToken()}`
-                },
-                body: JSON.stringify({ chat_id: chatId, text: query })
-            });
-
-            if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let fullText = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                fullText += chunk;
-            }
-
-            if (tempAiMsg.parentNode) mainModule.chatContainer.removeChild(tempAiMsg);
-
-            const aiMsg = document.createElement("div");
-            aiMsg.className = "message ai";
-            mainModule.chatContainer.appendChild(aiMsg);
-            scrollToBottom();
-
-            await typeWriterEffect(aiMsg, fullText.trim(), 8);
-
-            scrollToBottom();
-            setTimeout(scrollToBottom, 100);
-
-        } catch (err) {
-            console.error("Web Search error:", err);
-            if (tempAiMsg.parentNode) {
-                tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
-            }
-            scrollToBottom();
-        }
-    };
-
-    // Добавляем кнопку в блок
-    mainModule.quickButtonsDiv.appendChild(webSearchBtn);
 });
 </script>
 </body>
