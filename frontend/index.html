@@ -521,7 +521,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS MODULE (без кнопки внутри)
+// QUICK BUTTONS MODULE (без кнопки внутри — она теперь постоянная)
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -646,7 +646,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Добавляем кнопку в блок один раз
+    // Добавляем кнопку в блок
     mainModule.quickButtonsDiv.appendChild(webSearchBtn);
 });
 </script>
