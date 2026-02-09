@@ -601,20 +601,20 @@ const chatModule = (() => {
         textContainer.className = "ai-text-container";
         aiMsg.appendChild(textContainer);
 
-        // Печатаем plain text
         await typeWriterEffect(textContainer, fullText, 10);
 
-        // Ждём 400 мс — этого хватает на marked + рендер DOM
-        setTimeout(() => {
-            const renderedHtml = marked.parse(fullText, {
-                breaks: true,
-                gfm: true,
-                headerIds: false
-            });
+        // Применяем markdown
+        const renderedHtml = marked.parse(fullText, {
+            breaks: true,
+            gfm: true,
+            headerIds: false
+        });
 
-            textContainer.innerHTML = renderedHtml;
+        textContainer.innerHTML = renderedHtml;
 
-            // Добавляем кнопки копирования
+        // MutationObserver — ждём, пока DOM реально обновится
+        const observer = new MutationObserver((mutations, obs) => {
+            let buttonsAdded = false;
             textContainer.querySelectorAll('pre code').forEach((codeBlock) => {
                 const pre = codeBlock.parentElement;
                 if (!pre.querySelector('.copy-code-btn')) {
@@ -639,12 +639,25 @@ const chatModule = (() => {
                     };
 
                     pre.appendChild(copyBtn);
+                    buttonsAdded = true;
                 }
             });
 
+            if (buttonsAdded) {
+                obs.disconnect();  // останавливаем наблюдение после добавления кнопок
+            }
+        });
+
+        observer.observe(textContainer, { childList: true, subtree: true });
+
+        // Дополнительный таймаут на случай, если MutationObserver не сработал
+        setTimeout(() => {
+            observer.disconnect();
             scrollToBottom();
-            setTimeout(scrollToBottom, 100);
-        }, 400);  // ← 400 мс — надёжный таймаут
+        }, 1000);
+
+        scrollToBottom();
+        setTimeout(scrollToBottom, 100);
 
     } catch (err) {
         console.error("Send message error:", err);
