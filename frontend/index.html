@@ -417,12 +417,15 @@ const chatModule = (() => {
         const contentDiv = document.createElement("div");
 
         if (sender === "ai") {
+            // Markdown рендерится сразу
             const html = marked.parse(text, {
                 breaks: true,
                 gfm: true,
                 headerIds: false
             });
             contentDiv.innerHTML = html;
+
+            // Copy-кнопка появляется сразу
             addCopyButtons(contentDiv);
         } else {
             contentDiv.textContent = text;
@@ -477,10 +480,10 @@ const chatModule = (() => {
             aiMsg.appendChild(container);
             mainModule.chatContainer.appendChild(aiMsg);
 
-            // эффект печати (текст)
+            // Печать текста
             await typeWriterEffect(container, fullText, 10);
 
-            // сразу markdown + кнопки
+            // Markdown и copy-кнопки сразу
             const html = marked.parse(fullText, {
                 breaks: true,
                 gfm: true,
@@ -488,6 +491,7 @@ const chatModule = (() => {
             });
             container.innerHTML = html;
             addCopyButtons(container);
+
             scrollToBottom();
 
         } catch (e) {
@@ -495,7 +499,7 @@ const chatModule = (() => {
         }
     }
 
-    return { sendMessage };
+    return { sendMessage, addMessage };
 })();
 
 // ===== INIT =====
