@@ -521,7 +521,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS MODULE
+// QUICK BUTTONS MODULE (теперь без кнопки Web Search внутри)
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -549,66 +549,6 @@ const quickButtonsModule = (() => {
             button.appendChild(deleteBtn);
             mainModule.quickButtonsDiv.appendChild(button);
         });
-
-        // Кнопка Web Search
-        const webSearchBtn = document.createElement("button");
-        webSearchBtn.className = "quick-btn";
-        webSearchBtn.textContent = "Web Search";
-        webSearchBtn.onclick = async () => {
-            const query = prompt("Что искать в интернете? (можно на любом языке)");
-            if (!query || !query.trim()) return;
-
-            const tempAiMsg = document.createElement("div");
-            tempAiMsg.className = "message ai typing";
-            tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
-            mainModule.chatContainer.appendChild(tempAiMsg);
-            scrollToBottom();
-
-            try {
-                const res = await fetch("/search", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${mainModule.getToken()}`
-                    },
-                    body: JSON.stringify({ chat_id: chatId, text: query })
-                });
-
-                if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = "";
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const chunk = decoder.decode(value, { stream: true });
-                    fullText += chunk;
-                }
-
-                if (tempAiMsg.parentNode) mainModule.chatContainer.removeChild(tempAiMsg);
-
-                const aiMsg = document.createElement("div");
-                aiMsg.className = "message ai";
-                mainModule.chatContainer.appendChild(aiMsg);
-                scrollToBottom();
-
-                await typeWriterEffect(aiMsg, fullText.trim(), 8);
-
-                scrollToBottom();
-                setTimeout(scrollToBottom, 100);
-
-            } catch (err) {
-                console.error("Web Search error:", err);
-                if (tempAiMsg.parentNode) {
-                    tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
-                }
-                scrollToBottom();
-            }
-        };
-        mainModule.quickButtonsDiv.appendChild(webSearchBtn);
     }
     return { fetchQuickButtons };
 })();
@@ -620,7 +560,7 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-// INIT
+// INIT + создание кнопки Web Search один раз
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
@@ -638,6 +578,75 @@ window.addEventListener('DOMContentLoaded', () => {
             chatModule.createChat();
         }
     });
+
+    // Кнопка Web Search — создаётся один раз при загрузке страницы
+    const webSearchBtn = document.createElement("button");
+    webSearchBtn.className = "quick-btn";
+    webSearchBtn.textContent = "Web Search";
+    webSearchBtn.onclick = async () => {
+        const query = prompt("Что искать в интернете? (можно на любом языке)");
+        if (!query || !query.trim()) return;
+
+        const tempAiMsg = document.createElement("div");
+        tempAiMsg.className = "message ai typing";
+        tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
+        mainModule.chatContainer.appendChild(tempAiMsg);
+        scrollToBottom();
+
+        try {
+            const chatId = mainModule.getCurrentChatId();
+            if (!chatId) {
+                alert("Сначала выбери чат!");
+                mainModule.chatContainer.removeChild(tempAiMsg);
+                return;
+            }
+
+            const res = await fetch("/search", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${mainModule.getToken()}`
+                },
+                body: JSON.stringify({ chat_id: chatId, text: query })
+            });
+
+            if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                fullText += chunk;
+            }
+
+            if (tempAiMsg.parentNode) mainModule.chatContainer.removeChild(tempAiMsg);
+
+            const aiMsg = document.createElement("div");
+            aiMsg.className = "message ai";
+            mainModule.chatContainer.appendChild(aiMsg);
+            scrollToBottom();
+
+            await typeWriterEffect(aiMsg, fullText.trim(), 8);
+
+            scrollToBottom();
+            setTimeout(scrollToBottom, 100);
+
+        } catch (err) {
+            console.error("Web Search error:", err);
+            if (tempAiMsg.parentNode) {
+                tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+            }
+            scrollToBottom();
+        }
+    };
+
+    // Добавляем кнопку в блок
+    mainModule.quickButtonsDiv.appendChild(webSearchBtn);
 });
 </script>
 </body>
