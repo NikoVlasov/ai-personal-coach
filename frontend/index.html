@@ -112,23 +112,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     padding-right: 10px;
 }
 
-.message {
-    position: relative;
-    padding-left: 60px;   /* оставляем место слева только для AI */
-    padding-right: 10px;
-}
-
-.message.user {
-    padding-left: 10px;   /* у пользователя места слева не нужно */
-    padding-right: 10px;
-    text-align: right;
-}
-
-.message.ai {
-    padding-left: 60px;
-    padding-right: 10px;
-}
-
 .message.ai::before {
     content: '';
     position: absolute;
@@ -153,10 +136,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     80%, 100% { content: ''; }
 }
 /* Кнопка копирования для сообщений AI */
-.message.ai {
-    position: relative;
-}
-
 .copy-btn {
     position: absolute;
     top: 8px;
@@ -182,92 +161,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     color: white;
     opacity: 1;
 }
-.thinking-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  opacity: 0.85;
-  transition: opacity 0.4s ease;
-}
-
-.thinking-robot {
-  font-size: 1.8em;           /* чуть меньше, чем было */
-  animation: think 3.5s infinite ease-in-out;  /* медленнее и плавнее */
-}
-
-.thinking-text {
-  font-size: 1.05em;
-  color: #666;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-}
-
-.typing-dots {
-  display: inline-block;
-  letter-spacing: 4px;
-  color: #4f8ef7;
-  animation: pulse 2.2s infinite ease-in-out;  /* пульсация медленнее и мягче */
-}
-
-@keyframes think {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25%      { transform: translateY(-3px) rotate(-5deg); }  /* амплитуда уменьшена */
-  75%      { transform: translateY(-3px) rotate(5deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; transform: scale(0.95); }
-  50%      { opacity: 1;   transform: scale(1.08); }  /* мягче и меньше скачок */
-}
-
-/* Блоки кода */
-pre {
-    position: relative;
-    background: #f6f8fa;
-    border-radius: 8px;
-    margin: 12px 0;
-    overflow: hidden;
-}
-
-pre code {
-    display: block;
-    padding: 16px;
-    font-size: 0.95em;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-/* Кнопка копирования внутри блока кода */
-.copy-code-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 6px 10px;
-    cursor: pointer;
-    font-size: 0.85em;
-    opacity: 0.8;
-    transition: all 0.2s;
-    z-index: 10;
-}
-
-.copy-code-btn:hover {
-    opacity: 1;
-    background: #fff;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-}
-
-.copy-code-btn.copied {
-    background: #d4edda;
-    border-color: #c3e6cb;
-}
 </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 </head>
 <body>
 <div id="app-container">
@@ -417,15 +312,8 @@ const chatModule = (() => {
         const contentDiv = document.createElement("div");
 
         if (sender === "ai") {
-            // Markdown рендерится сразу
-            const html = marked.parse(text, {
-                breaks: true,
-                gfm: true,
-                headerIds: false
-            });
+            const html = marked.parse(text, { breaks: true, gfm: true, headerIds: false });
             contentDiv.innerHTML = html;
-
-            // Copy-кнопка появляется сразу
             addCopyButtons(contentDiv);
         } else {
             contentDiv.textContent = text;
@@ -480,18 +368,10 @@ const chatModule = (() => {
             aiMsg.appendChild(container);
             mainModule.chatContainer.appendChild(aiMsg);
 
-            // Печать текста
             await typeWriterEffect(container, fullText, 10);
 
-            // Markdown и copy-кнопки сразу
-            const html = marked.parse(fullText, {
-                breaks: true,
-                gfm: true,
-                headerIds: false
-            });
-            container.innerHTML = html;
+            container.innerHTML = marked.parse(fullText, { breaks: true, gfm: true, headerIds: false });
             addCopyButtons(container);
-
             scrollToBottom();
 
         } catch (e) {
