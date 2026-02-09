@@ -521,7 +521,7 @@ const chatModule = (() => {
     return { fetchChats, fetchHistory, addMessage, sendMessage, deleteChat, createChat };
 })();
 
-// QUICK BUTTONS MODULE (теперь без кнопки Web Search внутри)
+// QUICK BUTTONS MODULE (без кнопки Web Search внутри — она теперь постоянная)
 const quickButtonsModule = (() => {
     async function fetchQuickButtons() {
         const chatId = mainModule.getCurrentChatId();
@@ -560,7 +560,7 @@ function toggleChatList() {
   btn.classList.toggle("open", isOpen);
 }
 
-// INIT + создание кнопки Web Search один раз
+// INIT + постоянная кнопка Web Search
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById("auth-container").style.display = "block";
     authModule.showForm('login');
@@ -579,10 +579,11 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Кнопка Web Search — создаётся один раз при загрузке страницы
+    // Постоянная кнопка "Web Search" — создаётся один раз и не стирается
     const webSearchBtn = document.createElement("button");
     webSearchBtn.className = "quick-btn";
     webSearchBtn.textContent = "Web Search";
+    webSearchBtn.id = "web-search-btn"; // для уникальности (если нужно)
     webSearchBtn.onclick = async () => {
         const query = prompt("Что искать в интернете? (можно на любом языке)");
         if (!query || !query.trim()) return;
@@ -596,8 +597,8 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             const chatId = mainModule.getCurrentChatId();
             if (!chatId) {
-                alert("Сначала выбери чат!");
-                mainModule.chatContainer.removeChild(tempAiMsg);
+                alert("Сначала выбери или создай чат!");
+                if (tempAiMsg.parentNode) mainModule.chatContainer.removeChild(tempAiMsg);
                 return;
             }
 
@@ -645,7 +646,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Добавляем кнопку в блок
+    // Добавляем кнопку в блок один раз
     mainModule.quickButtonsDiv.appendChild(webSearchBtn);
 });
 </script>
