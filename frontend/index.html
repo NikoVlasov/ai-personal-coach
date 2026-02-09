@@ -532,7 +532,7 @@ const quickButtonsModule = (() => {
         if (!chatId) return;
         const res = await fetch(`/quick_buttons`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
         const data = await res.json();
-        mainModule.quickButtonsDiv.innerHTML = ""; // очищаем только серверные кнопки
+        mainModule.quickButtonsDiv.innerHTML = "";
         data.buttons.forEach(btn => {
             const button = document.createElement("button");
             button.className = "quick-btn";
@@ -583,17 +583,8 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Кнопка "Web Search" — добавляется ОДИН РАЗ и больше никогда не стирается
-document.addEventListener('DOMContentLoaded', function() {
-    // Ждём, чтобы mainModule и quickButtonsDiv точно существовали
-    if (!mainModule || !mainModule.quickButtonsDiv) {
-        console.warn("mainModule или quickButtonsDiv ещё не готовы");
-        return;
-    }
-
-    // Проверяем, не добавлена ли кнопка уже (чтобы не дублировать)
-    if (document.getElementById("web-search-btn")) return;
-
+    // Кнопка "Web Search" — создаётся ОДИН РАЗ и остаётся навсегда
+    // Добавляем её после всех инициализаций
     const webSearchBtn = document.createElement("button");
     webSearchBtn.id = "web-search-btn";
     webSearchBtn.className = "quick-btn";
@@ -661,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Добавляем кнопку в конец блока
+    // Добавляем кнопку в блок
     mainModule.quickButtonsDiv.appendChild(webSearchBtn);
 });
 </script>
