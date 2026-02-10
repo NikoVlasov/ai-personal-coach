@@ -550,6 +550,7 @@ const quickButtonsModule = (() => {
             mainModule.quickButtonsDiv.appendChild(button);
         });
 
+
         // Добавляем кнопку "Web Search" — она всегда будет
         const webSearchBtn = document.createElement("button");
         webSearchBtn.className = "quick-btn";
@@ -592,25 +593,36 @@ const quickButtonsModule = (() => {
                         if (line.startsWith("data: ")) {
                             const data = line.slice(6).trim();
                             if (data === "[DONE]") continue;
-                            fullText += data + " ";  // добавляем пробел, чтобы слова не склеивались
+                            fullText += data + " ";
                         }
                     }
                 }
 
-                // Финальная очистка текста
+                // Чистим лишние пробелы
                 fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
                 // Удаляем индикатор
                 mainModule.chatContainer.removeChild(tempAiMsg);
 
-                // Создаём сообщение AI
+                // Создаём контейнер для сообщения AI
                 const aiMsg = document.createElement("div");
                 aiMsg.className = "message ai";
                 mainModule.chatContainer.appendChild(aiMsg);
                 scrollToBottom();
 
-                // Печатаем красиво с typewriter
+                // Преобразуем Markdown-ссылки в кликабельные <a>
+                // [текст](url) → <a href="url" target="_blank">текст</a>
+                let htmlText = fullText.replace(
+                    /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,
+                    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline; cursor: pointer;">$1</a>'
+                );
+
+                // Для typewriter используем чистый текст без HTML (чтобы не ломался)
+                // Но после печати заменяем на HTML-версию
                 await typeWriterEffect(aiMsg, fullText, 8);
+
+                // После typewriter заменяем текст на версию с кликабельными ссылками
+                aiMsg.innerHTML = htmlText;
 
                 scrollToBottom();
                 setTimeout(scrollToBottom, 100);
