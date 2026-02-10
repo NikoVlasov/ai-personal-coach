@@ -259,6 +259,8 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
     # Стриминг-генератор
     async def event_generator():
         full_reply = ""
+        buffer = ""  # маленький буфер для накопления текста
+
         try:
             stream = groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -272,10 +274,19 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
                 if chunk.choices[0].delta.content is not None:
                     content = chunk.choices[0].delta.content
                     full_reply += content
-                    yield f"data: {content}\n\n"
-                await asyncio.sleep(0.01)  # плавность
+                    buffer += content
 
-            # Сохраняем полный ответ после завершения
+                    # Отправляем буфер, когда в нём ≥ 5 символов или конец предложения
+                    if len(buffer) >= 5 or content.strip().endswith(('.', '!', '?', '\n')):
+                        yield f"data: {buffer}\n\n"
+                        buffer = ""
+                        await asyncio.sleep(0.015)  # чуть меньше задержки, выглядит естественнее
+
+            # Отправляем остаток буфера
+            if buffer:
+                yield f"data: {buffer}\n\n"
+
+            # Сохраняем полный ответ в БД
             db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
             db.commit()
 
@@ -285,8 +296,6 @@ async def coach_response(msg: MessageIn, current_user: User = Depends(get_curren
             logger.error(f"Groq streaming error: {str(e)}")
             yield "data: Ошибка генерации ответа. Попробуй позже.\n\n"
             yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 # --- Новый эндпоинт: Поиск в интернете через Tavily ---
 @app.post("/search")
