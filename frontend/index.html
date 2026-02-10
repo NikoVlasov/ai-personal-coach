@@ -602,7 +602,9 @@ const quickButtonsModule = (() => {
                 fullText = fullText.replace(/\s{2,}/g, ' ').trim();
 
                 // Удаляем индикатор
-                mainModule.chatContainer.removeChild(tempAiMsg);
+                if (tempAiMsg.parentNode) {
+                    mainModule.chatContainer.removeChild(tempAiMsg);
+                }
 
                 // Создаём контейнер для сообщения AI
                 const aiMsg = document.createElement("div");
@@ -610,18 +612,15 @@ const quickButtonsModule = (() => {
                 mainModule.chatContainer.appendChild(aiMsg);
                 scrollToBottom();
 
-                // Преобразуем Markdown-ссылки в кликабельные <a>
-                // [текст](url) → <a href="url" target="_blank">текст</a>
+                // Печатаем текст typewriter-эффектом (чистый текст)
+                await typeWriterEffect(aiMsg, fullText, 8);
+
+                // После typewriter заменяем на версию с кликабельными ссылками
                 let htmlText = fullText.replace(
-                    /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,
+                    /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g,
                     '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline; cursor: pointer;">$1</a>'
                 );
 
-                // Для typewriter используем чистый текст без HTML (чтобы не ломался)
-                // Но после печати заменяем на HTML-версию
-                await typeWriterEffect(aiMsg, fullText, 8);
-
-                // После typewriter заменяем текст на версию с кликабельными ссылками
                 aiMsg.innerHTML = htmlText;
 
                 scrollToBottom();
