@@ -552,90 +552,88 @@ const quickButtonsModule = (() => {
 
 
         // Добавляем кнопку "Web Search" — она всегда будет
-        const webSearchBtn = document.createElement("button");
-        webSearchBtn.className = "quick-btn";
-        webSearchBtn.textContent = "Web Search";
-        webSearchBtn.onclick = async () => {
-            const query = prompt("Что искать в интернете? (можно на любом языке)");
-            if (!query || !query.trim()) return;
+const webSearchBtn = document.createElement("button");
+webSearchBtn.className = "quick-btn";
+webSearchBtn.textContent = "Web Search";
+webSearchBtn.onclick = async () => {
+    const query = prompt("Что искать в интернете? (можно на любом языке)");
+    if (!query || !query.trim()) return;
 
-            // Показываем индикатор
-            const tempAiMsg = document.createElement("div");
-            tempAiMsg.className = "message ai typing";
-            tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
-            mainModule.chatContainer.appendChild(tempAiMsg);
-            scrollToBottom();
+    // Показываем индикатор
+    const tempAiMsg = document.createElement("div");
+    tempAiMsg.className = "message ai typing";
+    tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
+    mainModule.chatContainer.appendChild(tempAiMsg);
+    scrollToBottom();
 
-            try {
-                const res = await fetch("/search", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${mainModule.getToken()}`
-                    },
-                    body: JSON.stringify({ chat_id: chatId, text: query })
-                });
+    try {
+        const res = await fetch("/search", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${mainModule.getToken()}`
+            },
+            body: JSON.stringify({ chat_id: chatId, text: query })
+        });
 
-                if (!res.ok) throw new Error("Search failed: " + res.status);
+        if (!res.ok) throw new Error("Search failed: " + res.status);
 
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = "";
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split("\n");
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n");
 
-                    for (const line of lines) {
-                        if (line.startsWith("data: ")) {
-                            const data = line.slice(6).trim();
-                            if (data === "[DONE]") continue;
-                            fullText += data + " ";
-                        }
-                    }
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    const data = line.slice(6).trim();
+                    if (data === "[DONE]") continue;
+                    fullText += data + " ";
                 }
-
-                // Чистим лишние пробелы
-                fullText = fullText.replace(/\s{2,}/g, ' ').trim();
-
-                // Удаляем индикатор
-                if (tempAiMsg.parentNode) {
-                    mainModule.chatContainer.removeChild(tempAiMsg);
-                }
-
-                // Создаём контейнер для сообщения AI
-                const aiMsg = document.createElement("div");
-                aiMsg.className = "message ai";
-                mainModule.chatContainer.appendChild(aiMsg);
-                scrollToBottom();
-
-                // Печатаем текст typewriter-эффектом (чистый текст)
-                await typeWriterEffect(aiMsg, fullText, 8);
-
-                // После typewriter заменяем на версию с кликабельными ссылками
-                let htmlText = fullText.replace(
-                    /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g,
-                    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline; cursor: pointer;">$1</a>'
-                );
-
-                aiMsg.innerHTML = htmlText;
-
-                scrollToBottom();
-                setTimeout(scrollToBottom, 100);
-
-            } catch (err) {
-                console.error("Web Search error:", err);
-                if (tempAiMsg.parentNode) {
-                    tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
-                    tempAiMsg.classList.remove("typing");
-                }
-                scrollToBottom();
             }
-        };
-        mainModule.quickButtonsDiv.appendChild(webSearchBtn);
+        }
+
+        // Чистим лишние пробелы
+        fullText = fullText.replace(/\s{2,}/g, ' ').trim();
+
+        // Удаляем индикатор
+        mainModule.chatContainer.removeChild(tempAiMsg);
+
+        // Создаём сообщение AI
+        const aiMsg = document.createElement("div");
+        aiMsg.className = "message ai";
+        mainModule.chatContainer.appendChild(aiMsg);
+        scrollToBottom();
+
+        // Печатаем typewriter-эффектом обычный текст
+        await typeWriterEffect(aiMsg, fullText, 8);
+
+        // После typewriter заменяем на версию с кликабельными ссылками
+        let htmlText = fullText.replace(
+            /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline; cursor: pointer;">$1</a>'
+        );
+
+        aiMsg.innerHTML = htmlText;
+
+        scrollToBottom();
+        setTimeout(scrollToBottom, 100);
+
+    } catch (err) {
+        console.error("Web Search error:", err);
+        if (tempAiMsg.parentNode) {
+            tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+            tempAiMsg.classList.remove("typing");
+        }
+        scrollToBottom();
+    }
+};
+mainModule.quickButtonsDiv.appendChild(webSearchBtn);
     }
     return { fetchQuickButtons };
 })();
