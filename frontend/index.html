@@ -551,7 +551,7 @@ const quickButtonsModule = (() => {
         });
 
 
-        // Добавляем кнопку "Web Search" — она всегда будет
+       // Добавляем кнопку "Web Search" — она всегда будет
 const webSearchBtn = document.createElement("button");
 webSearchBtn.className = "quick-btn";
 webSearchBtn.textContent = "Web Search";
@@ -613,11 +613,8 @@ webSearchBtn.onclick = async () => {
         // Печатаем typewriter-эффектом обычный текст
         await typeWriterEffect(aiMsg, fullText, 8);
 
-        // После typewriter заменяем на версию с кликабельными ссылками
-        let htmlText = fullText.replace(
-            /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g,
-            '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline; cursor: pointer;">$1</a>'
-        );
+        // После печати заменяем на parsed Markdown (с кликабельными ссылками)
+        const htmlText = marked(fullText);
 
         aiMsg.innerHTML = htmlText;
 
