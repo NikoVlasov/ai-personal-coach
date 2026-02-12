@@ -1,20 +1,20 @@
 import logging
-import os
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 import asyncio
-from datetime import datetime, timedelta
+from tavily import TavilyClient
+from groq import Groq
 from dotenv import load_dotenv
+import os
+from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from fastapi import FastAPI, HTTPException, Body, Depends, status, APIRouter
+from fastapi import FastAPI, HTTPException, Body, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
-from tavily import TavilyClient
-from groq import Groq
 
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
@@ -26,11 +26,13 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 часа
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not GROQ_API_KEY or not TAVILY_API_KEY or not DATABASE_URL:
-    raise RuntimeError("Не найдены ключи или DATABASE_URL в окружении")
+if not GROQ_API_KEY:
+    raise RuntimeError("GROQ_API_KEY не найден")
+if not TAVILY_API_KEY:
+    raise RuntimeError("TAVILY_API_KEY не найден")
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
@@ -39,7 +41,7 @@ tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене укажи конкретные домены
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,8 +50,11 @@ app.add_middleware(
 oauth2_scheme = HTTPBearer()
 
 # --- PostgreSQL ---
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL не найден")
+
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
 # --- Модели ---
@@ -76,8 +81,8 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     chat_id = Column(Integer, ForeignKey("chats.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    role = Column(String)  # "user" или "assistant"
-    content = Column(Text)
+    sender = Column(String)  # "user" или "ai"
+    text = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     chat = relationship("Chat", back_populates="messages")
 
@@ -93,17 +98,22 @@ Base.metadata.create_all(bind=engine)
 
 # --- Пароли ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 def hash_password(password: str) -> str:
-    p_bytes = password.encode("utf-8")[:72]
-    truncated = p_bytes.decode("utf-8", errors="ignore")
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    truncated = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.hash(truncated)
 
-def verify_password(plain: str, hashed: str) -> bool:
-    p_bytes = plain.encode("utf-8")[:72]
-    truncated = p_bytes.decode("utf-8", errors="ignore")
-    return pwd_context.verify(truncated, hashed)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    password_bytes = plain_password.encode("utf-8")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    truncated = password_bytes.decode("utf-8", errors="ignore")
+    return pwd_context.verify(truncated, hashed_password)
 
-# --- Pydantic ---
+# --- Pydantic модели ---
 class UserRegister(BaseModel):
     email: str
     password: str
@@ -115,7 +125,7 @@ class UserLogin(BaseModel):
 class ChatCreate(BaseModel):
     title: str
 
-class MessageCreate(BaseModel):
+class MessageIn(BaseModel):
     chat_id: int
     text: str
 
@@ -136,13 +146,15 @@ def get_db():
     finally:
         db.close()
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
-                     db: Session = Depends(get_db)):
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if not email:
+        email: str = payload.get("sub")
+        if email is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         user = db.query(User).filter(User.email == email).first()
         if not user:
@@ -157,25 +169,28 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 async def root():
     return FileResponse("frontend/index.html")
 
-# --- Регистрация и логин ---
+# --- Регистрация / Логин ---
 @app.post("/register")
 async def register(user: UserRegister, db: Session = Depends(get_db)):
     if len(user.password.encode("utf-8")) > 72:
-        raise HTTPException(status_code=400, detail="Password too long")
-    if db.query(User).filter(User.email == user.email).first():
-        raise HTTPException(status_code=400, detail="Email exists")
-    hashed = hash_password(user.password)
-    new_user = User(email=user.email, password=hashed)
+        raise HTTPException(status_code=400, detail="Password too long (max 72 bytes)")
+    hashed_password = hash_password(user.password)
+    existing = db.query(User).filter(User.email == user.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    new_user = User(email=user.email, password=hashed_password)
     db.add(new_user)
     db.commit()
+    logger.info(f"User registered: {user.email}")
     return {"status": "ok"}
 
 @app.post("/login")
 async def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token({"sub": db_user.email})
+    logger.info(f"User logged in: {db_user.email}")
     return {"access_token": token, "token_type": "bearer", "user_id": db_user.id}
 
 # --- Чаты ---
@@ -189,105 +204,96 @@ async def create_chat(chat: ChatCreate, current_user: User = Depends(get_current
 
 @app.get("/chats")
 async def get_chats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    chats = db.query(Chat).filter(Chat.user_id==current_user.id).order_by(Chat.created_at.desc()).all()
-    return {"chats":[{"id":c.id,"title":c.title,"created_at":c.created_at.isoformat()} for c in chats]}
+    chats = db.query(Chat).filter(Chat.user_id == current_user.id).order_by(Chat.created_at.desc()).all()
+    return {"chats": [{"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()} for c in chats]}
+
+# --- AI Coach / Search (мультиязычный) ---
+@app.post("/search")
+async def web_search(msg: MessageIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == current_user.id).first()
+    if not chat:
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+
+    # Сохраняем запрос пользователя
+    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
+    db.commit()
+
+    # 🔎 Поиск через Tavily
+    try:
+        search_results = tavily_client.search(
+            query=msg.text,
+            search_depth="advanced",
+            max_results=8,
+            include_answer=True,
+            include_raw_content=False
+        )
+    except Exception as e:
+        logger.error(f"Tavily error: {str(e)}")
+        fallback = "Ошибка поиска. Попробуй позже."
+        db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=fallback))
+        db.commit()
+        return StreamingResponse(iter([f"data: {fallback}\n\ndata: [DONE]\n\n"]), media_type="text/event-stream")
+
+    # 📦 Формируем ответ (с сохранением языка запроса)
+    lang_header = f"**Results for query:** {msg.text}\n\n"
+    if search_results.get("answer"):
+        lang_header += f"**Short answer:** {search_results['answer']}\n\n"
+
+    body_text = "**Top results:**\n\n"
+    for i, result in enumerate(search_results.get("results", []), 1):
+        body_text += f"{i}. **{result['title']}**\n"
+        body_text += f"{result['content'][:300]}...\n"
+        body_text += f"[Read more]({result['url']})\n\n"
+
+    full_reply = lang_header + body_text
+    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
+    db.commit()
+
+    # Стриминг SSE
+    async def event_generator():
+        for chunk in full_reply.split(" "):
+            yield f"data: {chunk} \n\n"
+            await asyncio.sleep(0.01)
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 # --- История ---
 @app.get("/history/{chat_id}")
 async def get_history(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id==chat_id, Chat.user_id==current_user.id).first()
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == current_user.id).first()
     if not chat:
-        raise HTTPException(status_code=403, detail="Chat not found")
-    msgs = db.query(Message).filter(Message.chat_id==chat_id).order_by(Message.id.asc()).all()
-    return {"messages":[{"sender":m.role,"text":m.content,"created_at":m.created_at.isoformat()} for m in msgs]}
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+    messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id.asc()).all()
+    return {"messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at.isoformat()} for m in messages]}
 
 # --- Быстрые кнопки ---
 @app.get("/quick_buttons")
 async def get_quick_buttons(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    buttons = db.query(QuickButton).filter(QuickButton.user_id==current_user.id).all()
-    return {"buttons":[b.text for b in buttons]}
+    buttons = db.query(QuickButton).filter(QuickButton.user_id == current_user.id).all()
+    return {"buttons": [b.text for b in buttons]}
 
 @app.post("/quick_buttons")
 async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     db.add(QuickButton(user_id=current_user.id, text=btn.text))
     db.commit()
-    return {"status":"ok"}
+    return {"status": "ok"}
 
 @app.delete("/quick_buttons")
 async def delete_quick_button(body: dict = Body(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     text = body.get("text")
-    if not text: raise HTTPException(status_code=400, detail="No text")
-    db.query(QuickButton).filter(QuickButton.user_id==current_user.id, QuickButton.text==text).delete()
+    if not text:
+        raise HTTPException(status_code=400, detail="No button text provided")
+    db.query(QuickButton).filter(QuickButton.user_id == current_user.id, QuickButton.text == text).delete()
     db.commit()
-    return {"status":"deleted"}
+    return {"status": "deleted"}
 
-# --- Удаление чата ---
 @app.delete("/chats/{chat_id}")
-async def delete_chat(chat_id:int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id==chat_id, Chat.user_id==current_user.id).first()
-    if not chat: raise HTTPException(status_code=403, detail="Chat not found")
-    db.query(Message).filter(Message.chat_id==chat_id).delete()
-    db.query(Chat).filter(Chat.id==chat_id).delete()
-    db.commit()
-    return {"status":"ok"}
-
-# --- Web Search (новый endpoint с мультиязыком) ---
-@app.post("/search")
-async def web_search(msg: MessageCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    chat = db.query(Chat).filter(Chat.id==msg.chat_id, Chat.user_id==current_user.id).first()
+async def delete_chat(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == current_user.id).first()
     if not chat:
-        raise HTTPException(status_code=403, detail="Chat not found")
-
-    # Сохраняем запрос
-    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, role="user", content=msg.text))
+        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+    db.query(Message).filter(Message.chat_id == chat_id).delete()
+    db.query(Chat).filter(Chat.id == chat_id).delete()
     db.commit()
-
-    # Поиск Tavily
-    search_results = tavily_client.search(
-        query=msg.text,
-        search_depth="advanced",
-        max_results=5
-    )
-
-    search_context = ""
-    for i, r in enumerate(search_results.get("results", []),1):
-        search_context += f"Result {i}:\nTitle: {r['title']}\nContent: {r['content']}\nURL: {r['url']}\n\n"
-
-    system_prompt = """
-You are a professional AI web search assistant.
-
-STRICT RULES:
-- Always respond in the SAME language as the user's query.
-- Never mix languages.
-- Format the answer using clean Markdown.
-- Start with a short summary.
-- Then show a clearly structured list of top results.
-- Each result must include a clickable Markdown link: [Title](URL)
-- Do not invent links. Only use URLs provided in search results.
-- Keep the answer clean and readable.
-"""
-
-    messages = [
-        {"role":"system","content":system_prompt},
-        {"role":"user","content":f"User query:\n{msg.text}\n\nSearch results:\n{search_context}"}
-    ]
-
-    # Streaming
-    async def generate():
-        stream = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.3,
-            stream=True,
-        )
-        full_response = ""
-        for chunk in stream:
-            if chunk.choices[0].delta.content:
-                content = chunk.choices[0].delta.content
-                full_response += content
-                yield f"data: {content}\n\n"
-        db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, role="assistant", content=full_response))
-        db.commit()
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return {"status": "ok"}
