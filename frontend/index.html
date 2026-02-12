@@ -212,6 +212,14 @@ body {
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script>
+marked.setOptions({
+    gfm: true,
+    breaks: true,
+    mangle: false,
+    headerIds: false
+});
+</script>
 </head>
 <body>
 <div id="app-container">
@@ -422,7 +430,13 @@ const chatModule = (() => {
         msgDiv.className = `message ${sender}`;
 
         const contentDiv = document.createElement("div");
-        contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
+
+        if (sender === "ai") {
+            const parsed = marked.parse(text);
+            contentDiv.innerHTML = parsed + (timestamp ? ` <small>(${timestamp})</small>` : '');
+        } else {
+            contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
+        }
 
         msgDiv.appendChild(contentDiv);
         mainModule.chatContainer.appendChild(msgDiv);
@@ -554,9 +568,16 @@ const quickButtonsModule = (() => {
         const webSearchBtn = document.createElement("button");
         webSearchBtn.className = "quick-btn";
         webSearchBtn.textContent = "Web Search";
+
         webSearchBtn.onclick = async () => {
             const query = prompt("Что искать в интернете? (можно на любом языке)");
             if (!query || !query.trim()) return;
+
+            const chatId = mainModule.getCurrentChatId();
+            if (!chatId) {
+                alert("Select a chat first!");
+                return;
+            }
 
             // Показываем индикатор
             const tempAiMsg = document.createElement("div");
@@ -575,7 +596,18 @@ const quickButtonsModule = (() => {
                     body: JSON.stringify({ chat_id: chatId, text: query })
                 });
 
-                if (!res.ok) throw new Error("Search failed: " + res.status);
+                // Проверка статуса ответа
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error("Server returned error response:");
+                    console.error(errorText);
+                    throw new Error("Search failed: " + res.status);
+                }
+
+                // Проверка поддержки stream
+                if (!res.body) {
+                    throw new Error("ReadableStream not supported in this browser");
+                }
 
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
@@ -598,10 +630,12 @@ const quickButtonsModule = (() => {
                 }
 
                 // Чистим лишние пробелы
-                fullText = fullText.replace(/\s{2,}/g, ' ').trim();
+                fullText = fullText.replace(/\s{2,}/g, " ").trim();
 
-                // Удаляем индикатор
-                mainModule.chatContainer.removeChild(tempAiMsg);
+                // Безопасно удаляем индикатор
+                if (tempAiMsg.parentNode) {
+                    tempAiMsg.remove();
+                }
 
                 // Создаём сообщение AI
                 const aiMsg = document.createElement("div");
@@ -609,12 +643,11 @@ const quickButtonsModule = (() => {
                 mainModule.chatContainer.appendChild(aiMsg);
                 scrollToBottom();
 
-                // Печатаем typewriter-эффектом обычный текст
+                // Печатаем typewriter-эффектом
                 await typeWriterEffect(aiMsg, fullText, 8);
 
-                // После печати заменяем на parsed Markdown (с кликабельными ссылками)
-                const htmlText = marked(fullText);
-
+                // Markdown → кликабельные ссылки
+                const htmlText = marked.parse(fullText);
                 aiMsg.innerHTML = htmlText;
 
                 scrollToBottom();
@@ -622,17 +655,20 @@ const quickButtonsModule = (() => {
 
             } catch (err) {
                 console.error("Web Search error:", err);
+
                 if (tempAiMsg.parentNode) {
                     tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
                     tempAiMsg.classList.remove("typing");
                 }
+
                 scrollToBottom();
             }
         };
+
         mainModule.quickButtonsDiv.appendChild(webSearchBtn);
-    }
-    return { fetchQuickButtons };
-})();
+        }
+        return { fetchQuickButtons };
+        })();
 
 function toggleChatList() {
   const list = document.getElementById("chat-list");
