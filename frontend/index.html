@@ -374,6 +374,42 @@ const authModule = (() => {
 
 // ===== CHAT MODULE =====
 const chatModule = (() => {
+
+    // ===== AI MESSAGE CREATOR WITH READ MORE =====
+    function createAiMessage(fullText) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message ai";
+
+        const previewLimit = 300;
+        let isExpanded = false;
+        const contentDiv = document.createElement("div");
+
+        function renderText() {
+            const textToRender = isExpanded || fullText.length <= previewLimit
+                ? fullText
+                : fullText.slice(0, previewLimit) + "...";
+
+            contentDiv.innerHTML = marked.parse(textToRender);
+
+            if (!isExpanded && fullText.length > previewLimit) {
+                const readMoreBtn = document.createElement("span");
+                readMoreBtn.textContent = " Read more";
+                readMoreBtn.style.color = "blue";
+                readMoreBtn.style.cursor = "pointer";
+                readMoreBtn.onclick = () => {
+                    isExpanded = true;
+                    renderText();
+                    scrollToBottom();
+                };
+                contentDiv.appendChild(readMoreBtn);
+            }
+        }
+
+        renderText();
+        msgDiv.appendChild(contentDiv);
+        return msgDiv;
+    }
+
     async function fetchChats() {
         try {
             const res = await fetch(`/chats`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
@@ -417,7 +453,7 @@ const chatModule = (() => {
             mainModule.chatContainer.innerHTML = "";
             data.messages.forEach(msg => {
                 const normalizedSender = msg.sender.toLowerCase() === "ai" ? "ai" : "user";
-                addMessage(msg.text, normalizedSender, msg.timestamp);
+                addMessage(msg.text, normalizedSender, msg.created_at);
             });
             scrollToBottom();
         } catch (e) {
@@ -429,18 +465,16 @@ const chatModule = (() => {
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${sender}`;
 
-        const contentDiv = document.createElement("div");
-
         if (sender === "ai") {
-            const parsed = marked.parse(text);
-            contentDiv.innerHTML = parsed + (timestamp ? ` <small>(${timestamp})</small>` : '');
+            const aiMsg = createAiMessage(text);
+            msgDiv.appendChild(aiMsg);
         } else {
+            const contentDiv = document.createElement("div");
             contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
+            msgDiv.appendChild(contentDiv);
         }
 
-        msgDiv.appendChild(contentDiv);
         mainModule.chatContainer.appendChild(msgDiv);
-
         scrollToBottom();
         setTimeout(scrollToBottom, 50);
         return msgDiv;
@@ -448,11 +482,7 @@ const chatModule = (() => {
 
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
-        if (!chatId) {
-            alert("Select a chat first!");
-            return;
-        }
-
+        if (!chatId) { alert("Select a chat first!"); return; }
         const text = predefined || mainModule.inputField.value.trim();
         if (!text) return;
 
@@ -468,15 +498,11 @@ const chatModule = (() => {
         try {
             const res = await fetch("/coach", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${mainModule.getToken()}`
-                },
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${mainModule.getToken()}` },
                 body: JSON.stringify({ chat_id: chatId, text })
             });
 
             if (!res.ok) throw new Error("HTTP " + res.status);
-
             if (!res.body) throw new Error("No stream");
 
             const reader = res.body.getReader();
@@ -486,10 +512,8 @@ const chatModule = (() => {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split("\n");
-
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
                         const data = line.slice(6);
@@ -500,18 +524,11 @@ const chatModule = (() => {
             }
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
+            tempAiMsg.remove();
 
-            mainModule.chatContainer.removeChild(tempAiMsg);
-
-            const aiMsg = document.createElement("div");
-            aiMsg.className = "message ai";
+            const aiMsg = createAiMessage(fullText);
             mainModule.chatContainer.appendChild(aiMsg);
             scrollToBottom();
-
-            await typeWriterEffect(aiMsg, fullText, 10);
-
-            scrollToBottom();
-            setTimeout(scrollToBottom, 100);
 
         } catch (err) {
             console.error("Send message error:", err);
@@ -564,7 +581,7 @@ const quickButtonsModule = (() => {
             mainModule.quickButtonsDiv.appendChild(button);
         });
 
-        // Добавляем кнопку "Web Search" — она всегда будет
+        // Web Search button
         const webSearchBtn = document.createElement("button");
         webSearchBtn.className = "quick-btn";
         webSearchBtn.textContent = "Web Search";
@@ -572,14 +589,9 @@ const quickButtonsModule = (() => {
         webSearchBtn.onclick = async () => {
             const query = prompt("Что искать в интернете? (можно на любом языке)");
             if (!query || !query.trim()) return;
-
             const chatId = mainModule.getCurrentChatId();
-            if (!chatId) {
-                alert("Select a chat first!");
-                return;
-            }
+            if (!chatId) { alert("Select a chat first!"); return; }
 
-            // Показываем индикатор
             const tempAiMsg = document.createElement("div");
             tempAiMsg.className = "message ai typing";
             tempAiMsg.innerHTML = `Mentra ищет<span class="typing-dots">...</span>`;
@@ -589,25 +601,12 @@ const quickButtonsModule = (() => {
             try {
                 const res = await fetch("/search", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${mainModule.getToken()}`
-                    },
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${mainModule.getToken()}` },
                     body: JSON.stringify({ chat_id: chatId, text: query })
                 });
 
-                // Проверка статуса ответа
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    console.error("Server returned error response:");
-                    console.error(errorText);
-                    throw new Error("Search failed: " + res.status);
-                }
-
-                // Проверка поддержки stream
-                if (!res.body) {
-                    throw new Error("ReadableStream not supported in this browser");
-                }
+                if (!res.ok) throw new Error("Search failed: " + res.status);
+                if (!res.body) throw new Error("No stream");
 
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
@@ -616,10 +615,8 @@ const quickButtonsModule = (() => {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split("\n");
-
                     for (const line of lines) {
                         if (line.startsWith("data: ")) {
                             const data = line.slice(6).trim();
@@ -629,52 +626,31 @@ const quickButtonsModule = (() => {
                     }
                 }
 
-                // Чистим лишние пробелы
                 fullText = fullText.replace(/\s{2,}/g, " ").trim();
-
-                // Безопасно удаляем индикатор
-                if (tempAiMsg.parentNode) {
-                    tempAiMsg.remove();
-                }
-
-                // Создаём сообщение AI
-                const aiMsg = document.createElement("div");
-                aiMsg.className = "message ai";
+                tempAiMsg.remove();
+                const aiMsg = createAiMessage(fullText);
                 mainModule.chatContainer.appendChild(aiMsg);
                 scrollToBottom();
 
-                // Печатаем typewriter-эффектом
-                await typeWriterEffect(aiMsg, fullText, 8);
-
-                // Markdown → кликабельные ссылки
-                const htmlText = marked.parse(fullText);
-                aiMsg.innerHTML = htmlText;
-
-                scrollToBottom();
-                setTimeout(scrollToBottom, 100);
-
             } catch (err) {
                 console.error("Web Search error:", err);
-
-                if (tempAiMsg.parentNode) {
-                    tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
-                    tempAiMsg.classList.remove("typing");
-                }
-
+                tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+                tempAiMsg.classList.remove("typing");
                 scrollToBottom();
             }
         };
 
         mainModule.quickButtonsDiv.appendChild(webSearchBtn);
-        }
-        return { fetchQuickButtons };
-        })();
+    }
+
+    return { fetchQuickButtons };
+})();
 
 function toggleChatList() {
-  const list = document.getElementById("chat-list");
-  const btn = document.getElementById("chat-dropdown-btn");
-  const isOpen = list.classList.toggle("show");
-  btn.classList.toggle("open", isOpen);
+    const list = document.getElementById("chat-list");
+    const btn = document.getElementById("chat-dropdown-btn");
+    const isOpen = list.classList.toggle("show");
+    btn.classList.toggle("open", isOpen);
 }
 
 // ===== INIT =====
