@@ -374,42 +374,6 @@ const authModule = (() => {
 
 // ===== CHAT MODULE =====
 const chatModule = (() => {
-
-    // ===== AI MESSAGE CREATOR WITH READ MORE =====
-    function createAiMessage(fullText) {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message ai";
-
-        const previewLimit = 300;
-        let isExpanded = false;
-        const contentDiv = document.createElement("div");
-
-        function renderText() {
-            const textToRender = isExpanded || fullText.length <= previewLimit
-                ? fullText
-                : fullText.slice(0, previewLimit) + "...";
-
-            contentDiv.innerHTML = marked.parse(textToRender);
-
-            if (!isExpanded && fullText.length > previewLimit) {
-                const readMoreBtn = document.createElement("span");
-                readMoreBtn.textContent = " Read more";
-                readMoreBtn.style.color = "blue";
-                readMoreBtn.style.cursor = "pointer";
-                readMoreBtn.onclick = () => {
-                    isExpanded = true;
-                    renderText();
-                    scrollToBottom();
-                };
-                contentDiv.appendChild(readMoreBtn);
-            }
-        }
-
-        renderText();
-        msgDiv.appendChild(contentDiv);
-        return msgDiv;
-    }
-
     async function fetchChats() {
         try {
             const res = await fetch(`/chats`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
@@ -464,25 +428,31 @@ const chatModule = (() => {
     function addMessage(text, sender, timestamp = null) {
         const msgDiv = document.createElement("div");
         msgDiv.className = `message ${sender}`;
+        const contentDiv = document.createElement("div");
 
         if (sender === "ai") {
-            const aiMsg = createAiMessage(text);
-            msgDiv.appendChild(aiMsg);
+            // Markdown → HTML, всё полностью
+            contentDiv.innerHTML = marked.parse(text);
         } else {
-            const contentDiv = document.createElement("div");
-            contentDiv.textContent = text + (timestamp ? ` (${timestamp})` : '');
-            msgDiv.appendChild(contentDiv);
+            contentDiv.textContent = text;
         }
 
+        if (timestamp) {
+            const ts = document.createElement("small");
+            ts.textContent = ` (${timestamp})`;
+            contentDiv.appendChild(ts);
+        }
+
+        msgDiv.appendChild(contentDiv);
         mainModule.chatContainer.appendChild(msgDiv);
         scrollToBottom();
-        setTimeout(scrollToBottom, 50);
         return msgDiv;
     }
 
     async function sendMessage(predefined = null) {
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) { alert("Select a chat first!"); return; }
+
         const text = predefined || mainModule.inputField.value.trim();
         if (!text) return;
 
@@ -512,24 +482,22 @@ const chatModule = (() => {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split("\n");
+
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
                         const data = line.slice(6);
                         if (data === "[DONE]") continue;
-                        fullText += data;
+                        fullText += data + " ";
                     }
                 }
             }
 
             fullText = fullText.replace(/\s{2,}/g, ' ').trim();
             tempAiMsg.remove();
-
-            const aiMsg = createAiMessage(fullText);
-            mainModule.chatContainer.appendChild(aiMsg);
-            scrollToBottom();
-
+            addMessage(fullText, "ai");
         } catch (err) {
             console.error("Send message error:", err);
             tempAiMsg.textContent = "Something went wrong... Try again 😔";
@@ -565,6 +533,7 @@ const quickButtonsModule = (() => {
             button.className = "quick-btn";
             button.textContent = btn;
             button.onclick = () => chatModule.sendMessage(btn);
+
             const deleteBtn = document.createElement("button");
             deleteBtn.className = "delete-btn";
             deleteBtn.textContent = "×";
@@ -577,6 +546,7 @@ const quickButtonsModule = (() => {
                 });
                 fetchQuickButtons();
             };
+
             button.appendChild(deleteBtn);
             mainModule.quickButtonsDiv.appendChild(button);
         });
@@ -606,7 +576,7 @@ const quickButtonsModule = (() => {
                 });
 
                 if (!res.ok) throw new Error("Search failed: " + res.status);
-                if (!res.body) throw new Error("No stream");
+                if (!res.body) throw new Error("ReadableStream not supported");
 
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
@@ -615,6 +585,7 @@ const quickButtonsModule = (() => {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split("\n");
                     for (const line of lines) {
@@ -628,14 +599,14 @@ const quickButtonsModule = (() => {
 
                 fullText = fullText.replace(/\s{2,}/g, " ").trim();
                 tempAiMsg.remove();
-                const aiMsg = createAiMessage(fullText);
-                mainModule.chatContainer.appendChild(aiMsg);
-                scrollToBottom();
+                chatModule.addMessage(fullText, "ai");
 
             } catch (err) {
                 console.error("Web Search error:", err);
-                tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
-                tempAiMsg.classList.remove("typing");
+                if (tempAiMsg.parentNode) {
+                    tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+                    tempAiMsg.classList.remove("typing");
+                }
                 scrollToBottom();
             }
         };
