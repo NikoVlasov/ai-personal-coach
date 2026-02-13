@@ -216,8 +216,11 @@ async def get_chats(current_user: User = Depends(get_current_user), db: Session 
 
 # --- AI Coach / Search (мультиязычный) ---
 @app.post("/search")
-async def web_search(request: Request, msg: MessageRequest, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
+async def web_search(
+    msg: MessageRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
 
     chat = db.query(Chat).filter(
         Chat.id == msg.chat_id,
