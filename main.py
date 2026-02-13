@@ -237,63 +237,70 @@ async def web_search(request: Request, msg: MessageRequest, db: Session = Depend
     db.commit()
 
     try:
-        # ✅ ВАЖНО: включаем полный контент
+        # 1️⃣ Ищем через Tavily
         search_results = tavily_client.search(
             query=msg.text,
             search_depth="advanced",
-            max_results=8,
-            include_answer=True,
-            include_raw_content=True,  # ← ключевой параметр
-            include_images=False
+            max_results=6
         )
 
-        formatted_response = f"## Results for query: {msg.text}\n\n"
+        # 2️⃣ Формируем контекст для Groq
+        sources_text = ""
 
-        # если Tavily вернул готовый answer — добавим его полностью
-        if search_results.get("answer"):
-            formatted_response += f"### Summary\n\n{search_results['answer']}\n\n"
-
-        formatted_response += "### Sources\n\n"
-
-        for result in search_results.get("results", []):
-            title = result.get("title", "No title")
+        for i, result in enumerate(search_results.get("results", []), 1):
+            title = result.get("title", "")
             url = result.get("url", "")
+            content = result.get("content", "")
 
-            # ✅ Берём raw_content если есть
-            content = (
-                    result.get("raw_content")
-                    or result.get("content")
-                    or ""
+            sources_text += (
+                f"Source {i}:\n"
+                f"Title: {title}\n"
+                f"URL: {url}\n"
+                f"Content: {content}\n\n"
             )
 
-            # ❌ НЕ ОБРЕЗАЕМ
-            # ❌ НЕ ДОБАВЛЯЕМ ...
-            # ❌ НЕ ДЕЛАЕМ Read more
+        # 3️⃣ Просим Groq сформировать аккуратный полный ответ
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a professional research assistant. "
+                        "Create a structured, well-formatted Markdown answer. "
+                        "Do NOT shorten text. Do NOT write 'Read more'. "
+                        "Always include full visible URLs. "
+                        "Use headings, paragraphs and bullet points."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"User query: {msg.text}\n\nSources:\n{sources_text}"
+                }
+            ],
+            temperature=0.3
+        )
 
-            formatted_response += (
-                f"#### {title}\n\n"
-                f"{content}\n\n"
-                f"[Source link]({url})\n\n"
-                "---\n\n"
-            )
+        ai_response = completion.choices[0].message.content.strip()
 
-        # сохраняем полный текст в БД
+        # 4️⃣ Сохраняем полный ответ
         ai_message = Message(
             chat_id=chat.id,
             sender="ai",
-            text=formatted_response
+            text=ai_response
         )
         db.add(ai_message)
         db.commit()
 
-        # потоковая отправка без изменений
+        # 5️⃣ Стримим
         async def stream():
-            yield f"data: {formatted_response}\n\n"
+            yield f"data: {ai_response}\n\n"
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(stream(), media_type="text/event-stream")
 
     except Exception as e:
+        print("SEARCH ERROR:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- История ---
