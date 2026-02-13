@@ -15,6 +15,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from fastapi import Request, HTTPException, Depends
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
@@ -132,6 +135,10 @@ class MessageIn(BaseModel):
 class QuickButtonIn(BaseModel):
     text: str
 
+class MessageRequest(BaseModel):
+    chat_id: int
+    text: str
+
 # --- JWT ---
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
@@ -209,54 +216,85 @@ async def get_chats(current_user: User = Depends(get_current_user), db: Session 
 
 # --- AI Coach / Search (мультиязычный) ---
 @app.post("/search")
-async def web_search(msg: MessageIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == current_user.id).first()
-    if not chat:
-        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+async def web_search(request: Request, msg: MessageRequest, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
 
-    # Сохраняем запрос пользователя
-    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="user", text=msg.text))
+    chat = db.query(Chat).filter(
+        Chat.id == msg.chat_id,
+        Chat.user_id == user.id
+    ).first()
+
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    # сохраняем сообщение пользователя
+    user_message = Message(
+        chat_id=chat.id,
+        sender="user",
+        text=msg.text
+    )
+    db.add(user_message)
     db.commit()
 
-    # 🔎 Поиск через Tavily
     try:
+        # ✅ ВАЖНО: включаем полный контент
         search_results = tavily_client.search(
             query=msg.text,
             search_depth="advanced",
             max_results=8,
             include_answer=True,
-            include_raw_content=False
+            include_raw_content=True,  # ← ключевой параметр
+            include_images=False
         )
-    except Exception as e:
-        logger.error(f"Tavily error: {str(e)}")
-        fallback = "Ошибка поиска. Попробуй позже."
-        db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=fallback))
+
+        formatted_response = f"## Results for query: {msg.text}\n\n"
+
+        # если Tavily вернул готовый answer — добавим его полностью
+        if search_results.get("answer"):
+            formatted_response += f"### Summary\n\n{search_results['answer']}\n\n"
+
+        formatted_response += "### Sources\n\n"
+
+        for result in search_results.get("results", []):
+            title = result.get("title", "No title")
+            url = result.get("url", "")
+
+            # ✅ Берём raw_content если есть
+            content = (
+                    result.get("raw_content")
+                    or result.get("content")
+                    or ""
+            )
+
+            # ❌ НЕ ОБРЕЗАЕМ
+            # ❌ НЕ ДОБАВЛЯЕМ ...
+            # ❌ НЕ ДЕЛАЕМ Read more
+
+            formatted_response += (
+                f"#### {title}\n\n"
+                f"{content}\n\n"
+                f"[Source link]({url})\n\n"
+                "---\n\n"
+            )
+
+        # сохраняем полный текст в БД
+        ai_message = Message(
+            chat_id=chat.id,
+            sender="ai",
+            text=formatted_response
+        )
+        db.add(ai_message)
         db.commit()
-        return StreamingResponse(iter([f"data: {fallback}\n\ndata: [DONE]\n\n"]), media_type="text/event-stream")
 
-    # 📦 Формируем ответ (с сохранением языка запроса)
-    lang_header = f"**Results for query:** {msg.text}\n\n"
-    if search_results.get("answer"):
-        lang_header += f"**Short answer:** {search_results['answer']}\n\n"
+        # потоковая отправка без изменений
+        async def stream():
+            yield f"data: {formatted_response}\n\n"
+            yield "data: [DONE]\n\n"
 
-    body_text = "**Top results:**\n\n"
-    for i, result in enumerate(search_results.get("results", []), 1):
-        body_text += f"{i}. **{result['title']}**\n"
-        body_text += f"{result['content'][:300]}...\n"
-        body_text += f"[Read more]({result['url']})\n\n"
+        return StreamingResponse(stream(), media_type="text/event-stream")
 
-    full_reply = lang_header + body_text
-    db.add(Message(chat_id=msg.chat_id, user_id=current_user.id, sender="ai", text=full_reply.strip()))
-    db.commit()
-
-    # Стриминг SSE
-    async def event_generator():
-        for chunk in full_reply.split(" "):
-            yield f"data: {chunk} \n\n"
-            await asyncio.sleep(0.01)
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- История ---
 @app.get("/history/{chat_id}")
