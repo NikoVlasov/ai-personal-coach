@@ -222,6 +222,7 @@ async def web_search(
     db: Session = Depends(get_db)
 ):
 
+    # 🔹 Проверяем чат
     chat = db.query(Chat).filter(
         Chat.id == msg.chat_id,
         Chat.user_id == user.id
@@ -230,7 +231,7 @@ async def web_search(
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    # Сохраняем сообщение пользователя
+    # 🔹 Сохраняем сообщение пользователя
     user_message = Message(
         chat_id=chat.id,
         sender="user",
@@ -240,11 +241,11 @@ async def web_search(
     db.commit()
 
     try:
-        # 🔎 Tavily без raw_content (стабильно)
+        # 🔎 1. Поиск (без raw_content!)
         search_results = tavily_client.search(
             query=msg.text,
             search_depth="advanced",
-            max_results=5,
+            max_results=4,
             include_answer=True
         )
 
@@ -253,24 +254,37 @@ async def web_search(
         if not results:
             ai_response = "No search results found."
         else:
+            # 🔐 2. Безопасное ограничение контекста
+            MAX_SOURCE_LENGTH = 1200
+            MAX_TOTAL_CONTEXT = 7000
+
             sources_text = ""
+            total_length = 0
 
             for i, result in enumerate(results, 1):
                 title = result.get("title", "")
                 url = result.get("url", "")
                 content = result.get("content", "")
 
-                # 🔒 Ограничиваем размер (чтобы не упереться в токены)
-                content = content[:2000]
+                # обрезаем каждый источник
+                content = content[:MAX_SOURCE_LENGTH]
 
-                sources_text += (
+                block = (
                     f"Source {i}:\n"
                     f"Title: {title}\n"
                     f"URL: {url}\n"
                     f"Content:\n{content}\n\n"
                 )
 
-            # 🤖 Groq
+                total_length += len(block)
+
+                # если общий контекст становится слишком большим — стоп
+                if total_length > MAX_TOTAL_CONTEXT:
+                    break
+
+                sources_text += block
+
+            # 🤖 3. Запрос к Groq (с лимитом токенов)
             completion = groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
@@ -278,25 +292,27 @@ async def web_search(
                         "role": "system",
                         "content": (
                             "You are a professional research assistant.\n"
-                            "Write a detailed structured Markdown answer.\n"
-                            "Do NOT write 'Read more'.\n"
-                            "Always show full URLs."
+                            "Write a detailed, structured Markdown answer.\n"
+                            "Use headings and bullet points.\n"
+                            "Always include full visible URLs.\n"
+                            "Do NOT write 'Read more'."
                         )
                     },
                     {
                         "role": "user",
                         "content": (
                             f"User query:\n{msg.text}\n\n"
-                            f"Sources:\n{sources_text}"
+                            f"Search results:\n{sources_text}"
                         )
                     }
                 ],
-                temperature=0.3
+                temperature=0.3,
+                max_tokens=1500  # защита от обрыва ответа
             )
 
             ai_response = completion.choices[0].message.content.strip()
 
-        # Сохраняем ответ
+        # 💾 4. Сохраняем ответ полностью
         ai_message = Message(
             chat_id=chat.id,
             sender="ai",
@@ -305,7 +321,7 @@ async def web_search(
         db.add(ai_message)
         db.commit()
 
-        # Стримим
+        # 📡 5. Стримим (одним куском, безопасно)
         async def stream():
             yield f"data: {ai_response}\n\n"
             yield "data: [DONE]\n\n"
