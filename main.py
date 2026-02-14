@@ -1,23 +1,18 @@
 import logging
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
-import asyncio
-from tavily import TavilyClient
-from groq import Groq
-from dotenv import load_dotenv
-import os
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from fastapi import FastAPI, HTTPException, Body, Depends, status
+from fastapi import FastAPI, HTTPException, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from fastapi import Request, HTTPException, Depends
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+import os
+from dotenv import load_dotenv
+from clients import tavily_client, groq_client  # твои клиенты Tavily и Groq
 
 # === Логирование ===
 logging.basicConfig(level=logging.INFO)
@@ -36,9 +31,8 @@ if not GROQ_API_KEY:
     raise RuntimeError("GROQ_API_KEY не найден")
 if not TAVILY_API_KEY:
     raise RuntimeError("TAVILY_API_KEY не найден")
-
-groq_client = Groq(api_key=GROQ_API_KEY)
-tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL не найден")
 
 # --- FastAPI + CORS ---
 app = FastAPI()
@@ -49,16 +43,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 oauth2_scheme = HTTPBearer()
 
 # --- PostgreSQL ---
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL не найден")
-
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
+
 
 # --- Модели ---
 class User(Base):
@@ -70,6 +61,7 @@ class User(Base):
     chats = relationship("Chat", back_populates="user")
     buttons = relationship("QuickButton", back_populates="user")
 
+
 class Chat(Base):
     __tablename__ = "chats"
     id = Column(Integer, primary_key=True, index=True)
@@ -79,15 +71,17 @@ class Chat(Base):
     user = relationship("User", back_populates="chats")
     messages = relationship("Message", back_populates="chat")
 
+
 class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True, index=True)
     chat_id = Column(Integer, ForeignKey("chats.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     sender = Column(String)  # "user" или "ai"
     text = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     chat = relationship("Chat", back_populates="messages")
+
 
 class QuickButton(Base):
     __tablename__ = "quick_buttons"
@@ -97,10 +91,12 @@ class QuickButton(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="buttons")
 
+
 Base.metadata.create_all(bind=engine)
 
 # --- Пароли ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def hash_password(password: str) -> str:
     password_bytes = password.encode("utf-8")
@@ -109,6 +105,7 @@ def hash_password(password: str) -> str:
     truncated = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.hash(truncated)
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_bytes = plain_password.encode("utf-8")
     if len(password_bytes) > 72:
@@ -116,28 +113,30 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     truncated = password_bytes.decode("utf-8", errors="ignore")
     return pwd_context.verify(truncated, hashed_password)
 
-# --- Pydantic модели ---
+
+# --- Pydantic ---
 class UserRegister(BaseModel):
     email: str
     password: str
+
 
 class UserLogin(BaseModel):
     email: str
     password: str
 
+
 class ChatCreate(BaseModel):
     title: str
 
-class MessageIn(BaseModel):
-    chat_id: int
-    text: str
-
-class QuickButtonIn(BaseModel):
-    text: str
 
 class MessageRequest(BaseModel):
     chat_id: int
     text: str
+
+
+class QuickButtonIn(BaseModel):
+    text: str
+
 
 # --- JWT ---
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -146,6 +145,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -153,10 +153,8 @@ def get_db():
     finally:
         db.close()
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-):
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -170,17 +168,19 @@ def get_current_user(
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+
 # --- Статика ---
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+
 @app.get("/")
 async def root():
     return FileResponse("frontend/index.html")
 
+
 # --- Регистрация / Логин ---
 @app.post("/register")
 async def register(user: UserRegister, db: Session = Depends(get_db)):
-    if len(user.password.encode("utf-8")) > 72:
-        raise HTTPException(status_code=400, detail="Password too long (max 72 bytes)")
     hashed_password = hash_password(user.password)
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
@@ -188,8 +188,8 @@ async def register(user: UserRegister, db: Session = Depends(get_db)):
     new_user = User(email=user.email, password=hashed_password)
     db.add(new_user)
     db.commit()
-    logger.info(f"User registered: {user.email}")
     return {"status": "ok"}
+
 
 @app.post("/login")
 async def login(user: UserLogin, db: Session = Depends(get_db)):
@@ -197,8 +197,8 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token({"sub": db_user.email})
-    logger.info(f"User logged in: {db_user.email}")
     return {"access_token": token, "token_type": "bearer", "user_id": db_user.id}
+
 
 # --- Чаты ---
 @app.post("/chats")
@@ -209,137 +209,76 @@ async def create_chat(chat: ChatCreate, current_user: User = Depends(get_current
     db.refresh(new_chat)
     return {"status": "ok", "chat_id": new_chat.id}
 
+
 @app.get("/chats")
 async def get_chats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     chats = db.query(Chat).filter(Chat.user_id == current_user.id).order_by(Chat.created_at.desc()).all()
     return {"chats": [{"id": c.id, "title": c.title, "created_at": c.created_at.isoformat()} for c in chats]}
 
-# --- AI Coach / Search (мультиязычный) ---
+
+# --- SEARCH (исправленный) ---
 @app.post("/search")
-async def web_search(
-    msg: MessageRequest,
-    user=Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-
-    # 🔹 Проверяем чат
-    chat = db.query(Chat).filter(
-        Chat.id == msg.chat_id,
-        Chat.user_id == user.id
-    ).first()
-
+async def web_search(msg: MessageRequest, current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == current_user.id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    # 🔹 Сохраняем сообщение пользователя
-    user_message = Message(
-        chat_id=chat.id,
-        sender="user",
-        text=msg.text
-    )
-    db.add(user_message)
+    # сохраняем сообщение пользователя
+    user_msg = Message(chat_id=chat.id, sender="user", text=msg.text)
+    db.add(user_msg)
     db.commit()
 
     try:
-        # 🔎 1. Поиск (без raw_content!)
-        search_results = tavily_client.search(
-            query=msg.text,
-            search_depth="advanced",
-            max_results=4,
-            include_answer=True
+        # поиск через Tavily
+        search_results = tavily_client.search(query=msg.text, search_depth="advanced", max_results=6)
+        sources_text = ""
+        for i, r in enumerate(search_results.get("results", []), 1):
+            title = r.get("title", "")
+            url = r.get("url", "")
+            content = r.get("content", "")
+            sources_text += f"Source {i}:\nTitle: {title}\nURL: {url}\nContent: {content}\n\n"
+
+        # генерация ответа Groq
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": (
+                    "You are a professional research assistant. "
+                    "Create a structured, well-formatted Markdown answer. "
+                    "Do NOT shorten text. Do NOT write 'Read more'. "
+                    "Always include full visible URLs. "
+                    "Use headings, paragraphs and bullet points."
+                )},
+                {"role": "user", "content": f"User query: {msg.text}\n\nSources:\n{sources_text}"}
+            ],
+            temperature=0.3
         )
 
-        results = search_results.get("results", [])
+        ai_text = completion.choices[0].message.content.strip()
 
-        if not results:
-            ai_response = "No search results found."
-        else:
-            # 🔐 2. Безопасное ограничение контекста
-            MAX_SOURCE_LENGTH = 1200
-            MAX_TOTAL_CONTEXT = 7000
-
-            sources_text = ""
-            total_length = 0
-
-            for i, result in enumerate(results, 1):
-                title = result.get("title", "")
-                url = result.get("url", "")
-                content = result.get("content", "")
-
-                # обрезаем каждый источник
-                content = content[:MAX_SOURCE_LENGTH]
-
-                block = (
-                    f"Source {i}:\n"
-                    f"Title: {title}\n"
-                    f"URL: {url}\n"
-                    f"Content:\n{content}\n\n"
-                )
-
-                total_length += len(block)
-
-                # если общий контекст становится слишком большим — стоп
-                if total_length > MAX_TOTAL_CONTEXT:
-                    break
-
-                sources_text += block
-
-            # 🤖 3. Запрос к Groq (с лимитом токенов)
-            completion = groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a professional research assistant.\n"
-                            "Write a detailed, structured Markdown answer.\n"
-                            "Use headings and bullet points.\n"
-                            "Always include full visible URLs.\n"
-                            "Do NOT write 'Read more'."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": (
-                            f"User query:\n{msg.text}\n\n"
-                            f"Search results:\n{sources_text}"
-                        )
-                    }
-                ],
-                temperature=0.3,
-                max_tokens=1500  # защита от обрыва ответа
-            )
-
-            ai_response = completion.choices[0].message.content.strip()
-
-        # 💾 4. Сохраняем ответ полностью
-        ai_message = Message(
-            chat_id=chat.id,
-            sender="ai",
-            text=ai_response
-        )
-        db.add(ai_message)
+        # сохраняем ответ ИИ
+        ai_msg = Message(chat_id=chat.id, sender="ai", text=ai_text)
+        db.add(ai_msg)
         db.commit()
 
-        # 📡 5. Стримим (одним куском, безопасно)
-        async def stream():
-            yield f"data: {ai_response}\n\n"
-            yield "data: [DONE]\n\n"
-
-        return StreamingResponse(stream(), media_type="text/event-stream")
+        return {"text": ai_text}
 
     except Exception as e:
-        print("SEARCH ERROR:", str(e))
-        raise HTTPException(status_code=500, detail="Search failed")
+        logger.error(f"SEARCH ERROR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # --- История ---
 @app.get("/history/{chat_id}")
 async def get_history(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == current_user.id).first()
     if not chat:
-        raise HTTPException(status_code=403, detail="Chat not found or access denied")
+        raise HTTPException(status_code=403, detail="Chat not found")
     messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id.asc()).all()
-    return {"messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at.isoformat()} for m in messages]}
+    return {
+        "messages": [{"sender": m.sender, "text": m.text, "created_at": m.created_at.isoformat()} for m in messages]}
+
 
 # --- Быстрые кнопки ---
 @app.get("/quick_buttons")
@@ -347,14 +286,18 @@ async def get_quick_buttons(current_user: User = Depends(get_current_user), db: 
     buttons = db.query(QuickButton).filter(QuickButton.user_id == current_user.id).all()
     return {"buttons": [b.text for b in buttons]}
 
+
 @app.post("/quick_buttons")
-async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def add_quick_button(btn: QuickButtonIn, current_user: User = Depends(get_current_user),
+                           db: Session = Depends(get_db)):
     db.add(QuickButton(user_id=current_user.id, text=btn.text))
     db.commit()
     return {"status": "ok"}
 
+
 @app.delete("/quick_buttons")
-async def delete_quick_button(body: dict = Body(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def delete_quick_button(body: dict = Body(...), current_user: User = Depends(get_current_user),
+                              db: Session = Depends(get_db)):
     text = body.get("text")
     if not text:
         raise HTTPException(status_code=400, detail="No button text provided")
@@ -362,6 +305,8 @@ async def delete_quick_button(body: dict = Body(...), current_user: User = Depen
     db.commit()
     return {"status": "deleted"}
 
+
+# --- Удаление чата ---
 @app.delete("/chats/{chat_id}")
 async def delete_chat(chat_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == current_user.id).first()

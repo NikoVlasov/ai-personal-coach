@@ -287,9 +287,7 @@ async function typeWriterEffect(element, text, delay = 12) {
     element.textContent = "";
     for (let i = 0; i < text.length; i++) {
         element.textContent += text.charAt(i);
-        if (i % 5 === 0 || i === text.length - 1) {
-            scrollToBottom();
-        }
+        if (i % 5 === 0 || i === text.length - 1) scrollToBottom();
         await new Promise(resolve => setTimeout(resolve, delay));
     }
     scrollToBottom();
@@ -345,6 +343,7 @@ const authModule = (() => {
             registerTab.classList.add("active");
         }
     }
+
     async function register() {
         const email = document.getElementById("register-email").value.trim();
         const password = document.getElementById("register-password").value.trim();
@@ -353,6 +352,7 @@ const authModule = (() => {
         if (res.ok) { alert("Registration successful! Please log in."); showForm("login"); }
         else { const err = await res.json(); alert("Error: " + (err.detail || "Unknown error")); }
     }
+
     async function login() {
         const email = document.getElementById("login-email").value.trim();
         const password = document.getElementById("login-password").value.trim();
@@ -369,6 +369,7 @@ const authModule = (() => {
             chatModule.fetchChats();
         } else { alert("Invalid email or password"); }
     }
+
     return { showForm, register, login };
 })();
 
@@ -387,10 +388,7 @@ const chatModule = (() => {
                 div.onclick = () => { mainModule.setCurrentChatId(chat.id); fetchHistory(); quickButtonsModule.fetchQuickButtons(); };
                 chatListDiv.appendChild(div);
             });
-        } catch (e) {
-            console.error("Fetch chats error:", e);
-            alert("Error fetching chats");
-        }
+        } catch (e) { console.error("Fetch chats error:", e); alert("Error fetching chats"); }
     }
 
     async function createChat() {
@@ -420,9 +418,7 @@ const chatModule = (() => {
                 addMessage(msg.text, normalizedSender, msg.created_at);
             });
             scrollToBottom();
-        } catch (e) {
-            console.error("History error:", e);
-        }
+        } catch (e) { console.error("History error:", e); }
     }
 
     function addMessage(text, sender, timestamp = null) {
@@ -431,7 +427,6 @@ const chatModule = (() => {
         const contentDiv = document.createElement("div");
 
         if (sender === "ai") {
-            // Markdown → HTML, всё полностью
             contentDiv.innerHTML = marked.parse(text);
         } else {
             contentDiv.textContent = text;
@@ -485,7 +480,6 @@ const chatModule = (() => {
 
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split("\n");
-
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
                         const data = line.slice(6);
@@ -528,6 +522,7 @@ const quickButtonsModule = (() => {
         const res = await fetch(`/quick_buttons`, { headers: { Authorization: "Bearer " + mainModule.getToken() } });
         const data = await res.json();
         mainModule.quickButtonsDiv.innerHTML = "";
+
         data.buttons.forEach(btn => {
             const button = document.createElement("button");
             button.className = "quick-btn";
@@ -559,17 +554,11 @@ const quickButtonsModule = (() => {
         webSearchBtn.onclick = async () => {
             const query = prompt("Что искать в интернете? (можно на любом языке)");
             if (!query || !query.trim()) return;
-
             const chatId = mainModule.getCurrentChatId();
-            if (!chatId) {
-                alert("Select a chat first!");
-                return;
-            }
+            if (!chatId) { alert("Select a chat first!"); return; }
 
-            // показываем сообщение пользователя
             chatModule.addMessage(query, "user");
 
-            // временный блок "думает"
             const tempAiMsg = document.createElement("div");
             tempAiMsg.className = "message ai typing";
             tempAiMsg.innerHTML = `Mentra is searching<span class="typing-dots">...</span>`;
@@ -579,43 +568,25 @@ const quickButtonsModule = (() => {
             try {
                 const res = await fetch("/search", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${mainModule.getToken()}`
-                    },
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${mainModule.getToken()}` },
                     body: JSON.stringify({ chat_id: chatId, text: query })
                 });
 
-                if (!res.ok) {
-                    throw new Error("Search failed: " + res.status);
-                }
+                if (!res.ok) throw new Error("Search failed: " + res.status);
 
-                // 🔥 ЧИТАЕМ КАК ОБЫЧНЫЙ ТЕКСТ (НЕ STREAM)
                 const text = await res.text();
-
-                // сервер возвращает SSE формат:
-                // data: .....
-                // data: [DONE]
-
                 let fullText = "";
-
                 const lines = text.split("\n");
-
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
                         const data = line.slice(6).trim();
                         if (data === "[DONE]") continue;
-                        fullText += data;
+                        fullText += data + " ";
                     }
                 }
 
-                fullText = fullText.trim();
-
                 tempAiMsg.remove();
-
-                // рендерим markdown полностью
-                chatModule.addMessage(fullText, "ai");
-
+                chatModule.addMessage(fullText.trim(), "ai");
             } catch (err) {
                 console.error("Web Search error:", err);
                 tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
@@ -624,6 +595,13 @@ const quickButtonsModule = (() => {
             }
         };
 
+        mainModule.quickButtonsDiv.appendChild(webSearchBtn);
+    }
+
+    return { fetchQuickButtons };
+})();
+
+// ===== GLOBAL FUNCTIONS =====
 function toggleChatList() {
     const list = document.getElementById("chat-list");
     const btn = document.getElementById("chat-dropdown-btn");
@@ -637,17 +615,11 @@ window.addEventListener('DOMContentLoaded', () => {
     authModule.showForm('login');
 
     mainModule.inputField.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatModule.sendMessage();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatModule.sendMessage(); }
     });
 
     document.getElementById("new-chat-title").addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatModule.createChat();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatModule.createChat(); }
     });
 });
 </script>
