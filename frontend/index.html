@@ -557,78 +557,72 @@ const quickButtonsModule = (() => {
         webSearchBtn.textContent = "Web Search";
 
         webSearchBtn.onclick = async () => {
-            const query = prompt("Что искать в интернете? (можно на любом языке)");
-            if (!query || !query.trim()) return;
+    const query = prompt("Что искать в интернете? (можно на любом языке)");
+    if (!query || !query.trim()) return;
 
-            const chatId = mainModule.getCurrentChatId();
-            if (!chatId) { alert("Select a chat first!"); return; }
+    const chatId = mainModule.getCurrentChatId();
+    if (!chatId) {
+        alert("Select a chat first!");
+        return;
+    }
 
-            // добавляем сообщение пользователя
-            chatModule.addMessage(query, "user");
+    // показываем сообщение пользователя
+    chatModule.addMessage(query, "user");
 
-            // создаём пустой AI-блок
-            const aiMsgDiv = document.createElement("div");
-            aiMsgDiv.className = "message ai";
-            const contentDiv = document.createElement("div");
-            aiMsgDiv.appendChild(contentDiv);
-            mainModule.chatContainer.appendChild(aiMsgDiv);
-            scrollToBottom();
+    // временный блок "думает"
+    const tempAiMsg = document.createElement("div");
+    tempAiMsg.className = "message ai typing";
+    tempAiMsg.innerHTML = `Mentra is searching<span class="typing-dots">...</span>`;
+    mainModule.chatContainer.appendChild(tempAiMsg);
+    scrollToBottom();
 
-            try {
-                const res = await fetch("/search", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${mainModule.getToken()}`
-                    },
-                    body: JSON.stringify({ chat_id: chatId, text: query })
-                });
+    try {
+        const res = await fetch("/search", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${mainModule.getToken()}`
+            },
+            body: JSON.stringify({ chat_id: chatId, text: query })
+        });
 
-                if (!res.ok) throw new Error("Search failed: " + res.status);
-                if (!res.body) throw new Error("ReadableStream not supported");
+        if (!res.ok) {
+            throw new Error("Search failed: " + res.status);
+        }
 
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
+        // 🔥 ЧИТАЕМ КАК ОБЫЧНЫЙ ТЕКСТ (НЕ STREAM)
+        const text = await res.text();
 
-                let fullText = "";
+        // сервер возвращает SSE формат:
+        // data: .....
+        // data: [DONE]
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
+        let fullText = "";
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split("\n");
+        const lines = text.split("\n");
 
-                    for (const line of lines) {
-                        if (line.startsWith("data: ")) {
-                            const data = line.slice(6).trim();
-                            if (data === "[DONE]") continue;
-
-                            fullText += data;
-
-                            // обновляем текст ВО ВРЕМЯ стрима
-                            contentDiv.textContent = fullText;
-                            scrollToBottom();
-                        }
-                    }
-                }
-
-                // финальный рендер markdown после завершения
-                contentDiv.innerHTML = marked.parse(fullText);
-                scrollToBottom();
-
-            } catch (err) {
-                console.error("Web Search error:", err);
-                contentDiv.textContent = "Ошибка поиска... Попробуй снова 😔";
-                scrollToBottom();
+        for (const line of lines) {
+            if (line.startsWith("data: ")) {
+                const data = line.slice(6).trim();
+                if (data === "[DONE]") continue;
+                fullText += data;
             }
-        };
+        }
 
-                 mainModule.quickButtonsDiv.appendChild(webSearchBtn);
-            }
+        fullText = fullText.trim();
 
-            return { fetchQuickButtons };
-        })();
+        tempAiMsg.remove();
+
+        // рендерим markdown полностью
+        chatModule.addMessage(fullText, "ai");
+
+    } catch (err) {
+        console.error("Web Search error:", err);
+        tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+        tempAiMsg.classList.remove("typing");
+        scrollToBottom();
+    }
+};
 
 function toggleChatList() {
     const list = document.getElementById("chat-list");
