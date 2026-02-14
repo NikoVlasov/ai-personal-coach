@@ -222,7 +222,6 @@ async def web_search(
     db: Session = Depends(get_db)
 ):
 
-    # 🔹 Проверяем чат
     chat = db.query(Chat).filter(
         Chat.id == msg.chat_id,
         Chat.user_id == user.id
@@ -231,7 +230,7 @@ async def web_search(
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    # 🔹 Сохраняем сообщение пользователя
+    # Сохраняем сообщение пользователя
     user_message = Message(
         chat_id=chat.id,
         sender="user",
@@ -241,13 +240,12 @@ async def web_search(
     db.commit()
 
     try:
-        # 🔎 1️⃣ Поиск через Tavily (с полным контентом)
+        # 🔎 Tavily без raw_content (стабильно)
         search_results = tavily_client.search(
             query=msg.text,
             search_depth="advanced",
-            max_results=6,
-            include_answer=True,
-            include_raw_content=True
+            max_results=5,
+            include_answer=True
         )
 
         results = search_results.get("results", [])
@@ -255,17 +253,15 @@ async def web_search(
         if not results:
             ai_response = "No search results found."
         else:
-            # 🧠 2️⃣ Формируем полный контекст
             sources_text = ""
 
             for i, result in enumerate(results, 1):
                 title = result.get("title", "")
                 url = result.get("url", "")
-                content = (
-                    result.get("raw_content")
-                    or result.get("content")
-                    or ""
-                )
+                content = result.get("content", "")
+
+                # 🔒 Ограничиваем размер (чтобы не упереться в токены)
+                content = content[:2000]
 
                 sources_text += (
                     f"Source {i}:\n"
@@ -274,7 +270,7 @@ async def web_search(
                     f"Content:\n{content}\n\n"
                 )
 
-            # 🤖 3️⃣ Запрос к Groq
+            # 🤖 Groq
             completion = groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
@@ -282,19 +278,16 @@ async def web_search(
                         "role": "system",
                         "content": (
                             "You are a professional research assistant.\n"
-                            "Create a detailed, structured Markdown answer.\n"
-                            "Do NOT shorten text.\n"
+                            "Write a detailed structured Markdown answer.\n"
                             "Do NOT write 'Read more'.\n"
-                            "Always include full visible URLs.\n"
-                            "Use headings, paragraphs and bullet points.\n"
-                            "Cite sources clearly."
+                            "Always show full URLs."
                         )
                     },
                     {
                         "role": "user",
                         "content": (
                             f"User query:\n{msg.text}\n\n"
-                            f"Search results:\n{sources_text}"
+                            f"Sources:\n{sources_text}"
                         )
                     }
                 ],
@@ -303,7 +296,7 @@ async def web_search(
 
             ai_response = completion.choices[0].message.content.strip()
 
-        # 💾 4️⃣ Сохраняем ответ ИИ полностью
+        # Сохраняем ответ
         ai_message = Message(
             chat_id=chat.id,
             sender="ai",
@@ -312,7 +305,7 @@ async def web_search(
         db.add(ai_message)
         db.commit()
 
-        # 📡 5️⃣ Стримим без изменений
+        # Стримим
         async def stream():
             yield f"data: {ai_response}\n\n"
             yield "data: [DONE]\n\n"
@@ -321,7 +314,7 @@ async def web_search(
 
     except Exception as e:
         print("SEARCH ERROR:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Search failed")
 
 # --- История ---
 @app.get("/history/{chat_id}")
