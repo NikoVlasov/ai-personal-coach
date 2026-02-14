@@ -557,72 +557,72 @@ const quickButtonsModule = (() => {
         webSearchBtn.textContent = "Web Search";
 
         webSearchBtn.onclick = async () => {
-    const query = prompt("Что искать в интернете? (можно на любом языке)");
-    if (!query || !query.trim()) return;
+            const query = prompt("Что искать в интернете? (можно на любом языке)");
+            if (!query || !query.trim()) return;
 
-    const chatId = mainModule.getCurrentChatId();
-    if (!chatId) {
-        alert("Select a chat first!");
-        return;
-    }
-
-    // показываем сообщение пользователя
-    chatModule.addMessage(query, "user");
-
-    // временный блок "думает"
-    const tempAiMsg = document.createElement("div");
-    tempAiMsg.className = "message ai typing";
-    tempAiMsg.innerHTML = `Mentra is searching<span class="typing-dots">...</span>`;
-    mainModule.chatContainer.appendChild(tempAiMsg);
-    scrollToBottom();
-
-    try {
-        const res = await fetch("/search", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${mainModule.getToken()}`
-            },
-            body: JSON.stringify({ chat_id: chatId, text: query })
-        });
-
-        if (!res.ok) {
-            throw new Error("Search failed: " + res.status);
-        }
-
-        // 🔥 ЧИТАЕМ КАК ОБЫЧНЫЙ ТЕКСТ (НЕ STREAM)
-        const text = await res.text();
-
-        // сервер возвращает SSE формат:
-        // data: .....
-        // data: [DONE]
-
-        let fullText = "";
-
-        const lines = text.split("\n");
-
-        for (const line of lines) {
-            if (line.startsWith("data: ")) {
-                const data = line.slice(6).trim();
-                if (data === "[DONE]") continue;
-                fullText += data;
+            const chatId = mainModule.getCurrentChatId();
+            if (!chatId) {
+                alert("Select a chat first!");
+                return;
             }
-        }
 
-        fullText = fullText.trim();
+            // показываем сообщение пользователя
+            chatModule.addMessage(query, "user");
 
-        tempAiMsg.remove();
+            // временный блок "думает"
+            const tempAiMsg = document.createElement("div");
+            tempAiMsg.className = "message ai typing";
+            tempAiMsg.innerHTML = `Mentra is searching<span class="typing-dots">...</span>`;
+            mainModule.chatContainer.appendChild(tempAiMsg);
+            scrollToBottom();
 
-        // рендерим markdown полностью
-        chatModule.addMessage(fullText, "ai");
+            try {
+                const res = await fetch("/search", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${mainModule.getToken()}`
+                    },
+                    body: JSON.stringify({ chat_id: chatId, text: query })
+                });
 
-    } catch (err) {
-        console.error("Web Search error:", err);
-        tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
-        tempAiMsg.classList.remove("typing");
-        scrollToBottom();
-    }
-};
+                if (!res.ok) {
+                    throw new Error("Search failed: " + res.status);
+                }
+
+                // 🔥 ЧИТАЕМ КАК ОБЫЧНЫЙ ТЕКСТ (НЕ STREAM)
+                const text = await res.text();
+
+                // сервер возвращает SSE формат:
+                // data: .....
+                // data: [DONE]
+
+                let fullText = "";
+
+                const lines = text.split("\n");
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const data = line.slice(6).trim();
+                        if (data === "[DONE]") continue;
+                        fullText += data;
+                    }
+                }
+
+                fullText = fullText.trim();
+
+                tempAiMsg.remove();
+
+                // рендерим markdown полностью
+                chatModule.addMessage(fullText, "ai");
+
+            } catch (err) {
+                console.error("Web Search error:", err);
+                tempAiMsg.textContent = "Ошибка поиска... Попробуй снова 😔";
+                tempAiMsg.classList.remove("typing");
+                scrollToBottom();
+            }
+        };
 
 function toggleChatList() {
     const list = document.getElementById("chat-list");
