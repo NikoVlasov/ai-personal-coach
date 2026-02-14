@@ -222,6 +222,7 @@ async def web_search(
     db: Session = Depends(get_db)
 ):
 
+    # 🔹 Проверяем чат
     chat = db.query(Chat).filter(
         Chat.id == msg.chat_id,
         Chat.user_id == user.id
@@ -230,7 +231,7 @@ async def web_search(
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    # сохраняем сообщение пользователя
+    # 🔹 Сохраняем сообщение пользователя
     user_message = Message(
         chat_id=chat.id,
         sender="user",
@@ -240,53 +241,69 @@ async def web_search(
     db.commit()
 
     try:
-        # 1️⃣ Ищем через Tavily
+        # 🔎 1️⃣ Поиск через Tavily (с полным контентом)
         search_results = tavily_client.search(
             query=msg.text,
             search_depth="advanced",
-            max_results=6
+            max_results=6,
+            include_answer=True,
+            include_raw_content=True
         )
 
-        # 2️⃣ Формируем контекст для Groq
-        sources_text = ""
+        results = search_results.get("results", [])
 
-        for i, result in enumerate(search_results.get("results", []), 1):
-            title = result.get("title", "")
-            url = result.get("url", "")
-            content = result.get("content", "")
+        if not results:
+            ai_response = "No search results found."
+        else:
+            # 🧠 2️⃣ Формируем полный контекст
+            sources_text = ""
 
-            sources_text += (
-                f"Source {i}:\n"
-                f"Title: {title}\n"
-                f"URL: {url}\n"
-                f"Content: {content}\n\n"
+            for i, result in enumerate(results, 1):
+                title = result.get("title", "")
+                url = result.get("url", "")
+                content = (
+                    result.get("raw_content")
+                    or result.get("content")
+                    or ""
+                )
+
+                sources_text += (
+                    f"Source {i}:\n"
+                    f"Title: {title}\n"
+                    f"URL: {url}\n"
+                    f"Content:\n{content}\n\n"
+                )
+
+            # 🤖 3️⃣ Запрос к Groq
+            completion = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a professional research assistant.\n"
+                            "Create a detailed, structured Markdown answer.\n"
+                            "Do NOT shorten text.\n"
+                            "Do NOT write 'Read more'.\n"
+                            "Always include full visible URLs.\n"
+                            "Use headings, paragraphs and bullet points.\n"
+                            "Cite sources clearly."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"User query:\n{msg.text}\n\n"
+                            f"Search results:\n{sources_text}"
+                        )
+                    }
+                ],
+                temperature=0.3
             )
 
-        # 3️⃣ Просим Groq сформировать аккуратный полный ответ
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a professional research assistant. "
-                        "Create a structured, well-formatted Markdown answer. "
-                        "Do NOT shorten text. Do NOT write 'Read more'. "
-                        "Always include full visible URLs. "
-                        "Use headings, paragraphs and bullet points."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": f"User query: {msg.text}\n\nSources:\n{sources_text}"
-                }
-            ],
-            temperature=0.3
-        )
+            ai_response = completion.choices[0].message.content.strip()
 
-        ai_response = completion.choices[0].message.content.strip()
-
-        # 4️⃣ Сохраняем полный ответ
+        # 💾 4️⃣ Сохраняем ответ ИИ полностью
         ai_message = Message(
             chat_id=chat.id,
             sender="ai",
@@ -295,7 +312,7 @@ async def web_search(
         db.add(ai_message)
         db.commit()
 
-        # 5️⃣ Стримим
+        # 📡 5️⃣ Стримим без изменений
         async def stream():
             yield f"data: {ai_response}\n\n"
             yield "data: [DONE]\n\n"
