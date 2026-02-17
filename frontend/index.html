@@ -266,6 +266,7 @@ marked.setOptions({
         <div id="input-container">
             <input type="text" id="message-input" placeholder="Type a message...">
             <button onclick="chatModule.sendMessage()">Send</button>
+            <button onclick="chatModule.sendMessage(true)">🔎 Web Search</button>
         </div>
     </div>
 </div>
@@ -292,9 +293,20 @@ async function typeWriterEffect(element, text, delay = 8) {
     scrollToBottom();
 }
 
-function toggleChatList() {
-    document.getElementById("chat-list").classList.toggle("show");
-    document.getElementById("chat-dropdown-btn").classList.toggle("open");
+function toggleChatList(forceClose = false) {
+    const list = document.getElementById("chat-list");
+    const btn = document.getElementById("chat-dropdown-btn");
+
+    if (!list || !btn) return;
+
+    if (forceClose) {
+        list.classList.remove("show");
+        btn.classList.remove("open");
+        return;
+    }
+
+    list.classList.toggle("show");
+    btn.classList.toggle("open");
 }
 
 ////////////////////////////////////////////////////////////
@@ -313,8 +325,14 @@ const mainModule = (() => {
     function setToken(t) { token = t; }
     function getToken() { return token; }
 
-    function setCurrentChatId(id) {
+    function setCurrentChatId(id, title = "") {
         current_chat_id = id;
+
+        if (title) {
+            document.getElementById("chat-dropdown-btn").textContent = title;
+        }
+
+        toggleChatList(true);
         loadHistory(id);
     }
 
@@ -323,9 +341,10 @@ const mainModule = (() => {
     function logout() {
         token = null;
         current_chat_id = null;
-        localStorage.clear();
-        chatContainer.innerHTML = "";
-        document.getElementById("chat-ui").style.display = "none";
+        localStorage.removeItem("token");
+
+        document.getElementById("chat-container").innerHTML = "";
+        document.getElementById("chat-ui").classList.add("hidden");
         document.getElementById("auth-container").style.display = "block";
     }
 
@@ -377,7 +396,7 @@ const authModule = (() => {
         localStorage.setItem("token", data.access_token);
 
         document.getElementById("auth-container").style.display = "none";
-        document.getElementById("chat-ui").style.display = "block";
+        document.getElementById("chat-ui").classList.remove("hidden");
 
         chatModule.fetchChats();
     }
@@ -429,9 +448,11 @@ const chatModule = (() => {
         scrollToBottom();
     }
 
-    async function sendMessage(text, isSearch = false) {
+    async function sendMessage(isSearch = false) {
 
+        const text = mainModule.inputField.value;
         const chatId = mainModule.getCurrentChatId();
+
         if (!chatId) {
             alert("Select chat first");
             return;
@@ -446,6 +467,7 @@ const chatModule = (() => {
         temp.className = "message ai";
         temp.textContent = isSearch ? "🔎 Searching..." : "🤖 Thinking...";
         mainModule.chatContainer.appendChild(temp);
+        scrollToBottom();
 
         const endpoint = isSearch ? "/search" : "/coach";
 
@@ -496,7 +518,11 @@ const chatModule = (() => {
         data.chats.forEach(chat => {
             const div = document.createElement("div");
             div.textContent = chat.title;
-            div.onclick = () => mainModule.setCurrentChatId(chat.id);
+
+            div.onclick = () => {
+                mainModule.setCurrentChatId(chat.id, chat.title);
+            };
+
             mainModule.chatListDiv.appendChild(div);
         });
     }
@@ -516,12 +542,37 @@ const chatModule = (() => {
         });
 
         const data = await res.json();
+
         await fetchChats();
-        mainModule.setCurrentChatId(data.chat_id);
+        mainModule.setCurrentChatId(data.chat_id, title);
+
         document.getElementById("new-chat-title").value = "";
     }
 
-    return { sendMessage, fetchChats, createChat };
+    async function deleteChat() {
+
+        const chatId = mainModule.getCurrentChatId();
+        if (!chatId) return;
+
+        if (!confirm("Delete this chat?")) return;
+
+        const res = await fetch(`/chats/${chatId}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: "Bearer " + mainModule.getToken()
+            }
+        });
+
+        if (!res.ok) return;
+
+        mainModule.setCurrentChatId(null);
+        document.getElementById("chat-container").innerHTML = "";
+        document.getElementById("chat-dropdown-btn").textContent = "Select chat";
+
+        fetchChats();
+    }
+
+    return { sendMessage, fetchChats, createChat, deleteChat };
 
 })();
 
@@ -530,6 +581,8 @@ const chatModule = (() => {
 ////////////////////////////////////////////////////////////
 
 async function loadHistory(chatId) {
+
+    if (!chatId) return;
 
     const res = await fetch(`/history/${chatId}`, {
         headers: { Authorization: "Bearer " + mainModule.getToken() }
@@ -561,14 +614,14 @@ window.addEventListener("DOMContentLoaded", () => {
     if (savedToken) {
         mainModule.setToken(savedToken);
         document.getElementById("auth-container").style.display = "none";
-        document.getElementById("chat-ui").style.display = "block";
+        document.getElementById("chat-ui").classList.remove("hidden");
         chatModule.fetchChats();
     }
 
     mainModule.inputField.addEventListener("keypress", function(e) {
         if (e.key === "Enter") {
             e.preventDefault();
-            chatModule.sendMessage(mainModule.inputField.value);
+            chatModule.sendMessage(false);
         }
     });
 
