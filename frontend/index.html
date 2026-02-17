@@ -431,16 +431,30 @@ const authModule = (() => {
 
 const chatModule = (() => {
 
+    function makeLinksClickable(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+}
+
     function addMessage(text, sender) {
+
         const msg = document.createElement("div");
         msg.className = "message " + sender;
 
         const content = document.createElement("div");
 
         if (sender === "ai") {
-            typeWriterEffect(content, text);
+
+            const formatted = makeLinksClickable(text);
+
+            typeWriterEffect(content, formatted);
+
         } else {
+
             content.textContent = text;
+
         }
 
         msg.appendChild(content);
