@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
@@ -218,29 +219,33 @@ async def get_chats(current_user: User = Depends(get_current_user), db: Session 
 
 # --- SEARCH (исправленный) ---
 @app.post("/search")
-async def web_search(msg: MessageRequest, current_user: User = Depends(get_current_user),
-                     db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == current_user.id).first()
+async def web_search(msg: MessageRequest, user=Depends(get_current_user), db: Session = Depends(get_db)):
+
+    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == user.id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    # сохраняем сообщение пользователя
-    user_msg = Message(chat_id=chat.id, sender="user", text=msg.text)
-    db.add(user_msg)
+    user_message = Message(chat_id=chat.id, sender="user", text=msg.text)
+    db.add(user_message)
     db.commit()
 
     try:
-        # поиск через Tavily
-        search_results = tavily_client.search(query=msg.text, search_depth="advanced", max_results=6)
+        # 1️⃣ Асинхронно делаем поиск
+        search_results = await asyncio.to_thread(lambda: tavily_client.search(
+            query=msg.text,
+            search_depth="advanced",
+            max_results=6
+        ))
+
         sources_text = ""
-        for i, r in enumerate(search_results.get("results", []), 1):
-            title = r.get("title", "")
-            url = r.get("url", "")
-            content = r.get("content", "")
+        for i, result in enumerate(search_results.get("results", []), 1):
+            title = result.get("title", "")
+            url = result.get("url", "")
+            content = result.get("content", "")
             sources_text += f"Source {i}:\nTitle: {title}\nURL: {url}\nContent: {content}\n\n"
 
-        # генерация ответа Groq
-        completion = groq_client.chat.completions.create(
+        # 2️⃣ Асинхронно создаем ответ
+        completion = await asyncio.to_thread(lambda: groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": (
@@ -253,19 +258,18 @@ async def web_search(msg: MessageRequest, current_user: User = Depends(get_curre
                 {"role": "user", "content": f"User query: {msg.text}\n\nSources:\n{sources_text}"}
             ],
             temperature=0.3
-        )
+        ))
 
-        ai_text = completion.choices[0].message.content.strip()
+        ai_response = completion.choices[0].message.content.strip()
 
-        # сохраняем ответ ИИ
-        ai_msg = Message(chat_id=chat.id, sender="ai", text=ai_text)
-        db.add(ai_msg)
+        ai_message = Message(chat_id=chat.id, sender="ai", text=ai_response)
+        db.add(ai_message)
         db.commit()
 
-        return {"text": ai_text}
+        return ai_response
 
     except Exception as e:
-        logger.error(f"SEARCH ERROR: {e}")
+        print("SEARCH ERROR:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -316,3 +320,41 @@ async def delete_chat(chat_id: int, current_user: User = Depends(get_current_use
     db.query(Chat).filter(Chat.id == chat_id).delete()
     db.commit()
     return {"status": "ok"}
+
+@app.post("/coach")
+async def ai_coach(msg: MessageRequest, user=Depends(get_current_user), db: Session = Depends(get_db)):
+
+    # 1️⃣ Проверяем чат
+    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == user.id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    # 2️⃣ Сохраняем сообщение пользователя
+    user_message = Message(chat_id=chat.id, sender="user", text=msg.text)
+    db.add(user_message)
+    db.commit()
+
+    try:
+        # 3️⃣ Генерация ответа через Groq (асинхронно)
+        completion = await asyncio.to_thread(lambda: groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant. Answer clearly and fully."},
+                {"role": "user", "content": msg.text}
+            ],
+            temperature=0.3
+        ))
+
+        ai_response = completion.choices[0].message.content.strip()
+
+        # 4️⃣ Сохраняем ответ ИИ
+        ai_message = Message(chat_id=chat.id, sender="ai", text=ai_response)
+        db.add(ai_message)
+        db.commit()
+
+        # 5️⃣ Возвращаем готовый текст
+        return ai_response
+
+    except Exception as e:
+        print("COACH ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
