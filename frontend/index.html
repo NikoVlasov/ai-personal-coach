@@ -273,30 +273,28 @@ marked.setOptions({
 <script>
 
 ////////////////////////////////////////////////////////////
-// SCROLL
+// HELPERS
 ////////////////////////////////////////////////////////////
 
 function scrollToBottom() {
     const container = document.getElementById("chat-container");
     if (!container) return;
     container.scrollTop = container.scrollHeight;
-    setTimeout(() => container.scrollTop = container.scrollHeight, 50);
-    setTimeout(() => container.scrollTop = container.scrollHeight, 150);
-    setTimeout(() => container.scrollTop = container.scrollHeight, 300);
 }
-
-////////////////////////////////////////////////////////////
-// TYPEWRITER
-////////////////////////////////////////////////////////////
 
 async function typeWriterEffect(element, text, delay = 8) {
     element.innerHTML = "";
     for (let i = 0; i < text.length; i++) {
         element.innerHTML += text.charAt(i);
-        if (i % 4 === 0) scrollToBottom();
+        if (i % 5 === 0) scrollToBottom();
         await new Promise(r => setTimeout(r, delay));
     }
     scrollToBottom();
+}
+
+function toggleChatList() {
+    document.getElementById("chat-list").classList.toggle("show");
+    document.getElementById("chat-dropdown-btn").classList.toggle("open");
 }
 
 ////////////////////////////////////////////////////////////
@@ -306,51 +304,39 @@ async function typeWriterEffect(element, text, delay = 8) {
 const mainModule = (() => {
 
     let token = null;
-    let user_id = null;
     let current_chat_id = null;
 
     const chatContainer = document.getElementById("chat-container");
     const inputField = document.getElementById("message-input");
-    const quickButtonsDiv = document.getElementById("quick-buttons");
     const chatListDiv = document.getElementById("chat-list");
-    const chatDropdownBtn = document.getElementById("chat-dropdown-btn");
 
     function setToken(t) { token = t; }
-    function setUserId(id) { user_id = id; }
     function getToken() { return token; }
-    function getUserId() { return user_id; }
 
     function setCurrentChatId(id) {
         current_chat_id = id;
         loadHistory(id);
-        quickButtonsModule.fetchQuickButtons();
     }
 
     function getCurrentChatId() { return current_chat_id; }
 
     function logout() {
         token = null;
-        user_id = null;
         current_chat_id = null;
-        localStorage.removeItem("token");
-        localStorage.removeItem("user_id");
+        localStorage.clear();
         chatContainer.innerHTML = "";
-        chatListDiv.innerHTML = "";
         document.getElementById("chat-ui").style.display = "none";
         document.getElementById("auth-container").style.display = "block";
     }
 
     return {
         setToken,
-        setUserId,
         getToken,
-        getUserId,
         setCurrentChatId,
         getCurrentChatId,
         logout,
         chatContainer,
         inputField,
-        quickButtonsDiv,
         chatListDiv
     };
 
@@ -362,24 +348,33 @@ const mainModule = (() => {
 
 const authModule = (() => {
 
-    async function login(email, password) {
+    function showForm(type) {
+        document.getElementById("login-form").classList.toggle("hidden", type !== "login");
+        document.getElementById("register-form").classList.toggle("hidden", type !== "register");
+        document.getElementById("login-tab").classList.toggle("active", type === "login");
+        document.getElementById("register-tab").classList.toggle("active", type === "register");
+    }
+
+    async function login() {
+
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+
         const res = await fetch("/login", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({email, password})
         });
 
         if (!res.ok) {
-            alert("Login error");
+            alert("Login failed");
             return;
         }
 
         const data = await res.json();
-        mainModule.setToken(data.access_token);
-        mainModule.setUserId(data.user_id);
 
+        mainModule.setToken(data.access_token);
         localStorage.setItem("token", data.access_token);
-        localStorage.setItem("user_id", data.user_id);
 
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("chat-ui").style.display = "block";
@@ -387,22 +382,27 @@ const authModule = (() => {
         chatModule.fetchChats();
     }
 
-    async function register(email, password) {
+    async function register() {
+
+        const email = document.getElementById("register-email").value;
+        const password = document.getElementById("register-password").value;
+
         const res = await fetch("/register", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({email, password})
         });
 
         if (!res.ok) {
-            alert("Registration error");
+            alert("Registration failed");
             return;
         }
 
-        alert("Registered! Now login.");
+        alert("Registered successfully. Now login.");
+        showForm("login");
     }
 
-    return { login, register };
+    return { login, register, showForm };
 
 })();
 
@@ -413,19 +413,19 @@ const authModule = (() => {
 const chatModule = (() => {
 
     function addMessage(text, sender) {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = `message ${sender}`;
+        const msg = document.createElement("div");
+        msg.className = "message " + sender;
 
-        const contentDiv = document.createElement("div");
+        const content = document.createElement("div");
 
         if (sender === "ai") {
-            typeWriterEffect(contentDiv, text);
+            typeWriterEffect(content, text);
         } else {
-            contentDiv.textContent = text;
+            content.textContent = text;
         }
 
-        msgDiv.appendChild(contentDiv);
-        mainModule.chatContainer.appendChild(msgDiv);
+        msg.appendChild(content);
+        mainModule.chatContainer.appendChild(msg);
         scrollToBottom();
     }
 
@@ -446,11 +446,10 @@ const chatModule = (() => {
         temp.className = "message ai";
         temp.textContent = isSearch ? "🔎 Searching..." : "🤖 Thinking...";
         mainModule.chatContainer.appendChild(temp);
-        scrollToBottom();
+
+        const endpoint = isSearch ? "/search" : "/coach";
 
         try {
-
-            const endpoint = isSearch ? "/search" : "/coach";
 
             const res = await fetch(endpoint, {
                 method: "POST",
@@ -464,52 +463,65 @@ const chatModule = (() => {
                 })
             });
 
-            if (!res.ok) throw new Error("HTTP " + res.status);
+            if (!res.ok) {
+                if (res.status === 401) mainModule.logout();
+                throw new Error(res.status);
+            }
 
             const aiText = await res.text();
 
             temp.remove();
             addMessage(aiText, "ai");
 
-        } catch (err) {
+        } catch (e) {
             temp.textContent = "Error. Try again.";
-            console.error(err);
+            console.error(e);
         }
     }
 
     async function fetchChats() {
+
         const res = await fetch("/chats", {
             headers: { Authorization: "Bearer " + mainModule.getToken() }
         });
+
+        if (!res.ok) {
+            mainModule.logout();
+            return;
+        }
 
         const data = await res.json();
         mainModule.chatListDiv.innerHTML = "";
 
         data.chats.forEach(chat => {
             const div = document.createElement("div");
-            div.className = "chat-item";
             div.textContent = chat.title;
             div.onclick = () => mainModule.setCurrentChatId(chat.id);
             mainModule.chatListDiv.appendChild(div);
         });
     }
 
-    async function createChat(title) {
+    async function createChat() {
+
+        const title = document.getElementById("new-chat-title").value;
+        if (!title.trim()) return;
+
         const res = await fetch("/chats", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + mainModule.getToken()
             },
-            body: JSON.stringify({ title })
+            body: JSON.stringify({title})
         });
 
         const data = await res.json();
         await fetchChats();
         mainModule.setCurrentChatId(data.chat_id);
+        document.getElementById("new-chat-title").value = "";
     }
 
-    return { addMessage, sendMessage, fetchChats, createChat };
+    return { sendMessage, fetchChats, createChat };
 
 })();
 
@@ -523,55 +535,20 @@ async function loadHistory(chatId) {
         headers: { Authorization: "Bearer " + mainModule.getToken() }
     });
 
-    const data = await res.json();
+    if (!res.ok) return;
 
+    const data = await res.json();
     mainModule.chatContainer.innerHTML = "";
 
     data.messages.forEach(m => {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = `message ${m.sender}`;
-        msgDiv.textContent = m.text;
-        mainModule.chatContainer.appendChild(msgDiv);
+        const msg = document.createElement("div");
+        msg.className = "message " + m.sender;
+        msg.textContent = m.text;
+        mainModule.chatContainer.appendChild(msg);
     });
 
     scrollToBottom();
 }
-
-////////////////////////////////////////////////////////////
-// QUICK BUTTONS
-////////////////////////////////////////////////////////////
-
-const quickButtonsModule = (() => {
-
-    async function fetchQuickButtons() {
-        const res = await fetch("/quick_buttons", {
-            headers: { Authorization: "Bearer " + mainModule.getToken() }
-        });
-
-        const data = await res.json();
-        mainModule.quickButtonsDiv.innerHTML = "";
-
-        data.buttons.forEach(btn => {
-            const b = document.createElement("button");
-            b.className = "quick-btn";
-            b.textContent = btn;
-            b.onclick = () => chatModule.sendMessage(btn);
-            mainModule.quickButtonsDiv.appendChild(b);
-        });
-
-        const searchBtn = document.createElement("button");
-        searchBtn.className = "quick-btn";
-        searchBtn.textContent = "Web Search";
-        searchBtn.onclick = () => {
-            const query = prompt("Enter search query:");
-            if (query) chatModule.sendMessage(query, true);
-        };
-        mainModule.quickButtonsDiv.appendChild(searchBtn);
-    }
-
-    return { fetchQuickButtons };
-
-})();
 
 ////////////////////////////////////////////////////////////
 // INIT
@@ -580,18 +557,16 @@ const quickButtonsModule = (() => {
 window.addEventListener("DOMContentLoaded", () => {
 
     const savedToken = localStorage.getItem("token");
-    const savedUser = localStorage.getItem("user_id");
 
-    if (savedToken && savedUser) {
+    if (savedToken) {
         mainModule.setToken(savedToken);
-        mainModule.setUserId(savedUser);
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("chat-ui").style.display = "block";
         chatModule.fetchChats();
     }
 
     mainModule.inputField.addEventListener("keypress", function(e) {
-        if (e.key === "Enter" && !e.shiftKey) {
+        if (e.key === "Enter") {
             e.preventDefault();
             chatModule.sendMessage(mainModule.inputField.value);
         }
