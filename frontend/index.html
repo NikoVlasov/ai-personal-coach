@@ -284,13 +284,20 @@ function scrollToBottom() {
 }
 
 async function typeWriterEffect(element, text, delay = 8) {
-    element.innerHTML = "";
+
+    element.textContent = "";
+
     for (let i = 0; i < text.length; i++) {
-        element.innerHTML += text.charAt(i);
+        element.textContent += text.charAt(i);
+
         if (i % 5 === 0) scrollToBottom();
         await new Promise(r => setTimeout(r, delay));
     }
+
     scrollToBottom();
+
+    // После печати — делаем ссылки кликабельными
+    makeLinksClickable(element);
 }
 
 function toggleChatList(forceClose = false) {
@@ -431,12 +438,14 @@ const authModule = (() => {
 
 const chatModule = (() => {
 
-    function makeLinksClickable(text) {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, function(url) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-}
+    function makeLinksClickable(element) {
+
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+        element.innerHTML = element.innerHTML.replace(urlRegex, function(url) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
+    }
 
     function addMessage(text, sender) {
 
@@ -447,9 +456,7 @@ const chatModule = (() => {
 
         if (sender === "ai") {
 
-            const formatted = makeLinksClickable(text);
-
-            typeWriterEffect(content, formatted);
+            typeWriterEffect(content, text);
 
         } else {
 

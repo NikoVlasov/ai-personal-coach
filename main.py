@@ -358,3 +358,25 @@ async def search(msg: MessageRequest,
     except Exception as e:
         logger.error(f"SEARCH ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/chats/{chat_id}")
+async def delete_chat(chat_id: int,
+                      user=Depends(get_current_user),
+                      db: Session = Depends(get_db)):
+
+    chat = db.query(Chat).filter(
+        Chat.id == chat_id,
+        Chat.user_id == user.id
+    ).first()
+
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    # Удаляем сообщения
+    db.query(Message).filter(Message.chat_id == chat_id).delete()
+
+    # Удаляем чат
+    db.delete(chat)
+    db.commit()
+
+    return {"status": "deleted"}
