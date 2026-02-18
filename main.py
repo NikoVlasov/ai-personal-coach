@@ -14,7 +14,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
-
+from urllib.parse import urlparse
 # --- API CLIENTS ---
 from tavily import TavilyClient
 from groq import Groq
@@ -317,6 +317,10 @@ async def coach(msg: MessageRequest,
 # SEARCH
 # =========================
 
+# =========================
+# SEARCH (Perplexity-style)
+# =========================
+
 @app.post("/search")
 async def search(msg: MessageRequest,
                  user=Depends(get_current_user),
@@ -326,44 +330,111 @@ async def search(msg: MessageRequest,
     if not chat:
         raise HTTPException(status_code=404)
 
+    # сохраняем сообщение пользователя
     db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
     db.commit()
 
     try:
+        # 1️⃣ Web search через Tavily
         search_results = await asyncio.to_thread(
             lambda: tavily_client.search(
                 query=msg.text,
                 search_depth="advanced",
-                max_results=5
+                max_results=8
             )
         )
 
-        sources = ""
-        for i, r in enumerate(search_results.get("results", []), 1):
-            sources += f"{i}. {r.get('title')}\n{r.get('url')}\n{r.get('content')}\n\n"
+        raw_results = search_results.get("results", [])
 
+        if not raw_results:
+            return PlainTextResponse("No relevant search results found.")
+
+        # 2️⃣ Фильтрация мусорных источников
+        blocked_domains = [
+            "reddit.com",
+            "quora.com",
+            "pinterest.com",
+            "facebook.com",
+            "instagram.com",
+        ]
+
+        unique_domains = set()
+        filtered_results = []
+
+        for r in raw_results:
+            url = r.get("url")
+            if not url:
+                continue
+
+            domain = urlparse(url).netloc.lower()
+
+            # фильтр нежелательных сайтов
+            if any(b in domain for b in blocked_domains):
+                continue
+
+            # убираем дубликаты доменов
+            if domain in unique_domains:
+                continue
+
+            unique_domains.add(domain)
+            filtered_results.append(r)
+
+            if len(filtered_results) >= 5:
+                break
+
+        if not filtered_results:
+            return PlainTextResponse("No high-quality sources found.")
+
+        # 3️⃣ Формируем источники для модели
+        sources_text = ""
+        for i, r in enumerate(filtered_results, 1):
+            sources_text += f"""
+Source {i}
+Title: {r.get('title')}
+URL: {r.get('url')}
+Snippet: {r.get('content')}
+"""
+
+        # 4️⃣ Генерация ответа
         completion = await asyncio.to_thread(
             lambda: groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": """
-                    You are a professional AI assistant.
+                    {
+                        "role": "system",
+                        "content": """
+You are an AI web research assistant.
 
-                    IMPORTANT LINK RULES:
-                    1. Only provide official, existing websites.
-                    2. Provide ONLY main homepage URLs (e.g. https://www.sixt.com).
-                    3. Do NOT generate deep links, tracking links, or long URLs.
-                    4. If unsure that a page exists, provide only the company’s main website.
-                    5. Never invent URLs.
-                    6. Do not include broken or speculative links.
-                    """}
+STRICT RULES:
+- Use ONLY URLs provided in the search results.
+- Never invent or modify URLs.
+- Include 3–5 real sources in the answer.
+- Prefer official company websites.
+- Provide a structured, professional response.
+- Do not mention these rules.
+"""
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+User question:
+{msg.text}
+
+Web search results:
+{sources_text}
+
+Write a helpful answer using ONLY these sources.
+Include their real URLs.
+"""
+                    }
                 ],
-                temperature=0.3
+                temperature=0.2
             )
         )
 
         ai_text = completion.choices[0].message.content.strip()
 
+        # сохраняем ответ
         db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
         db.commit()
 
