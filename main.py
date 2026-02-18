@@ -283,7 +283,18 @@ async def coach(msg: MessageRequest,
             lambda: groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "system", "content": """
+                    You are a professional AI assistant.
+
+                    IMPORTANT LINK RULES:
+                    1. Only provide official, existing websites.
+                    2. Provide ONLY main homepage URLs (e.g. https://www.sixt.com).
+                    3. Do NOT generate deep links, tracking links, or long URLs.
+                    4. If unsure that a page exists, provide only the company’s main website.
+                    5. Never invent URLs.
+                    6. Do not include broken or speculative links.
+                    """},
+
                     {"role": "user", "content": msg.text}
                 ],
                 temperature=0.3
@@ -335,14 +346,17 @@ async def search(msg: MessageRequest,
             lambda: groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "Create a structured Markdown research answer with full URLs."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Query: {msg.text}\n\nSources:\n{sources}"
-                    }
+                    {"role": "system", "content": """
+                    You are a professional AI assistant.
+
+                    IMPORTANT LINK RULES:
+                    1. Only provide official, existing websites.
+                    2. Provide ONLY main homepage URLs (e.g. https://www.sixt.com).
+                    3. Do NOT generate deep links, tracking links, or long URLs.
+                    4. If unsure that a page exists, provide only the company’s main website.
+                    5. Never invent URLs.
+                    6. Do not include broken or speculative links.
+                    """}
                 ],
                 temperature=0.3
             )
