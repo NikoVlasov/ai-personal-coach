@@ -284,20 +284,17 @@ function scrollToBottom() {
 }
 
 async function typeWriterEffect(element, text, delay = 8) {
-
     element.textContent = "";
 
     for (let i = 0; i < text.length; i++) {
         element.textContent += text.charAt(i);
-
         if (i % 5 === 0) scrollToBottom();
         await new Promise(r => setTimeout(r, delay));
     }
 
     scrollToBottom();
 
-    // После печати — делаем ссылки кликабельными
-    makeLinksClickable(element);
+    convertLinks(element);
 }
 
 function toggleChatList(forceClose = false) {
@@ -337,6 +334,8 @@ const mainModule = (() => {
 
         if (title) {
             document.getElementById("chat-dropdown-btn").textContent = title;
+        } else {
+            document.getElementById("chat-dropdown-btn").textContent = "Select chat";
         }
 
         toggleChatList(true);
@@ -353,6 +352,7 @@ const mainModule = (() => {
         document.getElementById("chat-container").innerHTML = "";
         document.getElementById("chat-ui").classList.add("hidden");
         document.getElementById("auth-container").style.display = "block";
+        document.getElementById("chat-dropdown-btn").textContent = "Select chat";
     }
 
     return {
@@ -382,7 +382,6 @@ const authModule = (() => {
     }
 
     async function login() {
-
         const email = document.getElementById("login-email").value;
         const password = document.getElementById("login-password").value;
 
@@ -398,7 +397,6 @@ const authModule = (() => {
         }
 
         const data = await res.json();
-
         mainModule.setToken(data.access_token);
         localStorage.setItem("token", data.access_token);
 
@@ -409,7 +407,6 @@ const authModule = (() => {
     }
 
     async function register() {
-
         const email = document.getElementById("register-email").value;
         const password = document.getElementById("register-password").value;
 
@@ -438,30 +435,17 @@ const authModule = (() => {
 
 const chatModule = (() => {
 
-    function makeLinksClickable(element) {
-
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-
-        element.innerHTML = element.innerHTML.replace(urlRegex, function(url) {
-            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-        });
-    }
-
     function addMessage(text, sender) {
-
         const msg = document.createElement("div");
         msg.className = "message " + sender;
 
         const content = document.createElement("div");
 
         if (sender === "ai") {
-
             typeWriterEffect(content, text);
-
         } else {
-
             content.textContent = text;
-
+            convertLinks(content);
         }
 
         msg.appendChild(content);
@@ -470,7 +454,6 @@ const chatModule = (() => {
     }
 
     async function sendMessage(isSearch = false) {
-
         const text = mainModule.inputField.value;
         const chatId = mainModule.getCurrentChatId();
 
@@ -493,7 +476,6 @@ const chatModule = (() => {
         const endpoint = isSearch ? "/search" : "/coach";
 
         try {
-
             const res = await fetch(endpoint, {
                 method: "POST",
                 headers: {
@@ -523,7 +505,6 @@ const chatModule = (() => {
     }
 
     async function fetchChats() {
-
         const res = await fetch("/chats", {
             headers: { Authorization: "Bearer " + mainModule.getToken() }
         });
@@ -549,7 +530,6 @@ const chatModule = (() => {
     }
 
     async function createChat() {
-
         const title = document.getElementById("new-chat-title").value;
         if (!title.trim()) return;
 
@@ -571,7 +551,6 @@ const chatModule = (() => {
     }
 
     async function deleteChat() {
-
         const chatId = mainModule.getCurrentChatId();
         if (!chatId) return;
 
@@ -584,16 +563,18 @@ const chatModule = (() => {
             }
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+            alert("Failed to delete chat");
+            return;
+        }
 
-        mainModule.setCurrentChatId(null);
+        mainModule.setCurrentChatId(null, "Select chat");
         document.getElementById("chat-container").innerHTML = "";
-        document.getElementById("chat-dropdown-btn").textContent = "Select chat";
 
         fetchChats();
     }
 
-    return { sendMessage, fetchChats, createChat, deleteChat };
+    return { sendMessage, fetchChats, createChat, deleteChat, addMessage };
 
 })();
 
@@ -601,8 +582,35 @@ const chatModule = (() => {
 // HISTORY
 ////////////////////////////////////////////////////////////
 
-async function loadHistory(chatId) {
+function convertLinks(element) {
+    const text = element.textContent;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
 
+    element.innerHTML = "";
+
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+        const before = text.substring(lastIndex, match.index);
+        element.appendChild(document.createTextNode(before));
+
+        const link = document.createElement("a");
+        link.href = match[0];
+        link.textContent = match[0];
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        element.appendChild(link);
+
+        lastIndex = urlRegex.lastIndex;
+    }
+
+    const after = text.substring(lastIndex);
+    element.appendChild(document.createTextNode(after));
+}
+
+async function loadHistory(chatId) {
     if (!chatId) return;
 
     const res = await fetch(`/history/${chatId}`, {
@@ -617,7 +625,12 @@ async function loadHistory(chatId) {
     data.messages.forEach(m => {
         const msg = document.createElement("div");
         msg.className = "message " + m.sender;
-        msg.textContent = m.text;
+
+        const content = document.createElement("div");
+        content.textContent = m.text;
+        convertLinks(content);
+
+        msg.appendChild(content);
         mainModule.chatContainer.appendChild(msg);
     });
 
@@ -640,7 +653,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     mainModule.inputField.addEventListener("keypress", function(e) {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             chatModule.sendMessage(false);
         }
