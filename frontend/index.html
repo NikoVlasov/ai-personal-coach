@@ -210,87 +210,84 @@ body {
     background:#3a6fdc;
     transform:scale(1.05);
 }
-/* ============================= */
-/* UNIFIED MESSAGE STYLE */
-/* ============================= */
+/* ================================= */
+/* SOFT PREMIUM CHAT STYLE */
+/* ================================= */
+
+/* Базовый стиль сообщений */
 
 .message {
-    background: #1a1a1a !important;
-    color: #f2f2f2 !important;
-    border: 1px solid #2a2a2a;
     border-radius: 18px;
     padding: 18px 20px;
     margin: 12px 0;
     line-height: 1.7;
     font-size: 15px;
     max-width: 760px;
+    border: 1px solid #e6ecf3;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
-/* Убираем старые разные цвета */
+/* USER — почти белый */
 
 .message.user {
-    background: #1a1a1a !important;
-    color: #f2f2f2 !important;
+    background: #ffffff !important;
+    color: #222 !important;
 }
+
+/* AI — очень мягкий голубой */
 
 .message.ai {
-    background: #1a1a1a !important;
-    color: #f2f2f2 !important;
+    background: #f3f8ff !important;
+    color: #222 !important;
 }
 
-/* ============================= */
-/* HEADINGS INSIDE MESSAGE */
-/* ============================= */
+/* Заголовки */
 
-.message h1 {
-    font-size: 22px;
-    margin-bottom: 14px;
-    font-weight: 600;
-    color: #ffffff;
-}
-
-.message h2 {
-    font-size: 18px;
-    margin: 20px 0 10px;
-    font-weight: 600;
-}
-
+.message h1,
+.message h2,
 .message h3 {
-    font-size: 16px;
-    margin: 18px 0 8px;
+    color: #111;
     font-weight: 600;
 }
 
-/* ============================= */
-/* LINKS */
-/* ============================= */
+/* Списки */
+
+.message ul {
+    padding-left: 22px;
+    margin: 12px 0;
+}
+
+.message li {
+    margin-bottom: 6px;
+}
+
+/* Ссылки */
 
 .message a {
-    color: #4da6ff;
+    color: #2563eb;
     text-decoration: none;
-    padding: 3px 6px;
+    padding: 2px 6px;
     border-radius: 6px;
-    background: rgba(77,166,255,0.12);
+    background: rgba(37,99,235,0.08);
     transition: 0.2s ease;
-    word-break: break-word;
 }
 
 .message a:hover {
-    background: rgba(77,166,255,0.22);
+    background: rgba(37,99,235,0.15);
     text-decoration: underline;
 }
 
-/* ============================= */
-/* CHAT DROPDOWN FIX */
-/* ============================= */
+/* ================================= */
+/* DROPDOWN FIX */
+/* ================================= */
 
 #chat-list {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: #ffffff;
+    border: 1px solid #e6ecf3;
 }
 
 #chat-list div {
-    color: #f2f2f2 !important;
+    color: #222 !important;
     padding: 10px 14px;
     border-radius: 8px;
     cursor: pointer;
@@ -298,7 +295,7 @@ body {
 }
 
 #chat-list div:hover {
-    background: #2a2a2a;
+    background: #f0f4f9;
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
