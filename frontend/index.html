@@ -4,17 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mentra Coach</title>
-
 <style>
+/* ===================== */
+/* БАЗА */
+/* ===================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Глобально убираем горизонтальный скролл */
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f0f4f8;
-    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
 }
+
+/* ===================== */
+/* APP CONTAINER */
+/* ===================== */
+
 #app-container {
     width: 420px;
     min-height: 700px;
@@ -25,11 +42,17 @@ body {
     flex-direction: column;
     overflow: hidden;
 }
-.hidden { display: none; }
 
-/* Шапка */
+.hidden {
+    display: none !important;
+}
+
+/* ===================== */
+/* HEADER */
+/* ===================== */
+
 .app-header {
-    background: #fff;
+    background: #ffffff;
     color: #000;
     padding: 12px 16px;
     display: flex;
@@ -39,7 +62,12 @@ body {
     font-weight: bold;
     border-bottom: 1px solid #eee;
 }
-.app-name { margin: 0; font-weight: 600; }
+
+.app-name {
+    margin: 0;
+    font-weight: 600;
+}
+
 .logout-text {
     cursor: pointer;
     font-size: 0.85em;
@@ -49,159 +77,304 @@ body {
     color: #333;
     transition: all 0.2s ease;
 }
-.logout-text:hover { background: #f8f9fa; color: #000; }
 
+.logout-text:hover {
+    background: #f8f9fa;
+    color: #000;
+}
+
+/* ===================== */
 /* AUTH */
-#auth-container { padding: 20px; display:flex; flex-direction: column; align-items: center; }
-.auth-tabs { display: flex; justify-content: center; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width:100%; }
-.auth-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #e6edf7; font-weight: bold; transition: background 0.3s, color 0.3s; }
-.auth-tabs button.active { background: #4f8ef7; color: white; }
-.auth-form { display: flex; flex-direction: column; gap: 12px; width:100%; margin:0; }
-.auth-form.hidden { display: none !important; }
-.auth-form input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9em; width:100%; box-sizing:border-box; }
-.auth-form button { padding: 12px; border-radius: 8px; border: none; background: #4f8ef7; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; width:100%; }
-.auth-form button:hover { background: #3a6fdc; transform: scale(1.03); }
+/* ===================== */
 
-/* Чаты */
-#chat-dropdown-container { position: relative; margin: 15px 10px 10px 10px; }
-#chat-dropdown-btn { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ccc; box-sizing: border-box; background: #f7faff; cursor: pointer; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
-#chat-dropdown-btn::after { content:'▾'; transition: transform 0.25s; }
-#chat-list { position: absolute; top: 100%; left: 0; transform: translateY(-10px); width: 100%; max-height: 0; overflow: hidden; background:#f7faff; border:1px solid #ccc; border-radius:0 0 12px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); transition: all 0.25s ease; z-index: 100; border-top: none; opacity: 0;}
-#chat-list.show { max-height: 200px; overflow-y:auto; opacity: 1; transform: translateY(0);}
-#chat-list div { padding:10px; cursor:pointer; transition: background 0.2s; font-size: 14px; }
-#chat-dropdown-btn.open::after { transform: rotate(180deg); }
-#delete-chat-btn { margin:5px 10px; background:#f54242; color:white; border:none; border-radius:8px; padding:8px; cursor:pointer; transition: 0.2s; }
-#delete-chat-btn:hover { background:#d13030; transform: scale(1.05); }
-
-/* Чат-контейнер */
-#chat-container {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    overflow-x: hidden; /* ФИКС */
+#auth-container {
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    align-items: center;
+}
+
+.auth-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    width: 100%;
+}
+
+.auth-tabs button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    cursor: pointer;
     background: #e6edf7;
-    max-height: 400px;
+    font-weight: bold;
+    transition: background 0.3s, color 0.3s;
 }
 
-/* Сообщения */
-.message {
-    max-width: 100%;
-    border-radius: 18px;
-    padding: 18px 20px;
-    margin: 12px 0;
-    line-height: 1.7;
-    font-size: 15px;
-    border: 1px solid #e6ecf3;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-
-    /* ФИКС ПЕРЕНОСА */
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-wrap: anywhere; /* ключевой фикс для Safari */
-    word-break: break-word;
+.auth-tabs button.active {
+    background: #4f8ef7;
+    color: white;
 }
 
-.message.user {
-    background: #ffffff !important;
-    color: #222 !important;
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
 }
 
-.message.ai {
-    background: #f3f8ff !important;
-    color: #222 !important;
+.auth-form input {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 0.9em;
+    width: 100%;
 }
 
-.typing {
-    font-style: italic;
-    opacity: 0.7;
+.auth-form button {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4f8ef7;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
 }
 
-.typing-dots {
-    display: inline-block;
-    color: #666;
-    animation: blink 1.4s infinite;
+.auth-form button:hover {
+    background: #3a6fdc;
+    transform: scale(1.03);
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 0.4; }
-    50%      { opacity: 1; }
+/* ===================== */
+/* CHAT DROPDOWN */
+/* ===================== */
+
+#chat-dropdown-container {
+    position: relative;
+    margin: 15px 10px 10px 10px;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+#chat-dropdown-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    background: #f7faff;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* Списки */
-.message ul {
-    padding-left: 22px;
-    margin: 12px 0;
+#chat-dropdown-btn::after {
+    content: '▾';
+    transition: transform 0.25s;
 }
 
-.message li {
-    margin-bottom: 6px;
+#chat-dropdown-btn.open::after {
+    transform: rotate(180deg);
 }
 
-/* Ссылки — перенос длинных URL */
-.message a {
-    color: #2563eb;
-    text-decoration: none;
-    padding: 2px 6px;
-    border-radius: 6px;
-    background: rgba(37,99,235,0.08);
-    transition: 0.2s ease;
-
-    word-break: break-all;
-    overflow-wrap: anywhere; /* ключевой фикс для Safari */
-}
-
-.message a:hover {
-    background: rgba(37,99,235,0.15);
-    text-decoration: underline;
-}
-
-/* DROPDOWN FIX */
 #chat-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
     background: #ffffff;
     border: 1px solid #e6ecf3;
+    border-radius: 0 0 12px 12px;
+    transition: all 0.25s ease;
+    z-index: 100;
+    opacity: 0;
+}
+
+#chat-list.show {
+    max-height: 200px;
+    overflow-y: auto;
+    opacity: 1;
 }
 
 #chat-list div {
-    color: #222 !important;
     padding: 10px 14px;
-    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s ease;
 }
 
 #chat-list div:hover {
     background: #f0f4f9;
 }
 
-/* Жёсткий фикс переноса для всего внутри сообщений */
-.message * {
+/* ===================== */
+/* CHAT CONTAINER */
+/* ===================== */
+
+#chat-container {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    overflow-x: hidden; /* Safari FIX */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #e6edf7;
+}
+
+/* ===================== */
+/* MESSAGES */
+/* ===================== */
+
+.message {
+    display: inline-block;
     max-width: 100%;
-    word-wrap: break-word !important;
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin: 8px 0;
+    line-height: 1.6;
+    font-size: 15px;
+    border: 1px solid #e6ecf3;
+
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.message.user {
+    background: #ffffff;
+    color: #222;
+}
+
+.message.ai {
+    background: #f3f8ff;
+    color: #222;
+}
+
+/* 🔥 КРИТИЧЕСКИЙ SAFARI FIX */
+.message * {
+    max-width: 100% !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
+    white-space: pre-wrap !important;
 }
 
-/* Фикс для pre */
+/* Ссылки */
+.message a {
+    display: inline;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.message a:hover {
+    text-decoration: underline;
+}
+
+/* PRE / CODE */
+
 .message pre {
     white-space: pre-wrap !important;
-    word-break: break-word !important;
     overflow-x: hidden !important;
+    word-break: break-word !important;
 }
 
-/* Фикс для code */
 .message code {
     white-space: pre-wrap !important;
     word-break: break-word !important;
 }
+
+/* ===================== */
+/* INPUT */
+/* ===================== */
+
+#input-container {
+    display: flex;
+    gap: 6px;
+    padding: 10px;
+}
+
+#message-input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #f7faff;
+}
+
+#input-container button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4f8ef7;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#input-container button:hover {
+    background: #3a6fdc;
+}
+
+/* ===================== */
+/* QUICK BUTTONS */
+/* ===================== */
+
+#quick-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    background: #f0f4fb;
+    border-top: 1px solid #ccc;
+}
+
+.quick-btn {
+    background: #81b4ff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.quick-btn:hover {
+    background: #4f8ef7;
+}
+
+/* ===================== */
+/* NEW CHAT */
+/* ===================== */
+
+#new-chat-container {
+    display: flex;
+    gap: 5px;
+    margin: 10px;
+}
+
+#new-chat-container button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4f8ef7;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#new-chat-container button:hover {
+    background: #3a6fdc;
+}
 </style>
+
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
     <script>
 marked.setOptions({
