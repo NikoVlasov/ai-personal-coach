@@ -11,12 +11,14 @@
 
 * {
     box-sizing: border-box;
+    min-width: 0; /* 🔥 важно для Safari flex-багов */
 }
 
 html, body {
     margin: 0;
     padding: 0;
     overflow-x: hidden; /* Глобально убираем горизонтальный скролл */
+    max-width: 100%;
 }
 
 body {
@@ -34,6 +36,7 @@ body {
 
 #app-container {
     width: 420px;
+    max-width: 100%; /* 🔥 защита от переполнения */
     min-height: 700px;
     background: #fff;
     border-radius: 15px;
@@ -94,123 +97,6 @@ body {
     align-items: center;
 }
 
-.auth-tabs {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    width: 100%;
-}
-
-.auth-tabs button {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    cursor: pointer;
-    background: #e6edf7;
-    font-weight: bold;
-    transition: background 0.3s, color 0.3s;
-}
-
-.auth-tabs button.active {
-    background: #4f8ef7;
-    color: white;
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-}
-
-.auth-form input {
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 0.9em;
-    width: 100%;
-}
-
-.auth-form button {
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    background: #4f8ef7;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s, transform 0.2s;
-}
-
-.auth-form button:hover {
-    background: #3a6fdc;
-    transform: scale(1.03);
-}
-
-/* ===================== */
-/* CHAT DROPDOWN */
-/* ===================== */
-
-#chat-dropdown-container {
-    position: relative;
-    margin: 15px 10px 10px 10px;
-}
-
-#chat-dropdown-btn {
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid #ccc;
-    background: #f7faff;
-    cursor: pointer;
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-#chat-dropdown-btn::after {
-    content: '▾';
-    transition: transform 0.25s;
-}
-
-#chat-dropdown-btn.open::after {
-    transform: rotate(180deg);
-}
-
-#chat-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    max-height: 0;
-    overflow: hidden;
-    background: #ffffff;
-    border: 1px solid #e6ecf3;
-    border-radius: 0 0 12px 12px;
-    transition: all 0.25s ease;
-    z-index: 100;
-    opacity: 0;
-}
-
-#chat-list.show {
-    max-height: 200px;
-    overflow-y: auto;
-    opacity: 1;
-}
-
-#chat-list div {
-    padding: 10px 14px;
-    cursor: pointer;
-}
-
-#chat-list div:hover {
-    background: #f0f4f9;
-}
-
 /* ===================== */
 /* CHAT CONTAINER */
 /* ===================== */
@@ -219,11 +105,13 @@ body {
     flex: 1;
     padding: 10px;
     overflow-y: auto;
-    overflow-x: hidden; /* Safari FIX */
+    overflow-x: hidden !important; /* 🔥 принудительно */
     display: flex;
     flex-direction: column;
     gap: 8px;
     background: #e6edf7;
+
+    min-width: 0; /* 🔥 критично для Safari */
 }
 
 /* ===================== */
@@ -231,7 +119,8 @@ body {
 /* ===================== */
 
 .message {
-    display: inline-block;
+    display: block; /* 🔥 вместо inline-block */
+    width: 100%;
     max-width: 100%;
     border-radius: 18px;
     padding: 16px 18px;
@@ -241,35 +130,26 @@ body {
     border: 1px solid #e6ecf3;
 
     white-space: pre-wrap;
-    word-wrap: break-word;
     overflow-wrap: anywhere;
     word-break: break-word;
-}
-
-.message.user {
-    background: #ffffff;
-    color: #222;
-}
-
-.message.ai {
-    background: #f3f8ff;
-    color: #222;
+    min-width: 0;
 }
 
 /* 🔥 КРИТИЧЕСКИЙ SAFARI FIX */
 .message * {
     max-width: 100% !important;
+    min-width: 0 !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
     white-space: pre-wrap !important;
 }
 
-/* Ссылки */
+/* Ссылки — ломаем длинные URL */
 .message a {
     display: inline;
     max-width: 100%;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: anywhere !important;
+    word-break: break-all !important; /* 🔥 самое важное */
     color: #2563eb;
     text-decoration: none;
 }
@@ -280,15 +160,12 @@ body {
 
 /* PRE / CODE */
 
-.message pre {
-    white-space: pre-wrap !important;
-    overflow-x: hidden !important;
-    word-break: break-word !important;
-}
-
+.message pre,
 .message code {
     white-space: pre-wrap !important;
     word-break: break-word !important;
+    overflow-x: hidden !important;
+    max-width: 100% !important;
 }
 
 /* ===================== */
@@ -299,6 +176,7 @@ body {
     display: flex;
     gap: 6px;
     padding: 10px;
+    min-width: 0; /* 🔥 flex фикс */
 }
 
 #message-input {
@@ -307,71 +185,23 @@ body {
     border-radius: 8px;
     border: 1px solid #ccc;
     background: #f7faff;
-}
-
-#input-container button {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: none;
-    background: #4f8ef7;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-#input-container button:hover {
-    background: #3a6fdc;
+    min-width: 0;
 }
 
 /* ===================== */
-/* QUICK BUTTONS */
+/* SAFARI GLOBAL HARD FIX */
 /* ===================== */
 
-#quick-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 10px;
-    background: #f0f4fb;
-    border-top: 1px solid #ccc;
+/* Полностью запрещаем горизонтальное расширение */
+#app-container,
+#chat-container,
+.message {
+    overflow-x: hidden;
 }
 
-.quick-btn {
-    background: #81b4ff;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.quick-btn:hover {
-    background: #4f8ef7;
-}
-
-/* ===================== */
-/* NEW CHAT */
-/* ===================== */
-
-#new-chat-container {
-    display: flex;
-    gap: 5px;
-    margin: 10px;
-}
-
-#new-chat-container button {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: none;
-    background: #4f8ef7;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-#new-chat-container button:hover {
-    background: #3a6fdc;
+/* Перестраховка от динамического расширения при typewriter */
+#chat-container > * {
+    max-width: 100%;
 }
 </style>
 
