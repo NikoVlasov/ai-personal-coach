@@ -6,19 +6,23 @@
 <title>Mentra Coach</title>
 <style>
 
-/* ================= SAFE GLOBAL FIX ================= */
+/* SAFE Safari FIX */
 
-* {
-    box-sizing: border-box;
-    min-width: 0; /* 🔥 Safari flex fix */
+#chat-container {
+    overflow-x: hidden;
 }
 
-html, body {
-    overflow-x: hidden; /* 🔥 убираем горизонтальный скролл глобально */
+.message * {
     max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
-/* =================================================== */
+.message a {
+    word-break: break-all;
+}
+
+    /* =================================================== */
 
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
 
