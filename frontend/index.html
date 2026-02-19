@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mentra Coach</title>
+
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -99,7 +100,7 @@ body {
     /* ФИКС ПЕРЕНОСА */
     white-space: pre-wrap;
     word-wrap: break-word;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere; /* ключевой фикс для Safari */
     word-break: break-word;
 }
 
@@ -154,7 +155,7 @@ body {
     transition: 0.2s ease;
 
     word-break: break-all;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere; /* ключевой фикс для Safari */
 }
 
 .message a:hover {
@@ -179,11 +180,12 @@ body {
 #chat-list div:hover {
     background: #f0f4f9;
 }
+
 /* Жёсткий фикс переноса для всего внутри сообщений */
 .message * {
     max-width: 100%;
     word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
+    overflow-wrap: anywhere !important;
     word-break: break-word !important;
 }
 
