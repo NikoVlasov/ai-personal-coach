@@ -179,6 +179,26 @@ body {
 #chat-list div:hover {
     background: #f0f4f9;
 }
+/* Жёсткий фикс переноса для всего внутри сообщений */
+.message * {
+    max-width: 100%;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* Фикс для pre */
+.message pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-x: hidden !important;
+}
+
+/* Фикс для code */
+.message code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
     <script>
