@@ -22,7 +22,7 @@
   --shadow-sm:      0 4px 12px rgba(90, 140, 255, 0.08);
   --shadow-md:      0 8px 24px rgba(90, 140, 255, 0.12);
   --radius:         14px;
-  --transition:     all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition:     all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Тёмная тема */
@@ -57,7 +57,7 @@ body {
 
 #app-container {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   max-height: 94vh;
   background: var(--bg-main);
   border-radius: var(--radius);
@@ -166,10 +166,20 @@ body {
   font-weight: 600;
 }
 
-/* Дропдаун чатов */
+/* Дропдаун чатов + поле ввода — на одной линии */
+#chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-chat);
+  border-top: 1px solid var(--border);
+  flex-wrap: nowrap;
+}
+
 #chat-dropdown-container {
-  margin: 12px 16px 8px;
-  position: relative;
+  flex: 0 0 160px;               /* фиксированная ширина для дропдауна */
+  min-width: 160px;
 }
 
 #chat-dropdown-btn {
@@ -185,6 +195,7 @@ body {
   font-weight: 500;
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
+  font-size: 0.95rem;
 }
 
 #chat-dropdown-btn:hover {
@@ -220,6 +231,53 @@ body {
 
 #chat-list div:hover {
   background: rgba(90, 140, 255, 0.08);
+}
+
+/* Поле ввода + кнопки Send и Web Search (справа, одинакового размера) */
+#input-container {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  align-items: center;
+}
+
+#message-input {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-main);
+  font-size: 15px;
+  transition: var(--transition);
+  min-width: 0;
+}
+
+#message-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(90, 140, 255, 0.15);
+}
+
+#input-container button {
+  padding: 0 20px;
+  min-width: 90px;                /* ← фиксированная ширина, одинаковая для обеих кнопок */
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  height: 44px;                   /* одинаковая высота */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#input-container button:hover {
+  background: var(--accent-dark);
+  transform: scale(1.05);
 }
 
 /* Чат-сообщения */
@@ -264,84 +322,7 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Кнопки быстрого доступа (компактнее) */
-#quick-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 16px;
-  background: rgba(90, 140, 255, 0.05);
-  border-top: 1px solid var(--border);
-  justify-content: flex-start;
-}
-
-.quick-btn {
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-  font-size: 0.9rem;
-  min-width: 90px;
-  text-align: center;
-}
-
-.quick-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(90, 140, 255, 0.25);
-}
-
-/* Поле ввода + кнопки Send и Web Search */
-#input-container {
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--bg-chat);
-  border-top: 1px solid var(--border);
-  flex-wrap: nowrap;            /* ← кнопки не переносятся, стоят рядом */
-  align-items: center;
-}
-
-#message-input {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-main);
-  font-size: 14.5px;
-  transition: var(--transition);
-  min-width: 0;
-}
-
-#message-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90, 140, 255, 0.15);
-}
-
-#input-container button {
-  padding: 0 18px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 0.95rem;
-  min-width: 80px;              /* ← фиксированная ширина, не растягиваются */
-  white-space: nowrap;          /* ← текст не переносится */
-}
-
-#input-container button:hover {
-  background: var(--accent-dark);
-  transform: scale(1.05);
-}
-
-/* Кнопки Delete и Create (теперь современные) */
+/* Кнопки Delete и Create (современные) */
 #new-chat-container {
   display: flex;
   gap: 8px;
@@ -368,6 +349,7 @@ body {
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
   font-size: 0.9rem;
+  min-width: 100px;
 }
 
 #new-chat-container button {
@@ -390,7 +372,7 @@ body {
   box-shadow: 0 6px 16px rgba(244, 67, 54, 0.3);
 }
 
-/* Медиа-запросы (особенно для мобильных) */
+/* Медиа-запросы для мобильных */
 @media (max-width: 480px) {
   #app-container {
     max-height: 100vh;
@@ -398,16 +380,12 @@ body {
     box-shadow: none;
   }
   #input-container {
-    flex-wrap: wrap;              /* на очень маленьких экранах кнопки переносятся */
+    flex-wrap: wrap;
     gap: 8px;
   }
   #input-container button {
-    flex: 1 1 45%;                /* кнопки делят ширину */
-    min-width: 45%;
-  }
-  #quick-buttons {
-    padding: 8px 12px;
-    gap: 6px;
+    flex: 1 1 48%;                /* кнопки делят ширину, не вылезают */
+    min-width: 48%;
   }
   #chat-container {
     padding: 10px 12px;
