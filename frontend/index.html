@@ -6,7 +6,7 @@
 <title>Mentra Coach</title>
 <style>
 /* =================================================== */
-/*          ИИ-КОУЧ — СПОКОЙНЫЙ ФУТУРИСТИЧЕСКИЙ ДИЗАЙН 2026         */
+/*     ИИ-КОУЧ — СПОКОЙНЫЙ ФУТУРИСТИЧЕСКИЙ ДИЗАЙН 2026     */
 /* =================================================== */
 
 :root {
@@ -94,7 +94,7 @@ body {
   color: var(--accent);
 }
 
-/* Аутентификация */
+/* Аутентификация — вкладки Вход / Регистрация */
 .auth-tabs {
   display: flex;
   margin: 20px 16px 0;
@@ -102,6 +102,7 @@ body {
   overflow: hidden;
   background: rgba(90, 140, 255, 0.08);
   backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 .auth-tabs button {
@@ -112,6 +113,7 @@ body {
   font-weight: 600;
   color: var(--text-secondary);
   transition: var(--transition);
+  font-size: 1rem;
 }
 
 .auth-tabs button.active {
@@ -125,6 +127,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.auth-form.hidden {
+  display: none !important;
 }
 
 .auth-form input {
@@ -337,7 +343,7 @@ body {
   }
 }
 
-/* Дополнительно: плавный скролл */
+/* Плавный скролл */
 #chat-container {
   scroll-behavior: smooth;
 }
