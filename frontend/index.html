@@ -6,13 +6,13 @@
 <title>Mentra Coach</title>
 <style>
 /* =================================================== */
-/*     ИИ-КОУЧ — СПОКОЙНЫЙ ФУТУРИСТИЧЕСКИЙ ДИЗАЙН 2026     */
+/*     ИИ-КОУЧ — СПОКОЙНЫЙ ФУТУРИСТИЧЕСКИЙ ДИЗАЙН 2026 */
 /* =================================================== */
 
 :root {
   --bg-main:        #f5f9ff;
   --bg-chat:        #e8f0ff;
-  --bg-message-user: #e0f0ff;
+  --bg-message-user:#5a8cff;
   --bg-message-ai:  #ffffff;
   --accent:         #5a8cff;
   --accent-dark:    #3b6ae0;
@@ -21,15 +21,15 @@
   --border:         rgba(90, 140, 255, 0.15);
   --shadow-sm:      0 4px 12px rgba(90, 140, 255, 0.08);
   --shadow-md:      0 8px 24px rgba(90, 140, 255, 0.12);
-  --radius:         14px;
-  --transition:     all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --radius:         16px;
+  --transition:     all 0.25s ease;
 }
 
 /* Тёмная тема */
 [data-theme="dark"] {
   --bg-main:        #0f172a;
   --bg-chat:        #1e293b;
-  --bg-message-user: #1e40af;
+  --bg-message-user:#2563eb;
   --bg-message-ai:  #1e293b;
   --text-main:      #e2e8f0;
   --text-secondary: #94a3b8;
@@ -48,155 +48,135 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-main);
   color: var(--text-main);
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 12px;
 }
 
+/* =================================================== */
+/* ОСНОВНОЙ КОНТЕЙНЕР */
+/* =================================================== */
+
 #app-container {
   width: 100%;
-  max-width: 440px;
-  height: 96vh;          /* было max-height */
-  max-height: 96vh;
+  max-width: 460px;
+  height: 96vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-main);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
   border: 1px solid var(--border);
-}
-
-/* АВТОРИЗАЦИЯ */
-#auth-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 20px 16px;
-}
-
-.auth-tabs {
-  display: flex;
-  margin: 0 auto 20px;
-  border-radius: var(--radius);
   overflow: hidden;
-  background: rgba(90, 140, 255, 0.08);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-sm);
-  width: 100%;
-  max-width: 340px;
 }
 
-.auth-tabs button {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  background: transparent;
-  font-weight: 600;
-  color: var(--text-secondary);
-  transition: var(--transition);
-}
-
-.auth-tabs button.active {
-  background: var(--accent);
-  color: white;
-  box-shadow: 0 4px 12px rgba(90, 140, 255, 0.3);
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-  max-width: 340px;
-  margin: 0 auto;
-}
-
-.auth-form.hidden {
-  display: none !important;
-}
-
-.auth-form input {
-  padding: 14px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-chat);
-  font-size: 1rem;
-  color: var(--text-main);
-  transition: var(--transition);
-}
-
-.auth-form input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90, 140, 255, 0.15);
-}
-
-.auth-form button {
-  padding: 14px;
-  border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.auth-form button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(90, 140, 255, 0.25);
-}
-
-/* ОСНОВНОЙ ИНТЕРФЕЙС */
-#chat-ui.hidden {
-  display: none;
-}
+/* =================================================== */
+/* HEADER */
+/* =================================================== */
 
 .app-header {
+  flex-shrink: 0;
+  padding: 14px 16px;
   background: var(--bg-chat);
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   border-bottom: 1px solid var(--border);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
-/* Дропдаун чатов + поле ввода — на одной линии */
-#chat-input-row {
+/* =================================================== */
+/* ЧАТ */
+/* =================================================== */
+
+#chat-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  padding: 12px 16px;
   background: var(--bg-chat);
-  border-top: 1px solid var(--border);
-  flex-wrap: nowrap;
+  scroll-behavior: smooth;
 }
 
+/* Скролл аккуратный */
+#chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+#chat-container::-webkit-scrollbar-thumb {
+  background: rgba(90, 140, 255, 0.3);
+  border-radius: 10px;
+}
+
+/* =================================================== */
+/* СООБЩЕНИЯ */
+/* =================================================== */
+
+.message {
+  max-width: 82%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  animation: fadeIn 0.25s ease-out;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-shadow: var(--shadow-sm);
+}
+
+.user {
+  background: var(--bg-message-user);
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 6px;
+}
+
+.ai {
+  background: var(--bg-message-ai);
+  color: var(--text-main);
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =================================================== */
+/* INPUT ЗОНА */
+/* =================================================== */
+
+#chat-input-row {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-chat);
+  border-top: 1px solid var(--border);
+}
+
+/* Dropdown */
+
 #chat-dropdown-container {
-  flex: 0 0 160px;               /* фиксированная ширина для дропдауна */
-  min-width: 160px;
+  position: relative;
+  flex: 0 0 150px;
 }
 
 #chat-dropdown-btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg-chat);
+  background: var(--bg-main);
   cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 500;
+  font-size: 0.9rem;
   transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-  font-size: 0.95rem;
 }
 
 #chat-dropdown-btn:hover {
@@ -205,36 +185,36 @@ body {
 
 #chat-list {
   position: absolute;
-  top: 100%;
+  top: 105%;
   left: 0;
   width: 100%;
-  background: var(--bg-chat);
+  background: var(--bg-main);
   border: 1px solid var(--border);
-  border-radius: 0 0 var(--radius) var(--radius);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: all 0.35s ease;
-  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+  z-index: 10;
 }
 
 #chat-list.show {
-  max-height: 240px;
-  opacity: 1;
+  display: block;
 }
 
 #chat-list div {
-  padding: 10px 16px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: var(--transition);
 }
 
 #chat-list div:hover {
-  background: rgba(90, 140, 255, 0.08);
+  background: rgba(90, 140, 255, 0.1);
 }
 
-/* Поле ввода + кнопки Send и Web Search (справа, одинакового размера) */
+/* =================================================== */
+/* INPUT + BUTTONS */
+/* =================================================== */
+
 #input-container {
   display: flex;
   flex: 1;
@@ -244,13 +224,13 @@ body {
 
 #message-input {
   flex: 1;
-  padding: 12px 16px;
+  min-width: 0;
+  padding: 11px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-main);
-  font-size: 15px;
+  font-size: 14px;
   transition: var(--transition);
-  min-width: 0;
 }
 
 #message-input:focus {
@@ -260,146 +240,45 @@ body {
 }
 
 #input-container button {
-  padding: 0 20px;
-  min-width: 90px;                /* ← фиксированная ширина, одинаковая для обеих кнопок */
+  height: 42px;
+  min-width: 85px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  border: none;
   background: var(--accent);
   color: white;
-  border: none;
-  border-radius: var(--radius);
   cursor: pointer;
+  font-size: 0.9rem;
   transition: var(--transition);
-  font-size: 0.95rem;
-  white-space: nowrap;
-  height: 44px;                   /* одинаковая высота */
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 #input-container button:hover {
   background: var(--accent-dark);
-  transform: scale(1.05);
+  transform: translateY(-1px);
 }
 
-/* Чат-сообщения */
-#chat-container {
-  flex: 1 1 auto;
-  min-height: 0;              /* КРИТИЧНО для flex + scroll */
-  padding: 12px 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--bg-chat);
-  scroll-behavior: smooth;
-}
+/* =================================================== */
+/* МОБИЛЬНАЯ АДАПТАЦИЯ */
+/* =================================================== */
 
-.message {
-  max-width: 82%;
-  padding: 12px 16px;
-  border-radius: 18px;
-  line-height: 1.5;
-  font-size: 14.5px;
-  animation: fadeIn 0.4s ease-out;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.user {
-  background: var(--accent);
-  color: white;
-  align-self: flex-end;
-  border-bottom-right-radius: 4px;
-}
-
-.ai {
-  background: var(--bg-message-ai);
-  color: var(--text-main);
-  align-self: flex-start;
-  border-bottom-left-radius: 4px;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Кнопки Delete и Create (современные) */
-#new-chat-container {
-  display: flex;
-  gap: 8px;
-  margin: 12px 16px 8px;
-  padding: 0 16px;
-}
-
-#new-chat-title {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-chat);
-  font-size: 14px;
-}
-
-#new-chat-container button,
-#delete-chat-btn {
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: none;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-  font-size: 0.9rem;
-  min-width: 100px;
-}
-
-#new-chat-container button {
-  background: linear-gradient(135deg, #4caf50, #388e3c);
-  color: white;
-}
-
-#new-chat-container button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
-}
-
-#delete-chat-btn {
-  background: linear-gradient(135deg, #f44336, #d32f2f);
-  color: white;
-}
-
-#delete-chat-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(244, 67, 54, 0.3);
-}
-
-/* Медиа-запросы для мобильных */
 @media (max-width: 480px) {
+  body {
+    padding: 0;
+  }
+
   #app-container {
-    max-height: 100vh;
+    height: 100vh;
     border-radius: 0;
     box-shadow: none;
   }
-  #input-container {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  #input-container button {
-    flex: 1 1 48%;                /* кнопки делят ширину, не вылезают */
-    min-width: 48%;
-  }
-  #chat-container {
-    padding: 10px 12px;
-  }
-}
 
-/* Плавный скролл */
-#chat-container {
-  scroll-behavior: smooth;
+  #chat-dropdown-container {
+    display: none;
+  }
+
+  #input-container button {
+    min-width: 70px;
+  }
 }
 </style>
 
