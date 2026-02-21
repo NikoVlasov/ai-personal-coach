@@ -52,13 +52,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16px;
+  padding: 12px;
 }
 
 #app-container {
   width: 100%;
-  max-width: 440px;
-  min-height: 100vh;
+  max-width: 420px;
+  max-height: 90vh;                /* ← главное изменение: не растягивается за экран */
   background: var(--bg-main);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
@@ -95,13 +95,13 @@ body {
 
 .auth-tabs button {
   flex: 1;
-  padding: 14px;
+  padding: 12px;
   border: none;
   background: transparent;
   font-weight: 600;
   color: var(--text-secondary);
   transition: var(--transition);
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .auth-tabs button.active {
@@ -113,7 +113,7 @@ body {
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
   max-width: 340px;
   margin: 0 auto;
@@ -124,11 +124,11 @@ body {
 }
 
 .auth-form input {
-  padding: 14px 16px;
+  padding: 12px 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-chat);
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--text-main);
   transition: var(--transition);
 }
@@ -140,7 +140,7 @@ body {
 }
 
 .auth-form button {
-  padding: 14px;
+  padding: 12px;
   border-radius: var(--radius);
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
@@ -163,27 +163,27 @@ body {
   display: none;
 }
 
-/* Шапка чата (появляется после входа) */
+/* Шапка чата */
 .app-header {
   background: var(--bg-chat);
-  padding: 16px 20px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
 /* Чат-дропдаун */
 #chat-dropdown-container {
-  margin: 16px;
+  margin: 12px 16px 8px;
   position: relative;
 }
 
 #chat-dropdown-btn {
   width: 100%;
-  padding: 14px 18px;
+  padding: 12px 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-chat);
@@ -217,12 +217,12 @@ body {
 }
 
 #chat-list.show {
-  max-height: 280px;
+  max-height: 240px;
   opacity: 1;
 }
 
 #chat-list div {
-  padding: 12px 18px;
+  padding: 10px 16px;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -231,24 +231,25 @@ body {
   background: rgba(90, 140, 255, 0.08);
 }
 
-/* Чат-контейнер */
+/* Чат-контейнер — основной блок сообщений */
 #chat-container {
-  flex: 1;
-  padding: 16px;
+  flex: 1 1 auto;               /* ← ключевой момент: растягивается, но не толкает контейнер */
+  padding: 12px 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   background: var(--bg-chat);
+  scroll-behavior: smooth;
 }
 
 /* Сообщения */
 .message {
   max-width: 82%;
-  padding: 14px 18px;
-  border-radius: 20px;
-  line-height: 1.55;
-  font-size: 15px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.5;
+  font-size: 14.5px;
   animation: fadeIn 0.4s ease-out;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
@@ -269,7 +270,7 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -277,8 +278,8 @@ body {
 #quick-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 10px 16px;
   background: rgba(90, 140, 255, 0.05);
   border-top: 1px solid var(--border);
 }
@@ -287,35 +288,36 @@ body {
   background: var(--accent);
   color: white;
   border: none;
-  padding: 10px 16px;
-  border-radius: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
+  font-size: 0.9rem;
 }
 
 .quick-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(90, 140, 255, 0.25);
+  box-shadow: 0 6px 16px rgba(90, 140, 255, 0.25);
 }
 
 /* Поле ввода */
 #input-container {
   display: flex;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 10px 16px;
   background: var(--bg-chat);
   border-top: 1px solid var(--border);
 }
 
 #message-input {
   flex: 1;
-  padding: 14px 18px;
+  padding: 12px 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-main);
-  font-size: 15px;
+  font-size: 14.5px;
   transition: var(--transition);
 }
 
@@ -326,13 +328,14 @@ body {
 }
 
 #input-container button {
-  padding: 0 20px;
+  padding: 0 18px;
   background: var(--accent);
   color: white;
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
   transition: var(--transition);
+  font-size: 0.95rem;
 }
 
 #input-container button:hover {
@@ -340,16 +343,25 @@ body {
   transform: scale(1.05);
 }
 
-/* Медиа-запросы */
-@media (max-width: 480px) {
+/* Медиа-запросы (мобильные и маленькие экраны) */
+@media (max-height: 700px), (max-width: 480px) {
   #app-container {
+    max-height: 100vh;
     border-radius: 0;
-    min-height: 100vh;
     box-shadow: none;
   }
   .app-header {
-    padding: 12px 16px;
-    font-size: 1.2rem;
+    padding: 10px 14px;
+    font-size: 1.15rem;
+  }
+  #chat-container {
+    padding: 10px 12px;
+  }
+  #quick-buttons {
+    padding: 8px 12px;
+  }
+  #input-container {
+    padding: 8px 12px;
   }
 }
 
