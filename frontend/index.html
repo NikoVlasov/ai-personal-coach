@@ -10,11 +10,11 @@
 /* =================================================== */
 
 :root {
-  --bg-main:        #f5f9ff;        /* очень светлый голубоватый фон */
-  --bg-chat:        #e8f0ff;        /* фон чата */
-  --bg-message-user: #e0f0ff;       /* сообщения пользователя */
-  --bg-message-ai:  #ffffff;        /* сообщения ИИ */
-  --accent:         #5a8cff;        /* основной акцент */
+  --bg-main:        #f5f9ff;
+  --bg-chat:        #e8f0ff;
+  --bg-message-user: #e0f0ff;
+  --bg-message-ai:  #ffffff;
+  --accent:         #5a8cff;
   --accent-dark:    #3b6ae0;
   --text-main:      #1a2b4c;
   --text-secondary: #5a6f8c;
@@ -58,7 +58,7 @@ body {
 #app-container {
   width: 100%;
   max-width: 440px;
-  min-height: 700px;
+  min-height: 100vh;
   background: var(--bg-main);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
@@ -68,41 +68,29 @@ body {
   border: 1px solid var(--border);
 }
 
-/* Шапка */
-.app-header {
-  background: var(--bg-chat);
-  padding: 16px 20px;
+/* =================================================== */
+/*                  АВТОРИЗАЦИЯ (первичный экран)                  */
+/* =================================================== */
+
+#auth-container {
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  font-size: 1.35rem;
-  font-weight: 600;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 16px;
+  background: var(--bg-main);
 }
 
-.logout-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: var(--transition);
-}
-
-.logout-text:hover {
-  background: rgba(90, 140, 255, 0.1);
-  color: var(--accent);
-}
-
-/* Аутентификация — вкладки Вход / Регистрация */
 .auth-tabs {
   display: flex;
-  margin: 20px 16px 0;
+  margin: 0 auto 20px;
   border-radius: var(--radius);
   overflow: hidden;
   background: rgba(90, 140, 255, 0.08);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 340px;
 }
 
 .auth-tabs button {
@@ -123,10 +111,12 @@ body {
 }
 
 .auth-form {
-  padding: 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
 }
 
 .auth-form.hidden {
@@ -163,6 +153,26 @@ body {
 .auth-form button:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(90, 140, 255, 0.25);
+}
+
+/* =================================================== */
+/*                  ОСНОВНОЙ ИНТЕРФЕЙС (после входа)               */
+/* =================================================== */
+
+#chat-ui.hidden {
+  display: none;
+}
+
+/* Шапка чата (появляется после входа) */
+.app-header {
+  background: var(--bg-chat);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.35rem;
+  font-weight: 600;
 }
 
 /* Чат-дропдаун */
@@ -330,7 +340,7 @@ body {
   transform: scale(1.05);
 }
 
-/* Медиа-запросы (мобильные) */
+/* Медиа-запросы */
 @media (max-width: 480px) {
   #app-container {
     border-radius: 0;
