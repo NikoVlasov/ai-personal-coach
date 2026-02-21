@@ -58,7 +58,8 @@ body {
 #app-container {
   width: 100%;
   max-width: 440px;
-  max-height: 94vh;
+  height: 96vh;          /* было max-height */
+  max-height: 96vh;
   background: var(--bg-main);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
@@ -283,8 +284,10 @@ body {
 /* Чат-сообщения */
 #chat-container {
   flex: 1 1 auto;
+  min-height: 0;              /* КРИТИЧНО для flex + scroll */
   padding: 12px 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -301,6 +304,8 @@ body {
   animation: fadeIn 0.4s ease-out;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .user {
