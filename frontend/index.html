@@ -21,8 +21,8 @@
   --border:         rgba(90, 140, 255, 0.15);
   --shadow-sm:      0 4px 12px rgba(90, 140, 255, 0.08);
   --shadow-md:      0 8px 24px rgba(90, 140, 255, 0.12);
-  --radius:         16px;
-  --transition:     all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --radius:         14px;
+  --transition:     all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Тёмная тема */
@@ -45,7 +45,7 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-main);
   color: var(--text-main);
   min-height: 100vh;
@@ -57,8 +57,8 @@ body {
 
 #app-container {
   width: 100%;
-  max-width: 440px;
-  max-height: 94vh;                /* ← чуть выше, чтобы было комфортно на мониторе, но без лишнего скролла */
+  max-width: 420px;
+  max-height: 94vh;
   background: var(--bg-main);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
@@ -68,17 +68,13 @@ body {
   border: 1px solid var(--border);
 }
 
-/* =================================================== */
-/*                  АВТОРИЗАЦИЯ (первичный экран)                  */
-/* =================================================== */
-
+/* АВТОРИЗАЦИЯ */
 #auth-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 20px 16px;
-  background: var(--bg-main);
 }
 
 .auth-tabs {
@@ -101,7 +97,6 @@ body {
   font-weight: 600;
   color: var(--text-secondary);
   transition: var(--transition);
-  font-size: 1rem;
 }
 
 .auth-tabs button.active {
@@ -155,15 +150,11 @@ body {
   box-shadow: 0 6px 20px rgba(90, 140, 255, 0.25);
 }
 
-/* =================================================== */
-/*                  ОСНОВНОЙ ИНТЕРФЕЙС (после входа)               */
-/* =================================================== */
-
+/* ОСНОВНОЙ ИНТЕРФЕЙС */
 #chat-ui.hidden {
   display: none;
 }
 
-/* Шапка чата */
 .app-header {
   background: var(--bg-chat);
   padding: 12px 16px;
@@ -175,7 +166,7 @@ body {
   font-weight: 600;
 }
 
-/* Чат-дропдаун */
+/* Дропдаун чатов */
 #chat-dropdown-container {
   margin: 12px 16px 8px;
   position: relative;
@@ -231,9 +222,9 @@ body {
   background: rgba(90, 140, 255, 0.08);
 }
 
-/* Чат-контейнер — основной блок сообщений */
+/* Чат-сообщения */
 #chat-container {
-  flex: 1 1 auto;               /* растягивается, но не толкает контейнер вниз */
+  flex: 1 1 auto;
   padding: 12px 16px;
   overflow-y: auto;
   display: flex;
@@ -243,7 +234,6 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Сообщения */
 .message {
   max-width: 82%;
   padding: 12px 16px;
@@ -274,15 +264,15 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Кнопки быстрого доступа */
+/* Кнопки быстрого доступа (компактнее) */
 #quick-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   background: rgba(90, 140, 255, 0.05);
   border-top: 1px solid var(--border);
-  justify-content: center; /* ← кнопки центрируются на маленьких экранах */
+  justify-content: flex-start;
 }
 
 .quick-btn {
@@ -296,7 +286,7 @@ body {
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
   font-size: 0.9rem;
-  min-width: 80px;              /* ← кнопка не сжимается слишком сильно */
+  min-width: 90px;
   text-align: center;
 }
 
@@ -305,19 +295,19 @@ body {
   box-shadow: 0 6px 16px rgba(90, 140, 255, 0.25);
 }
 
-/* Поле ввода — самое важное для мобильных */
+/* Поле ввода + кнопки Send и Web Search */
 #input-container {
   display: flex;
   gap: 8px;
   padding: 10px 16px;
   background: var(--bg-chat);
   border-top: 1px solid var(--border);
-  flex-wrap: wrap;              /* ← кнопки переносятся на новую строку, если не влезают */
-  justify-content: space-between;
+  flex-wrap: nowrap;            /* ← кнопки не переносятся, стоят рядом */
+  align-items: center;
 }
 
 #message-input {
-  flex: 1 1 100%;               /* занимает всю ширину на маленьких экранах */
+  flex: 1;
   padding: 12px 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -325,6 +315,12 @@ body {
   font-size: 14.5px;
   transition: var(--transition);
   min-width: 0;
+}
+
+#message-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(90, 140, 255, 0.15);
 }
 
 #input-container button {
@@ -336,8 +332,8 @@ body {
   cursor: pointer;
   transition: var(--transition);
   font-size: 0.95rem;
-  min-width: 80px;              /* ← кнопки не становятся слишком узкими */
-  flex: 0 0 auto;
+  min-width: 80px;              /* ← фиксированная ширина, не растягиваются */
+  white-space: nowrap;          /* ← текст не переносится */
 }
 
 #input-container button:hover {
@@ -345,32 +341,76 @@ body {
   transform: scale(1.05);
 }
 
-/* Медиа-запросы для мобильных и маленьких экранов */
+/* Кнопки Delete и Create (теперь современные) */
+#new-chat-container {
+  display: flex;
+  gap: 8px;
+  margin: 12px 16px 8px;
+  padding: 0 16px;
+}
+
+#new-chat-title {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  font-size: 14px;
+}
+
+#new-chat-container button,
+#delete-chat-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.9rem;
+}
+
+#new-chat-container button {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+}
+
+#new-chat-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
+}
+
+#delete-chat-btn {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  color: white;
+}
+
+#delete-chat-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(244, 67, 54, 0.3);
+}
+
+/* Медиа-запросы (особенно для мобильных) */
 @media (max-width: 480px) {
   #app-container {
     max-height: 100vh;
     border-radius: 0;
     box-shadow: none;
-    padding: 0;
   }
-  .app-header {
-    padding: 10px 14px;
-    font-size: 1.15rem;
+  #input-container {
+    flex-wrap: wrap;              /* на очень маленьких экранах кнопки переносятся */
+    gap: 8px;
   }
-  #chat-container {
-    padding: 10px 12px;
+  #input-container button {
+    flex: 1 1 45%;                /* кнопки делят ширину */
+    min-width: 45%;
   }
   #quick-buttons {
     padding: 8px 12px;
     gap: 6px;
   }
-  #input-container {
-    padding: 8px 12px;
-    flex-direction: column;     /* ← на очень маленьких экранах кнопки под полем ввода */
-    gap: 8px;
-  }
-  #input-container button {
-    width: 100%;                /* кнопки на всю ширину */
+  #chat-container {
+    padding: 10px 12px;
   }
 }
 
