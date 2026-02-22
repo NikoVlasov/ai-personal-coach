@@ -161,14 +161,14 @@ body {
 }
 
 .auth-form {
-  display: none; /* 🔥 важно */
+  display: flex; /* 🔥 важно */
   flex-direction: column;
   gap: 14px;
   width: 100%;
 }
 
 .auth-form.active {
-  display: flex; /* 🔥 показываем только активную */
+  display: none !important; /* 🔥 показываем только активную */
 }
 
 .auth-form input {
