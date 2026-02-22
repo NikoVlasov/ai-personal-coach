@@ -130,6 +130,10 @@ body {
   align-items: center;
 }
 
+/* ============================= */
+/* AUTH FIX — Tabs Work Properly */
+/* ============================= */
+
 .auth-tabs {
   display: flex;
   width: 100%;
@@ -137,6 +141,7 @@ body {
   overflow: hidden;
   background: rgba(90, 140, 255, 0.08);
   box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
 }
 
 .auth-tabs button {
@@ -146,19 +151,24 @@ body {
   background: transparent;
   font-weight: 600;
   color: var(--text-secondary);
+  cursor: pointer;
   transition: var(--transition);
 }
 
 .auth-tabs button.active {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
 }
 
 .auth-form {
-  display: flex;
+  display: none; /* 🔥 важно */
   flex-direction: column;
   gap: 14px;
-  width:100%;
+  width: 100%;
+}
+
+.auth-form.active {
+  display: flex; /* 🔥 показываем только активную */
 }
 
 .auth-form input {
@@ -251,7 +261,22 @@ body {
 #chat-list div:hover {
   background: rgba(90,140,255,0.08);
 }
+#new-chat-title {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  font-size: 14.5px;
+  transition: var(--transition);
+  min-width: 0;
+}
 
+#new-chat-title:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(90,140,255,0.15);
+}
 
 /* ============================= */
 /* CHAT CONTAINER (архитектура сохранена) */
@@ -327,19 +352,31 @@ body {
   box-shadow: 0 0 0 3px rgba(90,140,255,0.15);
 }
 
-#input-container button {
+/* ============================= */
+/* UNIFIED BUTTON SYSTEM */
+/* ============================= */
+
+#input-container button,
+#new-chat-container button,
+#delete-chat-btn {
   padding: 0 18px;
   min-width: 90px;
+  height: 44px;
   border-radius: var(--radius);
-  border:none;
+  border: none;
   background: var(--accent);
-  color:white;
-  font-weight:600;
-  cursor:pointer;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#input-container button:hover {
+#input-container button:hover,
+#new-chat-container button:hover,
+#delete-chat-btn:hover {
   background: var(--accent-dark);
   transform: scale(1.05);
 }
