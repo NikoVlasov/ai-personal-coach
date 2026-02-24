@@ -293,7 +293,19 @@ body {
   background: var(--bg-chat);
   max-height: 400px;  /* оставлено */
 }
+/* ============================= */
+/* NEW CHAT CONTAINER FIX */
+/* ============================= */
 
+#new-chat-container {
+  display: flex;
+  gap: 8px;
+  margin: 0 10px 10px 10px;   /* такие же отступы как у dropdown */
+}
+
+#new-chat-title {
+  flex: 1;                    /* занимает всё доступное место */
+}
 
 /* ============================= */
 /* MESSAGES                     */
