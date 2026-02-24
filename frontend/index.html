@@ -371,25 +371,39 @@ body {
 #input-container button,
 #new-chat-container button,
 #delete-chat-btn {
-  margin: 0 10px 12px 10px;
-  padding: 12px;
+  padding: 0 18px;
+  min-width: 90px;
+  height: 44px;
   border-radius: var(--radius);
   border: none;
-  background: linear-gradient(135deg, #b84a4a, #9f3b3b);
+  background: var(--accent);
   color: white;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-#delete-chat-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(184, 74, 74, 0.25);
-}
+
 #input-container button:hover,
 #new-chat-container button:hover,
+#delete-chat-btn:hover {
+  background: var(--accent-dark);
+  transform: scale(1.05);
+}
 
+/* ============================= */
+/* DELETE BUTTON — OVERRIDE */
+/* ============================= */
 
+#delete-chat-btn {
+  background: linear-gradient(135deg, #b84a4a, #9f3b3b);
+}
 
+#delete-chat-btn:hover {
+  background: linear-gradient(135deg, #a13f3f, #873232);
+}
 /* ============================= */
 /* ANIMATIONS                   */
 /* ============================= */
