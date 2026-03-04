@@ -275,49 +275,61 @@ async def coach(msg: MessageRequest,
     if not chat:
         raise HTTPException(status_code=404)
 
+    # Сохраняем новое сообщение пользователя
     db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
     db.commit()
 
     try:
+        # 1. Загружаем ВСЮ историю сообщений этого чата (в порядке создания)
+        db_messages = db.query(Message).filter(Message.chat_id == msg.chat_id).order_by(Message.created_at).all()
+
+        # 2. Формируем массив messages для Groq в формате [{"role": "...", "content": "..."}]
+        conversation = []
+        for m in db_messages:
+            if m.sender == "user":
+                conversation.append({"role": "user", "content": m.text})
+            elif m.sender == "ai":
+                conversation.append({"role": "assistant", "content": m.text})
+
+        # 3. Добавляем system prompt в начало (он должен быть первым!)
+        full_messages = [
+            {
+                "role": "system",
+                "content": """You are DailyCoach AI — an empathetic, supportive daily personal coach focused on habits, goals, productivity, mindset, and self-improvement.
+
+Your tone is warm, human, encouraging, non-judgmental, and conversational — like a caring friend who is also a professional coach.
+
+Key rules:
+- Always respond in the SAME LANGUAGE as the user's message (detect the language automatically and reply in it — English, Russian, Spanish, French, German, etc.).
+- Never switch languages mid-conversation unless the user does first.
+- Focus ONLY on personal development: habits, goals, motivation, productivity, mindset, small daily wins.
+- Do NOT give advice on dating, relationships, flirting, romance, or anything romantic/sexual.
+- Always ask follow-up questions to understand progress, break goals into tiny steps, celebrate small wins.
+- Use web search ONLY when needed for facts, science-backed tips, examples, or resources (and include links).
+- Keep responses concise but helpful (150–400 words max unless asked for more detail).
+- If this is the very first message in the conversation (no previous messages), start by asking 3–4 onboarding questions:
+  1. What is your name or how would you like me to call you?
+  2. What is your main goal or area you want to work on right now?
+  3. On a scale of 1–10, how motivated are you right now?
+  4. Any important context (current routine, obstacles, preferences)?
+- After onboarding, NEVER repeat the questions in future messages — remember the answers from conversation history.
+- You are equally fluent and natural in English, Russian, Spanish, French, German, Portuguese, and other major languages."""
+            }
+        ] + conversation  # ← здесь добавляем всю историю после system
+
+        # 4. Вызов Groq с полной историей
         completion = await asyncio.to_thread(
             lambda: groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are DailyCoach AI — an empathetic, supportive daily personal coach focused on habits, goals, productivity, mindset, and self-improvement.
-
-                Your tone is warm, human, encouraging, non-judgmental, and conversational — like a caring friend who is also a professional coach.
-
-                Key rules:
-                - Always respond in the SAME LANGUAGE as the user's message (detect the language automatically and reply in it — English, Russian, Spanish, French, German, etc.).
-                - Never switch languages mid-conversation unless the user does first.
-                - If the user writes in mixed languages, default to the main one or ask for clarification.
-                - Focus ONLY on personal development: habits, goals, motivation, productivity, mindset, small daily wins.
-                - Do NOT give advice on dating, relationships, flirting, romance, or anything romantic/sexual.
-                - Always ask follow-up questions to understand progress, break goals into tiny steps, celebrate small wins.
-                - Use web search ONLY when needed for facts, science-backed tips, examples, or resources (and include links).
-                - Keep responses concise but helpful (150–400 words max unless asked for more detail).
-                - Start new conversations with a warm welcome and quick onboarding questions if needed.
-
-                You are equally fluent and natural in English, Russian, Spanish, French, German, Portuguese, and other major languages.
-                If this is the very first message in the conversation (no previous messages exist), start by asking 3–4 onboarding questions:
-                1. What is your name or how would you like me to call you?
-                2. What is your main goal or area you want to work on right now (e.g. waking up earlier, stop procrastinating, build exercise habit)?
-                3. On a scale of 1–10, how motivated are you to work on this right now?
-                4. Any important context (current routine, obstacles, preferences)?
-
-                After getting answers, summarize them briefly and suggest first tiny action."""
-                        
-                    },
-                    {"role": "user", "content": msg.text}
-                ],
-                temperature=0.3
+                messages=full_messages,  # ← теперь это полная история!
+                temperature=0.5,         # чуть повыше для естественности
+                max_tokens=600
             )
         )
 
         ai_text = completion.choices[0].message.content.strip()
 
+        # 5. Сохраняем ответ ИИ
         db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
         db.commit()
 
