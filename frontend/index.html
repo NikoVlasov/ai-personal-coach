@@ -486,10 +486,33 @@ marked.setOptions({
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
 
-        <div id="input-container">
-            <input type="text" id="message-input" placeholder="Type a message...">
+        <!-- Блок ввода с новой кнопкой Daily Check-in -->
+        <div id="input-container" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px;">
+            <input
+                type="text"
+                id="message-input"
+                placeholder="Type a message..."
+                style="flex: 1; min-width: 200px;"
+            >
             <button onclick="chatModule.sendMessage()">Send</button>
             <button onclick="chatModule.sendMessage(true)">🔎 Web Search</button>
+
+            <!-- Новая кнопка Daily Check-in -->
+            <button
+                id="daily-checkin"
+                style="
+                    background: #28a745;
+                    color: white;
+                    padding: 10px 16px;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    white-space: nowrap;
+                "
+            >
+                Daily Check-in 🌟
+            </button>
         </div>
     </div>
 </div>
@@ -861,6 +884,48 @@ async function loadHistory(chatId) {
 }
 
 ////////////////////////////////////////////////////////////
+// DAILY CHECK-IN
+////////////////////////////////////////////////////////////
+
+async function handleDailyCheckin() {
+    const chatId = mainModule.getCurrentChatId();
+
+    if (!chatId) {
+        alert("Сначала выбери чат");
+        return;
+    }
+
+    try {
+        const res = await fetch("/checkin", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({ chat_id: chatId })
+        });
+
+        if (!res.ok) {
+            if (res.status === 401) mainModule.logout();
+            throw new Error("Check-in failed: " + res.status);
+        }
+
+        const reply = await res.text();
+
+        // Добавляем сообщение пользователя и ответ ИИ в чат
+        chatModule.addMessage("Daily check-in...", "user");
+        chatModule.addMessage(reply, "ai");
+
+        // Прокрутка вниз
+        scrollToBottom();
+
+    } catch (err) {
+        console.error("Check-in error:", err);
+        alert("Не удалось выполнить Daily Check-in. Попробуйте позже.");
+    }
+}
+
+////////////////////////////////////////////////////////////
 // INIT
 ////////////////////////////////////////////////////////////
 
@@ -881,6 +946,14 @@ window.addEventListener("DOMContentLoaded", () => {
             chatModule.sendMessage(false);
         }
     });
+
+    // Привязываем обработчик к кнопке Daily Check-in
+    const checkinBtn = document.getElementById("daily-checkin");
+    if (checkinBtn) {
+        checkinBtn.addEventListener("click", handleDailyCheckin);
+    } else {
+        console.warn("Кнопка #daily-checkin не найдена в DOM");
+    }
 
 });
 </script>

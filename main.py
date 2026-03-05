@@ -106,8 +106,11 @@ class Message(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     chat = relationship("Chat", back_populates="messages")
 
+class CheckinRequest(BaseModel):
+    chat_id: int
 
 Base.metadata.create_all(bind=engine)
+
 
 # =========================
 # SECURITY
@@ -498,3 +501,73 @@ async def delete_chat(chat_id: int,
     db.commit()
 
     return {"status": "deleted"}
+
+@app.post("/checkin")
+async def daily_checkin(
+    req: CheckinRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    chat = db.query(Chat).filter(Chat.id == req.chat_id, Chat.user_id == user.id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    # Текст сообщения от пользователя для check-in
+    checkin_text = (
+        "Daily check-in: как прошёл день? "
+        "Что удалось из вчерашнего плана? "
+        "Как сейчас уровень энергии (1–10)? "
+        "Что было хорошо, а что можно улучшить?"
+    )
+
+    # Сохраняем как сообщение пользователя
+    db.add(Message(chat_id=chat.id, sender="user", text=checkin_text))
+    db.commit()
+
+    try:
+        # Загружаем всю историю чата
+        db_messages = db.query(Message).filter(Message.chat_id == req.chat_id).order_by(Message.created_at).all()
+
+        conversation = []
+        for m in db_messages:
+            role = "user" if m.sender == "user" else "assistant"
+            conversation.append({"role": role, "content": m.text})
+
+        # System prompt для check-in (чуть адаптирован, чтобы акцент на рефлексии и мотивации)
+        full_messages = [
+            {
+                "role": "system",
+                "content": """You are DailyCoach AI — empathetic daily personal coach.
+
+Key rules for daily check-in:
+- This is a daily reflection message. Celebrate any progress or effort, even small.
+- Start with positive reinforcement based on what user shared before.
+- Ask about energy level (1-10), what went well, what to improve.
+- Suggest 1 tiny next step for tomorrow.
+- Keep response 100–200 words.
+- End with ONE clear commitment question.
+- Respond in the SAME LANGUAGE as the conversation.
+- Focus only on habits, energy, productivity, mindset."""
+            }
+        ] + conversation
+
+        completion = await asyncio.to_thread(
+            lambda: groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=full_messages,
+                temperature=0.6,
+                max_tokens=400
+            )
+        )
+
+        ai_text = completion.choices[0].message.content.strip()
+
+        # Сохраняем ответ ИИ
+        db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
+        db.commit()
+
+        return PlainTextResponse(ai_text)
+
+    except Exception as e:
+        logger.error(f"CHECKIN ERROR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
