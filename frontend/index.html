@@ -6,42 +6,28 @@
 <title>Mentra Coach</title>
 <style>
 :root {
-  --bg-main: #f5f9ff;
-  --bg-chat: #e8f0ff;
-  --bg-message-user: #5a8cff;
-  --bg-message-ai: #ffffff;
-  --accent: #5a8cff;
-  --accent-dark: #3b6ae0;
-  --text-main: #1a2b4c;
-  --text-secondary: #5a6f8c;
-  --border: rgba(90,140,255,0.15);
-  --shadow-sm: 0 4px 12px rgba(90,140,255,0.08);
-  --shadow-md: 0 8px 24px rgba(90,140,255,0.12);
-  --radius: 14px;
-  --transition: all 0.28s cubic-bezier(0.4,0,0.2,1);
+  --bg-main:#f5f9ff; --bg-chat:#e8f0ff;
+  --bg-message-user:#5a8cff; --bg-message-ai:#ffffff;
+  --accent:#5a8cff; --accent-dark:#3b6ae0;
+  --text-main:#1a2b4c; --text-secondary:#5a6f8c;
+  --border:rgba(90,140,255,0.15); --shadow-sm:0 4px 12px rgba(90,140,255,0.08);
+  --shadow-md:0 8px 24px rgba(90,140,255,0.12); --radius:14px;
+  --transition:all 0.28s cubic-bezier(0.4,0,0.2,1);
 }
 [data-theme="dark"] {
-  --bg-main: #0f172a;
-  --bg-chat: #1e293b;
-  --bg-message-user: #1e40af;
-  --bg-message-ai: #1e293b;
-  --text-main: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --border: rgba(90,140,255,0.25);
-  --shadow-sm: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+  --bg-main:#0f172a; --bg-chat:#1e293b;
+  --bg-message-user:#1e40af; --bg-message-ai:#1e293b;
+  --text-main:#e2e8f0; --text-secondary:#94a3b8;
+  --border:rgba(90,140,255,0.25); --shadow-sm:0 4px 12px rgba(0,0,0,0.4);
+  --shadow-md:0 8px 24px rgba(0,0,0,0.5);
 }
-
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-main);display:flex;justify-content:center;align-items:center;height:100vh;}
-
+body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;background:var(--bg-main);}
 #app-container{width:420px;max-width:100%;min-height:700px;background:var(--bg-main);border-radius:var(--radius);box-shadow:var(--shadow-md);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);}
 .hidden{display:none !important;}
-
 .app-header{background:var(--bg-chat);color:var(--text-main);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:1.25rem;font-weight:600;border-bottom:1px solid var(--border);}
 .logout-text{cursor:pointer;font-size:0.85em;padding:6px 10px;border-radius:8px;color:var(--text-secondary);transition:var(--transition);}
 .logout-text:hover{background:rgba(90,140,255,0.08);color:var(--text-main);}
-
 #auth-container{padding:20px;display:flex;flex-direction:column;align-items:center;}
 .auth-tabs{display:flex;width:100%;border-radius:var(--radius);overflow:hidden;background:rgba(90,140,255,0.08);box-shadow:var(--shadow-sm);margin-bottom:18px;}
 .auth-tabs button{flex:1;padding:14px;border:none;background:transparent;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:var(--transition);}
@@ -51,22 +37,15 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .auth-form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(90,140,255,0.15);}
 .auth-form button{padding:12px;border-radius:var(--radius);border:none;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:white;font-weight:600;cursor:pointer;transition:var(--transition);}
 .auth-form button:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(90,140,255,0.25);}
-
-#chat-container{flex:1;padding:12px 16px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:12px;background:var(--bg-chat);max-height:400px;}
-.message{max-width:75%;padding:14px 18px;border-radius:18px;line-height:1.6;font-size:14.5px;border:1px solid var(--border);box-shadow:var(--shadow-sm);animation:fadeIn 0.3s ease;word-break:break-word;overflow-wrap:anywhere;}
+#chat-container{flex:1;padding:12px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;background:var(--bg-chat);}
+.message{max-width:75%;padding:14px 18px;border-radius:18px;line-height:1.6;font-size:14.5px;border:1px solid var(--border);box-shadow:var(--shadow-sm);word-break:break-word;overflow-wrap:anywhere;animation:fadeIn 0.3s ease;}
 .user{background:var(--bg-message-user);color:white;align-self:flex-end;border-bottom-right-radius:4px;}
 .ai{background:var(--bg-message-ai);color:var(--text-main);align-self:flex-start;border-bottom-left-radius:4px;}
-
 #input-container{display:flex;gap:8px;padding:12px;}
-#message-input{flex:1;padding:12px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-chat);transition:var(--transition);}
+#message-input{flex:1;padding:12px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-chat);}
 #message-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(90,140,255,0.15);}
-#input-container button{padding:0 18px;min-width:90px;height:44px;border-radius:var(--radius);border:none;background:var(--accent);color:white;font-weight:600;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;}
+#input-container button{padding:0 18px;min-width:90px;height:44px;border-radius:var(--radius);border:none;background:var(--accent);color:white;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);}
 #input-container button:hover{background:var(--accent-dark);transform:scale(1.05);}
-
-.user-params{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px;}
-.user-params input{padding:8px;border-radius:var(--radius);border:1px solid var(--border);flex:1;min-width:80px;}
-.user-params button{background:var(--accent);color:white;font-weight:600;padding:8px 12px;border:none;border-radius:var(--radius);}
-
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
@@ -76,167 +55,87 @@ marked.setOptions({gfm:true,breaks:true,mangle:false,headerIds:false});
 </head>
 <body>
 <div id="app-container">
-    <header class="app-header">
-        <div class="app-title">Mentra Coach</div>
-        <span class="logout-text" id="btn-logout" onclick="mainModule.logout()">Logout</span>
-    </header>
+<header class="app-header">
+    <div class="app-title">Mentra Coach</div>
+    <span class="logout-text" id="btn-logout" onclick="mainModule.logout()">Logout</span>
+</header>
 
-    <!-- AUTH -->
-    <div id="auth-container">
-        <div class="auth-tabs">
-            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Login</button>
-            <button id="register-tab" onclick="authModule.showForm('register')">Register</button>
-        </div>
-        <form id="login-form" class="auth-form">
-            <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button type="button" onclick="authModule.login()">Enter</button>
-        </form>
-        <form id="register-form" class="auth-form hidden">
-            <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Password" required>
-            <button type="button" onclick="authModule.register()">Register</button>
-        </form>
+<!-- AUTH -->
+<div id="auth-container">
+    <div class="auth-tabs">
+        <button id="login-tab" class="active" onclick="authModule.showForm('login')">Login</button>
+        <button id="register-tab" onclick="authModule.showForm('register')">Register</button>
     </div>
+    <form id="login-form" class="auth-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="button" onclick="authModule.login()">Enter</button>
+    </form>
+    <form id="register-form" class="auth-form hidden">
+        <input type="email" id="register-email" placeholder="Email" required>
+        <input type="password" id="register-password" placeholder="Password" required>
+        <button type="button" onclick="authModule.register()">Register</button>
+    </form>
+</div>
 
-    <!-- CHAT -->
-    <div id="chat-ui" class="hidden">
-        <div id="chat-container"></div>
-
-        <!-- Параметры пользователя -->
-        <div id="user-params" class="user-params">
-            <input type="number" id="user-height" placeholder="Height (cm)">
-            <input type="number" id="user-weight" placeholder="Weight (kg)">
-            <input type="text" id="user-goal" placeholder="Goal">
-            <button id="save-params">Save</button>
-        </div>
-
-        <div id="input-container">
-            <input type="text" id="message-input" placeholder="Type a message...">
-            <button onclick="chatModule.sendMessage()">Send</button>
-            <button id="daily-checkin">Daily Check-in 🌟</button>
-        </div>
+<!-- CHAT UI -->
+<div id="chat-ui" class="hidden">
+    <div id="chat-container"></div>
+    <div id="input-container">
+        <input type="text" id="message-input" placeholder="Type a message...">
+        <button onclick="chatModule.sendMessage()">Send</button>
+        <button id="start-trial">Start Trial 💪</button>
+        <button id="submit-feedback">Submit Feedback 📝</button>
     </div>
+</div>
 </div>
 
 <script>
 ////////////////////////////////////////////////////////////
+// HELPERS
+////////////////////////////////////////////////////////////
+function scrollToBottom(){const c=document.getElementById("chat-container");if(!c)return;c.scrollTop=c.scrollHeight;}
+async function typeWriterEffect(el,text,delay=8){el.textContent="";for(let i=0;i<text.length;i++){el.textContent+=text.charAt(i);if(i%5===0)scrollToBottom();await new Promise(r=>setTimeout(r,delay));}scrollToBottom();convertLinks(el);}
+function convertLinks(el){const text=el.textContent;const urlRegex=/(https?:\/\/[^\s]+)/g;el.innerHTML="";let lastIndex=0,match;while((match=urlRegex.exec(text))!==null){const before=text.substring(lastIndex,match.index);el.appendChild(document.createTextNode(before));const link=document.createElement("a");link.href=match[0];link.textContent=match[0];link.target="_blank";link.rel="noopener noreferrer";el.appendChild(link);lastIndex=urlRegex.lastIndex;}const after=text.substring(lastIndex);el.appendChild(document.createTextNode(after));}
+
+////////////////////////////////////////////////////////////
 // MAIN MODULE
 ////////////////////////////////////////////////////////////
-const mainModule=(()=>{
-    let token=null;
-    const chatContainer=document.getElementById("chat-container");
-    const inputField=document.getElementById("message-input");
-    function setToken(t){token=t;}
-    function getToken(){return token;}
-    function logout(){
-        token=null;
-        localStorage.removeItem("token");
-        chatContainer.innerHTML="";
-        document.getElementById("chat-ui").classList.add("hidden");
-        document.getElementById("auth-container").style.display="block";
-    }
-    return {setToken,getToken,logout,chatContainer,inputField};
-})();
+const mainModule=(()=>{let token=null;let chat_id=null;
+return{
+    setToken:t=>token=t,
+    getToken:()=>token,
+    setChatId:id=>chat_id=id,
+    getChatId:()=>chat_id,
+    logout:()=>{token=null;chat_id=null;localStorage.removeItem("token");document.getElementById("chat-container").innerHTML="";document.getElementById("chat-ui").classList.add("hidden");document.getElementById("auth-container").style.display="block";}
+}})();
 
 ////////////////////////////////////////////////////////////
 // AUTH MODULE
 ////////////////////////////////////////////////////////////
-const authModule=(()=>{
-    function showForm(type){
-        document.getElementById("login-form").classList.toggle("hidden",type!=="login");
-        document.getElementById("register-form").classList.toggle("hidden",type!=="register");
-        document.getElementById("login-tab").classList.toggle("active",type==="login");
-        document.getElementById("register-tab").classList.toggle("active",type==="register");
-    }
-    async function login(){
-        const email=document.getElementById("login-email").value;
-        const password=document.getElementById("login-password").value;
-        const res=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
-        if(!res.ok){alert("Login failed");return;}
-        const data=await res.json();
-        mainModule.setToken(data.access_token);
-        localStorage.setItem("token",data.access_token);
-        document.getElementById("auth-container").style.display="none";
-        document.getElementById("chat-ui").classList.remove("hidden");
-    }
-    async function register(){
-        const email=document.getElementById("register-email").value;
-        const password=document.getElementById("register-password").value;
-        const res=await fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
-        if(!res.ok){alert("Registration failed");return;}
-        alert("Registered successfully. Now login.");
-        showForm("login");
-    }
-    return {login,register,showForm};
-})();
+const authModule=(()=>{function showForm(type){document.getElementById("login-form").classList.toggle("hidden",type!=="login");document.getElementById("register-form").classList.toggle("hidden",type!=="register");document.getElementById("login-tab").classList.toggle("active",type==="login");document.getElementById("register-tab").classList.toggle("active",type==="register");}
+async function login(){const email=document.getElementById("login-email").value;const password=document.getElementById("login-password").value;const res=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!res.ok){alert("Login failed");return;}const data=await res.json();mainModule.setToken(data.access_token);localStorage.setItem("token",data.access_token);document.getElementById("auth-container").style.display="none";document.getElementById("chat-ui").classList.remove("hidden");}
+async function register(){const email=document.getElementById("register-email").value;const password=document.getElementById("register-password").value;const res=await fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!res.ok){alert("Registration failed");return;}alert("Registered! Now login.");showForm("login");}
+return {login,register,showForm};})();
 
 ////////////////////////////////////////////////////////////
 // CHAT MODULE
 ////////////////////////////////////////////////////////////
-const chatModule=(()=>{
-    function addMessage(text,sender){
-        const msg=document.createElement("div"); msg.className="message "+sender;
-        const content=document.createElement("div");
-        if(sender==="ai"){
-            typeWriterEffect(content,text);
-        } else { content.textContent=text; }
-        msg.appendChild(content);
-        mainModule.chatContainer.appendChild(msg);
-        scrollToBottom();
-    }
-
-    async function sendMessage(){
-        const text=mainModule.inputField.value;
-        if(!text.trim()) return;
-        addMessage(text,"user");
-        mainModule.inputField.value="";
-        const temp=document.createElement("div"); temp.className="message ai"; temp.textContent="🤖 Thinking..."; mainModule.chatContainer.appendChild(temp); scrollToBottom();
-        try{
-            const res=await fetch("/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainModule.getToken()},body:JSON.stringify({chat_id:1,text})});
-            if(!res.ok){if(res.status===401) mainModule.logout();throw new Error(res.status);}
-            const aiText=await res.text(); temp.remove(); addMessage(aiText,"ai");
-        }catch(e){temp.textContent="Error. Try again."; console.error(e);}
-    }
-    return {sendMessage,addMessage};
-})();
-
-////////////////////////////////////////////////////////////
-// HELPERS
-////////////////////////////////////////////////////////////
-function scrollToBottom(){const c=document.getElementById("chat-container");if(c)c.scrollTop=c.scrollHeight;}
-async function typeWriterEffect(element,text,delay=8){element.textContent="";for(let i=0;i<text.length;i++){element.textContent+=text.charAt(i);if(i%5===0)scrollToBottom();await new Promise(r=>setTimeout(r,delay));}scrollToBottom();}
-
-////////////////////////////////////////////////////////////
-// USER PARAMS + DAILY CHECK-IN
-////////////////////////////////////////////////////////////
-const userParams={height:null,weight:null,goal:null};
-document.getElementById("save-params").addEventListener("click",()=>{
-    const h=document.getElementById("user-height").value;
-    const w=document.getElementById("user-weight").value;
-    const g=document.getElementById("user-goal").value;
-    if(!h||!w||!g){alert("Fill all fields");return;}
-    userParams.height=parseFloat(h); userParams.weight=parseFloat(w); userParams.goal=g;
-    alert("Parameters saved ✅");
-});
-
-document.getElementById("daily-checkin").addEventListener("click", async()=>{
-    if(!userParams.height||!userParams.weight||!userParams.goal){alert("Save your parameters first"); return;}
-    chatModule.addMessage("Daily check-in...","user");
-    try{
-        const res=await fetch("/checkin",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainModule.getToken()},body:JSON.stringify({chat_id:1,height:userParams.height,weight:userParams.weight,goal:userParams.goal})});
-        if(!res.ok){if(res.status===401) mainModule.logout();throw new Error("Check-in failed");}
-        const reply=await res.text();
-        chatModule.addMessage(reply,"ai");
-    }catch(err){console.error(err);alert("Check-in failed");}
-});
+const chatModule=(()=>{function addMessage(text,sender){const msg=document.createElement("div");msg.className="message "+sender;const content=document.createElement("div");if(sender==="ai"){typeWriterEffect(content,text);}else{content.textContent=text;convertLinks(content);}msg.appendChild(content);document.getElementById("chat-container").appendChild(msg);scrollToBottom();}
+async function sendMessage(){const text=document.getElementById("message-input").value;if(!text.trim())return;addMessage(text,"user");document.getElementById("message-input").value="";try{const res=await fetch("/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainModule.getToken()},body:JSON.stringify({chat_id:mainModule.getChatId(),text})});if(!res.ok){throw new Error(res.status);}const aiText=await res.text();addMessage(aiText,"ai");}catch(e){console.error(e);addMessage("Error","ai");}}
+async function startTrial(){const res=await fetch("/start-trial",{method:"POST",headers:{"Authorization":"Bearer "+mainModule.getToken()}});if(!res.ok)return;const data=await res.json();mainModule.setChatId(data.chat_id);addMessage(data.text,"ai");}
+async function submitFeedback(){const difficulty=prompt("Rate difficulty 1-10");const soreness=prompt("Which area was sore?");const energy=prompt("Energy/Mood?");const res=await fetch("/feedback",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainModule.getToken()},body:JSON.stringify({difficulty:parseInt(difficulty),soreness_area:soreness,energy_mood:energy})});if(!res.ok){alert("Failed");return;}const plan=await res.text();addMessage(plan,"ai");}
+return{sendMessage,addMessage,startTrial,submitFeedback};})();
 
 ////////////////////////////////////////////////////////////
 // INIT
 ////////////////////////////////////////////////////////////
 window.addEventListener("DOMContentLoaded",()=>{
     const savedToken=localStorage.getItem("token");
-    if(savedToken){ mainModule.setToken(savedToken); document.getElementById("auth-container").style.display="none"; document.getElementById("chat-ui").classList.remove("hidden"); }
+    if(savedToken){mainModule.setToken(savedToken);document.getElementById("auth-container").style.display="none";document.getElementById("chat-ui").classList.remove("hidden");}
+    document.getElementById("start-trial").addEventListener("click",chatModule.startTrial);
+    document.getElementById("submit-feedback").addEventListener("click",chatModule.submitFeedback);
+    document.getElementById("message-input").addEventListener("keypress",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();chatModule.sendMessage();}});
 });
 </script>
 </body>
