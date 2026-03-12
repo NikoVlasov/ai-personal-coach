@@ -322,3 +322,39 @@ Keep response short (100–200 words), friendly, actionable.
     except Exception as e:
         logger.error(f"CHECKIN ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/start_trial")
+async def start_trial(msg: MessageRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        # Добавляем сообщение пользователя в чат
+        db.add(Message(user_id=user.id, sender="user", text="Start trial"))
+        db.commit()
+
+        system_prompt = {
+            "role": "system",
+            "content": """
+You are HomeFitnessCoach AI — calm, knowledgeable, supportive.
+Provide a short 5-10 min trial workout, then ask 2-3 simple questions about how user felt.
+Keep tone friendly and actionable.
+Use user's profile if available, do not repeat already known info (goal, height, weight).
+"""
+        }
+
+        full_messages = [system_prompt]
+
+        completion = await asyncio.to_thread(
+            lambda: groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=full_messages,
+                temperature=0.6,
+                max_tokens=500
+            )
+        )
+        ai_text = completion.choices[0].message.content.strip()
+        db.add(Message(user_id=user.id, sender="ai", text=ai_text))
+        db.commit()
+        return PlainTextResponse(ai_text)
+
+    except Exception as e:
+        logger.error(f"START TRIAL ERROR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

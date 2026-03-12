@@ -137,6 +137,38 @@ window.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("submit-feedback").addEventListener("click",chatModule.submitFeedback);
     document.getElementById("message-input").addEventListener("keypress",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();chatModule.sendMessage();}});
 });
+
+document.getElementById("start-trial-btn").addEventListener("click", async () => {
+    const chatId = mainModule.getCurrentChatId();
+    if (!chatId) {
+        alert("Сначала выберите чат");
+        return;
+    }
+
+    try {
+        const res = await fetch("/start_trial", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({ chat_id: chatId })
+        });
+
+        if (!res.ok) {
+            if (res.status === 401) mainModule.logout();
+            throw new Error("Failed to start trial: " + res.status);
+        }
+
+        const aiText = await res.text();
+        chatModule.addMessage("Starting trial workout...", "user");
+        chatModule.addMessage(aiText, "ai");
+
+    } catch (err) {
+        console.error(err);
+        alert("Не удалось начать пробную тренировку");
+    }
+});
 </script>
 </body>
 </html>
