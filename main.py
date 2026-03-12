@@ -12,9 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
-from urllib.parse import urlparse
 from tavily import TavilyClient
 from groq import Groq
 
@@ -31,12 +30,8 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 
-if not GROQ_API_KEY:
-    raise RuntimeError("GROQ_API_KEY missing")
-if not TAVILY_API_KEY:
-    raise RuntimeError("TAVILY_API_KEY missing")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL missing")
+if not GROQ_API_KEY or not TAVILY_API_KEY or not DATABASE_URL:
+    raise RuntimeError("Missing env variables")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
@@ -74,34 +69,16 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
-    chats = relationship("Chat", back_populates="user")
     fitness_profile = relationship("FitnessProfile", uselist=False, back_populates="user")
+    messages = relationship("Message", back_populates="user")
     checkins = relationship("DailyCheckin", back_populates="user")
-
-class Chat(Base):
-    __tablename__ = "chats"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    user = relationship("User", back_populates="chats")
-    messages = relationship("Message", back_populates="chat")
-
-class Message(Base):
-    __tablename__ = "messages"
-    id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("chats.id"))
-    sender = Column(String)
-    text = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    chat = relationship("Chat", back_populates="messages")
 
 class FitnessProfile(Base):
     __tablename__ = "fitness_profiles"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    goal = Column(String)          # fat loss / strength / general fitness
-    level = Column(String)         # beginner / intermediate
+    goal = Column(String)      # fat loss / strength / general fitness
+    level = Column(String)     # beginner / intermediate
     height = Column(Integer)
     weight = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -116,6 +93,15 @@ class DailyCheckin(Base):
     mood = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="checkins")
+
+class Message(Base):
+    __tablename__ = "messages"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    sender = Column(String)  # "user" or "ai"
+    text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="messages")
 
 Base.metadata.create_all(bind=engine)
 
@@ -168,13 +154,6 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
-class ChatCreate(BaseModel):
-    title: str
-
-class MessageRequest(BaseModel):
-    chat_id: int
-    text: str
-
 class FitnessProfileUpdate(BaseModel):
     goal: str
     level: str
@@ -182,13 +161,15 @@ class FitnessProfileUpdate(BaseModel):
     weight: int
 
 class CheckinRequest(BaseModel):
-    chat_id: int
     energy: int
     soreness: int
     mood: int
 
+class MessageRequest(BaseModel):
+    text: str
+
 # =========================
-# STATIC
+# STATIC FILES
 # =========================
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
@@ -240,57 +221,30 @@ async def update_profile(profile: FitnessProfileUpdate,
     return {"status": "ok"}
 
 # =========================
-# CHATS
-# =========================
-@app.post("/chats")
-async def create_chat(data: ChatCreate, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    chat = Chat(user_id=user.id, title=data.title)
-    db.add(chat)
-    db.commit()
-    db.refresh(chat)
-    return {"chat_id": chat.id}
-
-@app.get("/chats")
-async def get_chats(user=Depends(get_current_user), db: Session = Depends(get_db)):
-    chats = db.query(Chat).filter(Chat.user_id == user.id).order_by(Chat.id.desc()).all()
-    return {"chats": [{"id": c.id, "title": c.title} for c in chats]}
-
-@app.get("/history/{chat_id}")
-async def history(chat_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user.id).first()
-    if not chat:
-        raise HTTPException(status_code=403)
-    messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id).all()
-    return {"messages": [{"sender": m.sender, "text": m.text} for m in messages]}
-
-# =========================
-# AI COACH (с прогрессом и недельным планом)
+# AI COACH
 # =========================
 @app.post("/coach")
-async def coach(msg: MessageRequest, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == user.id).first()
-    if not chat:
-        raise HTTPException(status_code=404)
-    db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
+async def coach(msg: MessageRequest,
+                user: User = Depends(get_current_user),
+                db: Session = Depends(get_db)):
+
+    db.add(Message(user_id=user.id, sender="user", text=msg.text))
     db.commit()
 
     try:
-        # Получаем последние 20 сообщений для контекста
-        db_messages = db.query(Message).filter(Message.chat_id == msg.chat_id)\
-            .order_by(Message.created_at.desc()).limit(20).all()
+        # последние 50 сообщений для контекста
+        db_messages = db.query(Message).filter(Message.user_id == user.id)\
+            .order_by(Message.created_at.desc()).limit(50).all()
         db_messages.reverse()
-
         conversation = [{"role": "user" if m.sender=="user" else "assistant", "content": m.text} for m in db_messages]
 
-        # Добавляем system prompt
         system_prompt = {
             "role": "system",
             "content": f"""
-You are WorkoutCoach AI — calm and knowledgeable home fitness coach.
-Use user's profile and previous check-ins to generate personalized weekly plans.
-Maintain language of user. Keep tone professional, practical, and supportive.
-Provide exercises (name, instructions, sets, reps, rest) and simple nutrition advice.
-Track user's progress across chats.
+You are HomeFitnessCoach AI — calm, knowledgeable, supportive.
+Use user's profile and previous check-ins to generate weekly plans and daily motivation.
+Track user's progress and encourage adherence.
+Maintain user's language and keep tone friendly yet professional.
 """
         }
 
@@ -300,12 +254,12 @@ Track user's progress across chats.
             lambda: groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=full_messages,
-                temperature=0.5,
+                temperature=0.6,
                 max_tokens=800
             )
         )
         ai_text = completion.choices[0].message.content.strip()
-        db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
+        db.add(Message(user_id=user.id, sender="ai", text=ai_text))
         db.commit()
         return PlainTextResponse(ai_text)
 
@@ -314,34 +268,31 @@ Track user's progress across chats.
         raise HTTPException(status_code=500, detail=str(e))
 
 # =========================
-# DAILY CHECKIN
+# DAILY CHECK-IN
 # =========================
 @app.post("/checkin")
-async def daily_checkin(req: CheckinRequest, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == req.chat_id, Chat.user_id == user.id).first()
-    if not chat:
-        raise HTTPException(status_code=404)
+async def daily_checkin(req: CheckinRequest,
+                        user: User = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
 
     db.add(DailyCheckin(user_id=user.id, energy=req.energy, soreness=req.soreness, mood=req.mood))
     db.commit()
 
-    checkin_text = (
-        f"Daily check-in data: Energy={req.energy}, Soreness={req.soreness}, Mood={req.mood}"
-    )
-    db.add(Message(chat_id=chat.id, sender="user", text=checkin_text))
+    checkin_text = f"Daily check-in: Energy={req.energy}, Soreness={req.soreness}, Mood={req.mood}"
+    db.add(Message(user_id=user.id, sender="user", text=checkin_text))
     db.commit()
 
-    # Подготовка AI с учётом новых данных
+    # AI мотиватор и советы
     try:
-        db_messages = db.query(Message).filter(Message.chat_id == req.chat_id).order_by(Message.created_at).all()
+        db_messages = db.query(Message).filter(Message.user_id == user.id).order_by(Message.created_at).all()
         conversation = [{"role": "user" if m.sender=="user" else "assistant", "content": m.text} for m in db_messages]
 
         system_prompt = {
             "role": "system",
             "content": """
-You are DailyCoach AI — empathetic daily personal coach.
-Use user's recent check-in to suggest next steps and track energy/progress.
-Respond in user's language. Keep it short (100–200 words) and actionable.
+You are DailyCoach AI — empathetic home fitness coach.
+Use recent check-in data to provide encouragement, motivation, and actionable tips for today.
+Keep response short (100–200 words) and friendly.
 """
         }
 
@@ -356,7 +307,7 @@ Respond in user's language. Keep it short (100–200 words) and actionable.
             )
         )
         ai_text = completion.choices[0].message.content.strip()
-        db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
+        db.add(Message(user_id=user.id, sender="ai", text=ai_text))
         db.commit()
         return PlainTextResponse(ai_text)
 
