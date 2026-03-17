@@ -223,54 +223,7 @@ async def update_profile(profile: FitnessProfileUpdate,
 # =========================
 # AI COACH (с пробной тренировкой и сопровождением)
 # =========================
-@app.post("/coach")
-async def coach(msg: MessageRequest,
-                user: User = Depends(get_current_user),
-                db: Session = Depends(get_db)):
 
-    db.add(Message(user_id=user.id, sender="user", text=msg.text))
-    db.commit()
-
-    try:
-        db_messages = db.query(Message).filter(Message.user_id == user.id)\
-            .order_by(Message.created_at.desc()).limit(50).all()
-        db_messages.reverse()
-        conversation = [{"role": "user" if m.sender=="user" else "assistant", "content": m.text} for m in db_messages]
-
-        profile = db.query(FitnessProfile).filter(FitnessProfile.user_id == user.id).first()
-        profile_text = f"User profile: goal={profile.goal}, level={profile.level}, height={profile.height}, weight={profile.weight}."
-
-        system_prompt = {
-            "role": "system",
-            "content": f"""
-You are HomeFitnessCoach AI — calm, knowledgeable, supportive.
-Do not ask about user's goal, level, height, or weight — they are already provided.
-Start by suggesting a short trial workout.
-After the trial workout, ask minimal follow-up questions (energy, soreness, mood).
-Use this info to generate personalized weekly plan.
-Keep language concise, actionable, motivational.
-{profile_text}
-"""
-        }
-
-        full_messages = [system_prompt] + conversation
-
-        completion = await asyncio.to_thread(
-            lambda: groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=full_messages,
-                temperature=0.6,
-                max_tokens=800
-            )
-        )
-        ai_text = completion.choices[0].message.content.strip()
-        db.add(Message(user_id=user.id, sender="ai", text=ai_text))
-        db.commit()
-        return PlainTextResponse(ai_text)
-
-    except Exception as e:
-        logger.error(f"COACH ERROR: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # =========================
 # DAILY CHECK-IN
