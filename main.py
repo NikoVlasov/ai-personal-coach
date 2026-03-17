@@ -14,7 +14,6 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
-from tavily import TavilyClient
 from groq import Groq
 
 # =========================
@@ -26,20 +25,15 @@ logger = logging.getLogger("app")
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 
-if not GROQ_API_KEY or not TAVILY_API_KEY or not DATABASE_URL:
+if not GROQ_API_KEY or not DATABASE_URL:
     raise RuntimeError("Missing env variables")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-# =========================
-# INIT CLIENTS
-# =========================
-tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 # =========================
@@ -77,8 +71,8 @@ class FitnessProfile(Base):
     __tablename__ = "fitness_profiles"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    goal = Column(String)      # fat loss / strength / general fitness
-    level = Column(String)     # beginner / intermediate
+    goal = Column(String)
+    level = Column(String)
     height = Column(Integer)
     weight = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -98,7 +92,7 @@ class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    sender = Column(String)  # "user" or "ai"
+    sender = Column(String)
     text = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="messages")
@@ -169,7 +163,7 @@ class MessageRequest(BaseModel):
     text: str
 
 # =========================
-# STATIC FILES
+# STATIC
 # =========================
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
@@ -198,7 +192,7 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer", "user_id": user.id}
 
 # =========================
-# FITNESS PROFILE
+# PROFILE
 # =========================
 @app.post("/profile")
 async def update_profile(profile: FitnessProfileUpdate,
@@ -211,48 +205,56 @@ async def update_profile(profile: FitnessProfileUpdate,
         existing.height = profile.height
         existing.weight = profile.weight
     else:
-        fp = FitnessProfile(user_id=user.id,
-                            goal=profile.goal,
-                            level=profile.level,
-                            height=profile.height,
-                            weight=profile.weight)
+        fp = FitnessProfile(
+            user_id=user.id,
+            goal=profile.goal,
+            level=profile.level,
+            height=profile.height,
+            weight=profile.weight
+        )
         db.add(fp)
     db.commit()
     return {"status": "ok"}
 
 # =========================
-# AI COACH (с пробной тренировкой и сопровождением)
+# COACH (ГЛАВНЫЙ)
 # =========================
+@app.post("/coach")
+async def coach(msg: MessageRequest,
+                user: User = Depends(get_current_user),
+                db: Session = Depends(get_db)):
 
-
-# =========================
-# DAILY CHECK-IN
-# =========================
-@app.post("/checkin")
-async def daily_checkin(req: CheckinRequest,
-                        user: User = Depends(get_current_user),
-                        db: Session = Depends(get_db)):
-
-    db.add(DailyCheckin(user_id=user.id, energy=req.energy, soreness=req.soreness, mood=req.mood))
-    db.commit()
-
-    checkin_text = f"Daily check-in: Energy={req.energy}, Soreness={req.soreness}, Mood={req.mood}"
-    db.add(Message(user_id=user.id, sender="user", text=checkin_text))
+    db.add(Message(user_id=user.id, sender="user", text=msg.text))
     db.commit()
 
     try:
-        db_messages = db.query(Message).filter(Message.user_id == user.id).order_by(Message.created_at).all()
-        conversation = [{"role": "user" if m.sender=="user" else "assistant", "content": m.text} for m in db_messages]
+        db_messages = db.query(Message).filter(Message.user_id == user.id)\
+            .order_by(Message.created_at.desc()).limit(50).all()
+        db_messages.reverse()
+
+        conversation = [
+            {"role": "user" if m.sender == "user" else "assistant", "content": m.text}
+            for m in db_messages
+        ]
 
         profile = db.query(FitnessProfile).filter(FitnessProfile.user_id == user.id).first()
-        profile_text = f"User profile: goal={profile.goal}, level={profile.level}, height={profile.height}, weight={profile.weight}."
+
+        profile_text = ""
+        if profile:
+            profile_text = f"User profile: goal={profile.goal}, level={profile.level}, height={profile.height}, weight={profile.weight}."
+
+        if "start trial" in msg.text.lower():
+            instruction = "Give a short 5-10 min trial workout and ask 2-3 short questions."
+        else:
+            instruction = "Continue coaching, track progress, give next steps."
 
         system_prompt = {
             "role": "system",
             "content": f"""
-You are DailyCoach AI — empathetic home fitness coach.
-Use recent check-in data and user's profile to provide encouragement, motivation, and actionable tips for today.
-Keep response short (100–200 words), friendly, actionable.
+You are HomeFitnessCoach AI.
+Do NOT ask about goal/height/weight if already known.
+Be concise and actionable.
+{instruction}
 {profile_text}
 """
         }
@@ -264,50 +266,34 @@ Keep response short (100–200 words), friendly, actionable.
                 model="llama-3.3-70b-versatile",
                 messages=full_messages,
                 temperature=0.6,
-                max_tokens=400
+                max_tokens=700
             )
         )
+
         ai_text = completion.choices[0].message.content.strip()
+
         db.add(Message(user_id=user.id, sender="ai", text=ai_text))
         db.commit()
+
         return PlainTextResponse(ai_text)
 
     except Exception as e:
-        logger.error(f"CHECKIN ERROR: {e}")
+        logger.error(f"COACH ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/start_trial")
-async def start_trial(msg: MessageRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        # Добавляем сообщение пользователя в чат
-        db.add(Message(user_id=user.id, sender="user", text="Start trial"))
-        db.commit()
+# =========================
+# CHECK-IN
+# =========================
+@app.post("/checkin")
+async def daily_checkin(req: CheckinRequest,
+                        user: User = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
 
-        system_prompt = {
-            "role": "system",
-            "content": """
-You are HomeFitnessCoach AI — calm, knowledgeable, supportive.
-Provide a short 5-10 min trial workout, then ask 2-3 simple questions about how user felt.
-Keep tone friendly and actionable.
-Use user's profile if available, do not repeat already known info (goal, height, weight).
-"""
-        }
+    db.add(DailyCheckin(user_id=user.id, energy=req.energy, soreness=req.soreness, mood=req.mood))
+    db.commit()
 
-        full_messages = [system_prompt]
+    db.add(Message(user_id=user.id, sender="user",
+                   text=f"Check-in: energy={req.energy}, soreness={req.soreness}, mood={req.mood}"))
+    db.commit()
 
-        completion = await asyncio.to_thread(
-            lambda: groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=full_messages,
-                temperature=0.6,
-                max_tokens=500
-            )
-        )
-        ai_text = completion.choices[0].message.content.strip()
-        db.add(Message(user_id=user.id, sender="ai", text=ai_text))
-        db.commit()
-        return PlainTextResponse(ai_text)
-
-    except Exception as e:
-        logger.error(f"START TRIAL ERROR: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    return PlainTextResponse("Check-in saved")

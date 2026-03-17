@@ -118,14 +118,67 @@ async function login(){const email=document.getElementById("login-email").value;
 async function register(){const email=document.getElementById("register-email").value;const password=document.getElementById("register-password").value;const res=await fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!res.ok){alert("Registration failed");return;}alert("Registered! Now login.");showForm("login");}
 return {login,register,showForm};})();
 
-////////////////////////////////////////////////////////////
-// CHAT MODULE
-////////////////////////////////////////////////////////////
-const chatModule=(()=>{function addMessage(text,sender){const msg=document.createElement("div");msg.className="message "+sender;const content=document.createElement("div");if(sender==="ai"){typeWriterEffect(content,text);}else{content.textContent=text;convertLinks(content);}msg.appendChild(content);document.getElementById("chat-container").appendChild(msg);scrollToBottom();}
-async function sendMessage(){const text=document.getElementById("message-input").value;if(!text.trim())return;addMessage(text,"user");document.getElementById("message-input").value="";try{const res=await fetch("/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainModule.getToken()},body:JSON.stringify({chat_id:mainModule.getChatId(),text})});if(!res.ok){throw new Error(res.status);}const aiText=await res.text();addMessage(aiText,"ai");}catch(e){console.error(e);addMessage("Error","ai");}}
-async function startTrial(){const res=await fetch("/start-trial",{method:"POST",headers:{"Authorization":"Bearer "+mainModule.getToken()}});if(!res.ok)return;const data=await res.json();mainModule.setChatId(data.chat_id);addMessage(data.text,"ai");}
-async function submitFeedback(){const difficulty=prompt("Rate difficulty 1-10");const soreness=prompt("Which area was sore?");const energy=prompt("Energy/Mood?");const res=await fetch("/feedback",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainModule.getToken()},body:JSON.stringify({difficulty:parseInt(difficulty),soreness_area:soreness,energy_mood:energy})});if(!res.ok){alert("Failed");return;}const plan=await res.text();addMessage(plan,"ai");}
-return{sendMessage,addMessage,startTrial,submitFeedback};})();
+const chatModule = (() => {
+
+function addMessage(text, sender) {
+    const msg = document.createElement("div");
+    msg.className = "message " + sender;
+
+    const content = document.createElement("div");
+
+    if (sender === "ai") {
+        typeWriterEffect(content, text);
+    } else {
+        content.textContent = text;
+        convertLinks(content);
+    }
+
+    msg.appendChild(content);
+    document.getElementById("chat-container").appendChild(msg);
+    scrollToBottom();
+}
+
+async function sendMessage(customText = null) {
+    const input = document.getElementById("message-input");
+    const text = customText || input.value;
+
+    if (!text.trim()) return;
+
+    addMessage(text, "user");
+    if (!customText) input.value = "";
+
+    try {
+        const res = await fetch("/coach", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({ text })
+        });
+
+        if (!res.ok) throw new Error(res.status);
+
+        const aiText = await res.text();
+        addMessage(aiText, "ai");
+
+    } catch (e) {
+        console.error(e);
+        addMessage("Server error", "ai");
+    }
+}
+
+function startTrial() {
+    sendMessage("start trial");
+}
+
+function submitFeedback() {
+    alert("Feedback пока не реализован в бэкенде");
+}
+
+return { sendMessage, addMessage, startTrial, submitFeedback };
+
+})();
 
 ////////////////////////////////////////////////////////////
 // INIT
@@ -138,37 +191,7 @@ window.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("message-input").addEventListener("keypress",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();chatModule.sendMessage();}});
 });
 
-document.getElementById("start-trial-btn").addEventListener("click", async () => {
-    const chatId = mainModule.getCurrentChatId();
-    if (!chatId) {
-        alert("Сначала выберите чат");
-        return;
-    }
 
-    try {
-        const res = await fetch("/start_trial", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + mainModule.getToken()
-            },
-            body: JSON.stringify({ chat_id: chatId })
-        });
-
-        if (!res.ok) {
-            if (res.status === 401) mainModule.logout();
-            throw new Error("Failed to start trial: " + res.status);
-        }
-
-        const aiText = await res.text();
-        chatModule.addMessage("Starting trial workout...", "user");
-        chatModule.addMessage(aiText, "ai");
-
-    } catch (err) {
-        console.error(err);
-        alert("Не удалось начать пробную тренировку");
-    }
-});
 </script>
 </body>
 </html>
