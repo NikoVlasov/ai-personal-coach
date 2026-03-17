@@ -251,12 +251,22 @@ async def coach(msg: MessageRequest,
         system_prompt = {
             "role": "system",
             "content": f"""
-You are HomeFitnessCoach AI.
-Do NOT ask about goal/height/weight if already known.
-Be concise and actionable.
-{instruction}
-{profile_text}
-"""
+        You are a personal home fitness coach.
+
+        FLOW:
+        1. First → give short trial workout (5-10 min)
+        2. Then → ask 2-3 questions (difficulty, fatigue, feeling)
+        3. Then → build personalized plan
+        4. Then → guide user daily
+
+        Rules:
+        - Be proactive
+        - Guide step-by-step
+        - Do not overwhelm
+        - Keep answers structured and clear
+
+        {profile_text}
+        """
         }
 
         full_messages = [system_prompt] + conversation
@@ -297,3 +307,16 @@ async def daily_checkin(req: CheckinRequest,
     db.commit()
 
     return PlainTextResponse("Check-in saved")
+
+@app.get("/messages")
+async def get_messages(user: User = Depends(get_current_user),
+                       db: Session = Depends(get_db)):
+    messages = db.query(Message)\
+        .filter(Message.user_id == user.id)\
+        .order_by(Message.created_at)\
+        .all()
+
+    return [
+        {"sender": m.sender, "text": m.text}
+        for m in messages
+    ]

@@ -192,6 +192,32 @@ function addMessage(text, sender) {
     scrollToBottom();
 }
 
+async function loadHistory() {
+    try {
+        const res = await fetch("/messages", {
+            headers: {
+                "Authorization": "Bearer " + mainModule.getToken()
+            }
+        });
+
+        if (!res.ok) return;
+
+        const messages = await res.json();
+
+        const container = document.getElementById("chat-container");
+        container.innerHTML = "";
+
+        messages.forEach(m => {
+            chatModule.addMessage(m.text, m.sender);
+        });
+        if (messages.length === 0) {
+            chatModule.sendMessage("start trial");
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
 async function sendMessage(customText = null) {
     const input = document.getElementById("message-input");
     const text = customText || input.value;
@@ -200,6 +226,13 @@ async function sendMessage(customText = null) {
 
     addMessage(text, "user");
     if (!customText) input.value = "";
+
+    // ✅ ПОКАЗЫВАЕМ LOADING
+    const loadingMsg = document.createElement("div");
+    loadingMsg.className = "message ai";
+    loadingMsg.textContent = "Thinking...";
+    document.getElementById("chat-container").appendChild(loadingMsg);
+    scrollToBottom();
 
     try {
         const res = await fetch("/coach", {
@@ -214,11 +247,18 @@ async function sendMessage(customText = null) {
         if (!res.ok) throw new Error(res.status);
 
         const aiText = await res.text();
+
+        // ✅ УДАЛЯЕМ LOADING ПОСЛЕ ОТВЕТА
+        loadingMsg.remove();
+
         addMessage(aiText, "ai");
 
     } catch (e) {
         console.error(e);
-        addMessage("Server error", "ai");
+
+        loadingMsg.remove(); // ✅ важно
+
+        addMessage("⚠️ Something went wrong. Try again.", "ai");
     }
 }
 
@@ -244,6 +284,7 @@ window.addEventListener("DOMContentLoaded",()=>{
         mainModule.setToken(savedToken);
         document.getElementById("auth-container").style.display="none";
         document.getElementById("chat-ui").classList.remove("hidden");
+        loadHistory();
     }
 
     document.getElementById("start-trial").addEventListener("click",chatModule.startTrial);
