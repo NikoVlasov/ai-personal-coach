@@ -52,13 +52,15 @@ body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-
 #chat-container {
   flex: 1;
   padding: 12px 16px;
-  overflow-y: auto;      /* ✅ скролл внутри */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
   background: var(--bg-chat);
 
-  min-height: 0;         /* 🔥 КРИТИЧЕСКОЕ (fix для flex overflow бага) */
+  min-height: 0;
+
+  scroll-behavior: smooth; /* 🔥 плавный скролл */
 }
 #chat-ui {
   display: flex;
@@ -66,10 +68,19 @@ body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-
   height: 100%;
   min-height: 0;
 }
-.message{max-width:75%;padding:14px 18px;border-radius:18px;line-height:1.6;font-size:14.5px;border:1px solid var(--border);box-shadow:var(--shadow-sm);word-break:break-word;overflow-wrap:anywhere;animation:fadeIn 0.3s ease;}
+.message{max-width:75%;padding:14px 18px;border-radius:18px;line-height:1.6;font-size:14.5px;border:1px solid var(--border);box-shadow:var(--shadow-sm);word-break:break-word;overflow-wrap:anywhere;animation:fadeIn 0.25s ease;}
 .user{background:var(--bg-message-user);color:white;align-self:flex-end;border-bottom-right-radius:4px;}
 .ai{background:var(--bg-message-ai);color:var(--text-main);align-self:flex-start;border-bottom-left-radius:4px;}
-#input-container{display:flex;gap:8px;padding:12px;}
+#input-container {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-main);
+
+  position: sticky;   /* 🔥 держится снизу */
+  bottom: 0;
+}
 #message-input{flex:1;padding:12px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-chat);}
 #message-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(90,140,255,0.15);}
 #input-container button{padding:0 18px;min-width:90px;height:44px;border-radius:var(--radius);border:none;background:var(--accent);color:white;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);}
@@ -122,8 +133,22 @@ marked.setOptions({gfm:true,breaks:true,mangle:false,headerIds:false});
 ////////////////////////////////////////////////////////////
 // HELPERS
 ////////////////////////////////////////////////////////////
-function scrollToBottom(){const c=document.getElementById("chat-container");if(!c)return;c.scrollTop=c.scrollHeight;}
-async function typeWriterEffect(el,text,delay=8){el.textContent="";for(let i=0;i<text.length;i++){el.textContent+=text.charAt(i);if(i%5===0)scrollToBottom();await new Promise(r=>setTimeout(r,delay));}scrollToBottom();convertLinks(el);}
+let userScrolledUp = false;
+
+function isNearBottom() {
+    const c = document.getElementById("chat-container");
+    return c.scrollHeight - c.scrollTop - c.clientHeight < 80;
+}
+
+function scrollToBottom(force = false) {
+    const c = document.getElementById("chat-container");
+    if (!c) return;
+
+    if (force || !userScrolledUp) {
+        c.scrollTop = c.scrollHeight;
+    }
+}
+async function typeWriterEffect(el,text,delay=8){el.textContent="";for(let i=0;i<text.length;i++){el.textContent+=text.charAt(i);if(i % 20 === 0) scrollToBottom();await new Promise(r=>setTimeout(r,delay));}scrollToBottom();convertLinks(el);}
 function convertLinks(el){const text=el.textContent;const urlRegex=/(https?:\/\/[^\s]+)/g;el.innerHTML="";let lastIndex=0,match;while((match=urlRegex.exec(text))!==null){const before=text.substring(lastIndex,match.index);el.appendChild(document.createTextNode(before));const link=document.createElement("a");link.href=match[0];link.textContent=match[0];link.target="_blank";link.rel="noopener noreferrer";el.appendChild(link);lastIndex=urlRegex.lastIndex;}const after=text.substring(lastIndex);el.appendChild(document.createTextNode(after));}
 
 ////////////////////////////////////////////////////////////
@@ -163,6 +188,7 @@ function addMessage(text, sender) {
 
     msg.appendChild(content);
     document.getElementById("chat-container").appendChild(msg);
+
     scrollToBottom();
 }
 
@@ -213,10 +239,31 @@ return { sendMessage, addMessage, startTrial, submitFeedback };
 ////////////////////////////////////////////////////////////
 window.addEventListener("DOMContentLoaded",()=>{
     const savedToken=localStorage.getItem("token");
-    if(savedToken){mainModule.setToken(savedToken);document.getElementById("auth-container").style.display="none";document.getElementById("chat-ui").classList.remove("hidden");}
+
+    if(savedToken){
+        mainModule.setToken(savedToken);
+        document.getElementById("auth-container").style.display="none";
+        document.getElementById("chat-ui").classList.remove("hidden");
+    }
+
     document.getElementById("start-trial").addEventListener("click",chatModule.startTrial);
     document.getElementById("submit-feedback").addEventListener("click",chatModule.submitFeedback);
-    document.getElementById("message-input").addEventListener("keypress",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();chatModule.sendMessage();}});
+
+    document.getElementById("message-input").addEventListener("keypress",e=>{
+        if(e.key==="Enter"&&!e.shiftKey){
+            e.preventDefault();
+            chatModule.sendMessage();
+        }
+    });
+
+    // ✅ ВОТ ЭТО ТЫ ДОБАВЛЯЕШЬ
+    const chat = document.getElementById("chat-container");
+
+    chat.addEventListener("scroll", () => {
+        userScrolledUp = !isNearBottom();
+    });
+
+    document.getElementById("message-input").focus();
 });
 
 
