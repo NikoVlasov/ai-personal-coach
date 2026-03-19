@@ -287,7 +287,7 @@ function submitFeedback() {
     alert("Feedback пока не реализован в бэкенде");
 }
 
-return { sendMessage, addMessage, startTrial, submitFeedback };
+return { sendMessage, addMessage, startTrial, submitFeedback, loadHistory };
 
 })();
 
@@ -303,7 +303,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
         document.getElementById("auth-container").style.display="none";
         document.getElementById("chat-ui").classList.remove("hidden");
 
-        await loadHistory(); // теперь ок
+        await chatModule.loadHistory(); // теперь ок
     }
 
     document.getElementById("start-trial").addEventListener("click",chatModule.startTrial);
@@ -316,7 +316,7 @@ window.addEventListener("DOMContentLoaded", async ()=>{
         }
     });
 
-});
+
 
     // ✅ ВОТ ЭТО ТЫ ДОБАВЛЯЕШЬ
     const chat = document.getElementById("chat-container");
