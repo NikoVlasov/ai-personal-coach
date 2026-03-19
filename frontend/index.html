@@ -167,7 +167,31 @@ return{
 // AUTH MODULE
 ////////////////////////////////////////////////////////////
 const authModule=(()=>{function showForm(type){document.getElementById("login-form").classList.toggle("hidden",type!=="login");document.getElementById("register-form").classList.toggle("hidden",type!=="register");document.getElementById("login-tab").classList.toggle("active",type==="login");document.getElementById("register-tab").classList.toggle("active",type==="register");}
-async function login(){const email=document.getElementById("login-email").value;const password=document.getElementById("login-password").value;const res=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!res.ok){alert("Login failed");return;}const data=await res.json();mainModule.setToken(data.access_token);localStorage.setItem("token",data.access_token);document.getElementById("auth-container").style.display="none";document.getElementById("chat-ui").classList.remove("hidden");}
+async function login(){
+    const email=document.getElementById("login-email").value;
+    const password=document.getElementById("login-password").value;
+
+    const res=await fetch("/login",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email,password})
+    });
+
+    if(!res.ok){
+        alert("Login failed");
+        return;
+    }
+
+    const data=await res.json();
+
+    mainModule.setToken(data.access_token);
+    localStorage.setItem("token",data.access_token);
+
+    document.getElementById("auth-container").style.display="none";
+    document.getElementById("chat-ui").classList.remove("hidden");
+
+    await loadHistory(); // 🔥 ВОТ ЭТА СТРОКА
+}
 async function register(){const email=document.getElementById("register-email").value;const password=document.getElementById("register-password").value;const res=await fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!res.ok){alert("Registration failed");return;}alert("Registered! Now login.");showForm("login");}
 return {login,register,showForm};})();
 
@@ -193,29 +217,22 @@ function addMessage(text, sender) {
 }
 
 async function loadHistory() {
-    try {
-        const res = await fetch("/messages", {
-            headers: {
-                "Authorization": "Bearer " + mainModule.getToken()
-            }
-        });
-
-        if (!res.ok) return;
-
-        const messages = await res.json();
-
-        const container = document.getElementById("chat-container");
-        container.innerHTML = "";
-
-        messages.forEach(m => {
-            chatModule.addMessage(m.text, m.sender);
-        });
-        if (messages.length === 0) {
-            chatModule.sendMessage("start trial");
+    const res = await fetch("/messages", {
+        headers: {
+            "Authorization": "Bearer " + mainModule.getToken()
         }
-    } catch (e) {
-        console.error(e);
-    }
+    });
+
+    if (!res.ok) return;
+
+    const messages = await res.json();
+
+    const container = document.getElementById("chat-container");
+    container.innerHTML = "";
+
+    messages.forEach(m => {
+        chatModule.addMessage(m.text, m.sender);
+    });
 }
 
 async function sendMessage(customText = null) {
@@ -277,14 +294,16 @@ return { sendMessage, addMessage, startTrial, submitFeedback };
 ////////////////////////////////////////////////////////////
 // INIT
 ////////////////////////////////////////////////////////////
-window.addEventListener("DOMContentLoaded",()=>{
+window.addEventListener("DOMContentLoaded", async ()=>{
+
     const savedToken=localStorage.getItem("token");
 
     if(savedToken){
         mainModule.setToken(savedToken);
         document.getElementById("auth-container").style.display="none";
         document.getElementById("chat-ui").classList.remove("hidden");
-        loadHistory();
+
+        await loadHistory(); // теперь ок
     }
 
     document.getElementById("start-trial").addEventListener("click",chatModule.startTrial);
@@ -296,6 +315,8 @@ window.addEventListener("DOMContentLoaded",()=>{
             chatModule.sendMessage();
         }
     });
+
+});
 
     // ✅ ВОТ ЭТО ТЫ ДОБАВЛЯЕШЬ
     const chat = document.getElementById("chat-container");

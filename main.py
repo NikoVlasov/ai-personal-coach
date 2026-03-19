@@ -70,7 +70,7 @@ class User(Base):
 class FitnessProfile(Base):
     __tablename__ = "fitness_profiles"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("chats.id"))
     goal = Column(String)
     level = Column(String)
     height = Column(Integer)
@@ -96,6 +96,13 @@ class Message(Base):
     text = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="messages")
+
+class Chat(Base):
+    __tablename__ = "chats"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
 
@@ -136,6 +143,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_
         return user
     except JWTError:
         raise HTTPException(status_code=401)
+
+def get_or_create_chat(db: Session, user_id: int):
+    chat = db.query(Chat).filter(Chat.user_id == user_id).first()
+    if not chat:
+        chat = Chat(user_id=user_id)
+        db.add(chat)
+        db.commit()
+        db.refresh(chat)
+    return chat
 
 # =========================
 # SCHEMAS
@@ -221,68 +237,42 @@ async def update_profile(profile: FitnessProfileUpdate,
 # =========================
 @app.post("/coach")
 async def coach(msg: MessageRequest,
-                user: User = Depends(get_current_user),
+                user=Depends(get_current_user),
                 db: Session = Depends(get_db)):
 
-    db.add(Message(user_id=user.id, sender="user", text=msg.text))
+    chat = get_or_create_chat(db, user.id)
+
+    db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
     db.commit()
 
     try:
-        db_messages = db.query(Message).filter(Message.user_id == user.id)\
-            .order_by(Message.created_at.desc()).limit(50).all()
-        db_messages.reverse()
+        db_messages = db.query(Message)\
+            .filter(Message.chat_id == chat.id)\
+            .order_by(Message.created_at)\
+            .all()
 
         conversation = [
             {"role": "user" if m.sender == "user" else "assistant", "content": m.text}
             for m in db_messages
         ]
 
-        profile = db.query(FitnessProfile).filter(FitnessProfile.user_id == user.id).first()
-
-        profile_text = ""
-        if profile:
-            profile_text = f"User profile: goal={profile.goal}, level={profile.level}, height={profile.height}, weight={profile.weight}."
-
-        if "start trial" in msg.text.lower():
-            instruction = "Give a short 5-10 min trial workout and ask 2-3 short questions."
-        else:
-            instruction = "Continue coaching, track progress, give next steps."
-
-        system_prompt = {
+        full_messages = [{
             "role": "system",
-            "content": f"""
-        You are a personal home fitness coach.
-
-        FLOW:
-        1. First → give short trial workout (5-10 min)
-        2. Then → ask 2-3 questions (difficulty, fatigue, feeling)
-        3. Then → build personalized plan
-        4. Then → guide user daily
-
-        Rules:
-        - Be proactive
-        - Guide step-by-step
-        - Do not overwhelm
-        - Keep answers structured and clear
-
-        {profile_text}
-        """
-        }
-
-        full_messages = [system_prompt] + conversation
+            "content": "You are a helpful fitness coach."
+        }] + conversation
 
         completion = await asyncio.to_thread(
             lambda: groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=full_messages,
                 temperature=0.6,
-                max_tokens=700
+                max_tokens=500
             )
         )
 
         ai_text = completion.choices[0].message.content.strip()
 
-        db.add(Message(user_id=user.id, sender="ai", text=ai_text))
+        db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
         db.commit()
 
         return PlainTextResponse(ai_text)
@@ -308,11 +298,31 @@ async def daily_checkin(req: CheckinRequest,
 
     return PlainTextResponse("Check-in saved")
 
+
 @app.get("/messages")
-async def get_messages(user: User = Depends(get_current_user),
+async def get_messages(user=Depends(get_current_user),
                        db: Session = Depends(get_db)):
+
+    chat = get_or_create_chat(db, user.id)
+
     messages = db.query(Message)\
-        .filter(Message.user_id == user.id)\
+        .filter(Message.chat_id == chat.id)\
+        .order_by(Message.created_at)\
+        .all()
+
+    return [
+        {"sender": m.sender, "text": m.text}
+        for m in messages
+    ]
+
+@app.get("/messages")
+async def get_messages(user=Depends(get_current_user),
+                       db: Session = Depends(get_db)):
+
+    chat = get_or_create_chat(db, user.id)
+
+    messages = db.query(Message)\
+        .filter(Message.chat_id == chat.id)\
         .order_by(Message.created_at)\
         .all()
 
