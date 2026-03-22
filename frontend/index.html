@@ -187,10 +187,24 @@ async function login(){
     mainModule.setToken(data.access_token);
     localStorage.setItem("token",data.access_token);
 
+    // ✅ создаем чат
+    const chatRes = await fetch("/chats", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + data.access_token
+        },
+        body: JSON.stringify({ title: "Main chat" })
+    });
+
+    const chatData = await chatRes.json();
+    mainModule.setChatId(chatData.chat_id);
+    localStorage.setItem("chat_id", chatData.chat_id);
+
     document.getElementById("auth-container").style.display="none";
     document.getElementById("chat-ui").classList.remove("hidden");
 
-    await loadHistory(); // 🔥 ВОТ ЭТА СТРОКА
+    await chatModule.loadHistory();
 }
 async function register(){const email=document.getElementById("register-email").value;const password=document.getElementById("register-password").value;const res=await fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!res.ok){alert("Registration failed");return;}alert("Registered! Now login.");showForm("login");}
 return {login,register,showForm};})();
@@ -217,7 +231,11 @@ function addMessage(text, sender) {
 }
 
 async function loadHistory() {
-    const res = await fetch("/messages", {
+    const chatId = mainModule.getChatId();
+
+    if (!chatId) return;
+
+    const res = await fetch(`/history/${chatId}`, {
         headers: {
             "Authorization": "Bearer " + mainModule.getToken()
         }
@@ -225,13 +243,13 @@ async function loadHistory() {
 
     if (!res.ok) return;
 
-    const messages = await res.json();
+    const data = await res.json();
 
     const container = document.getElementById("chat-container");
     container.innerHTML = "";
 
-    messages.forEach(m => {
-        chatModule.addMessage(m.text, m.sender);
+    data.messages.forEach(m => {
+        addMessage(m.text, m.sender);
     });
 }
 
@@ -258,7 +276,10 @@ async function sendMessage(customText = null) {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + mainModule.getToken()
             },
-            body: JSON.stringify({ text })
+            body: JSON.stringify({
+                chat_id: mainModule.getChatId(),
+                text
+            })
         });
 
         if (!res.ok) throw new Error(res.status);
@@ -296,31 +317,67 @@ return { sendMessage, addMessage, startTrial, submitFeedback, loadHistory };
 ////////////////////////////////////////////////////////////
 window.addEventListener("DOMContentLoaded", async ()=>{
 
-    const savedToken=localStorage.getItem("token");
+    const savedToken = localStorage.getItem("token");
 
     if(savedToken){
         mainModule.setToken(savedToken);
+
         document.getElementById("auth-container").style.display="none";
         document.getElementById("chat-ui").classList.remove("hidden");
 
-        await chatModule.loadHistory(); // теперь ок
+
+    const savedChatId = localStorage.getItem("chat_id");
+
+if (savedChatId) {
+    // ✅ если чат уже был — используем его
+    mainModule.setChatId(savedChatId);
+
+    await chatModule.loadHistory();
+
+} else {
+    // ❗ если чата нет — создаем новый
+    try {
+        const chatRes = await fetch("/chats", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + savedToken
+            },
+            body: JSON.stringify({ title: "Main chat" })
+        });
+
+        if (!chatRes.ok) throw new Error("Chat creation failed");
+
+        const chatData = await chatRes.json();
+
+        mainModule.setChatId(chatData.chat_id);
+
+        // ✅ СОХРАНЯЕМ
+        localStorage.setItem("chat_id", chatData.chat_id);
+
+        await chatModule.loadHistory();
+
+    } catch (e) {
+        console.error("Chat init error:", e);
     }
+}
 
-    document.getElementById("start-trial").addEventListener("click",chatModule.startTrial);
-    document.getElementById("submit-feedback").addEventListener("click",chatModule.submitFeedback);
+    document.getElementById("start-trial")
+        .addEventListener("click", chatModule.startTrial);
 
-    document.getElementById("message-input").addEventListener("keypress",e=>{
-        if(e.key==="Enter"&&!e.shiftKey){
-            e.preventDefault();
-            chatModule.sendMessage();
-        }
-    });
+    document.getElementById("submit-feedback")
+        .addEventListener("click", chatModule.submitFeedback);
 
+    document.getElementById("message-input")
+        .addEventListener("keypress", e=>{
+            if(e.key==="Enter" && !e.shiftKey){
+                e.preventDefault();
+                chatModule.sendMessage();
+            }
+        });
 
-
-    // ✅ ВОТ ЭТО ТЫ ДОБАВЛЯЕШЬ
+    // ✅ scroll контроль
     const chat = document.getElementById("chat-container");
-
     chat.addEventListener("scroll", () => {
         userScrolledUp = !isNearBottom();
     });
