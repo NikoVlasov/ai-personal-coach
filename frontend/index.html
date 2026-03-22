@@ -315,52 +315,53 @@ return { sendMessage, addMessage, startTrial, submitFeedback, loadHistory };
 ////////////////////////////////////////////////////////////
 // INIT
 ////////////////////////////////////////////////////////////
-window.addEventListener("DOMContentLoaded", async ()=>{
+window.addEventListener("DOMContentLoaded", async () => {
 
     const savedToken = localStorage.getItem("token");
 
-    if(savedToken){
+    if (savedToken) {
         mainModule.setToken(savedToken);
 
-        document.getElementById("auth-container").style.display="none";
+        document.getElementById("auth-container").style.display = "none";
         document.getElementById("chat-ui").classList.remove("hidden");
 
+        const savedChatId = localStorage.getItem("chat_id");
 
-    const savedChatId = localStorage.getItem("chat_id");
+        if (savedChatId) {
+            // ✅ используем существующий чат
+            mainModule.setChatId(savedChatId);
+            await chatModule.loadHistory();
 
-if (savedChatId) {
-    // ✅ если чат уже был — используем его
-    mainModule.setChatId(savedChatId);
+        } else {
+            // ✅ создаём новый чат
+            try {
+                const chatRes = await fetch("/chats", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + savedToken
+                    },
+                    body: JSON.stringify({ title: "Main chat" })
+                });
 
-    await chatModule.loadHistory();
+                if (!chatRes.ok) throw new Error("Chat creation failed");
 
-} else {
-    // ❗ если чата нет — создаем новый
-    try {
-        const chatRes = await fetch("/chats", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + savedToken
-            },
-            body: JSON.stringify({ title: "Main chat" })
-        });
+                const chatData = await chatRes.json();
 
-        if (!chatRes.ok) throw new Error("Chat creation failed");
+                mainModule.setChatId(chatData.chat_id);
 
-        const chatData = await chatRes.json();
+                // сохраняем chat_id
+                localStorage.setItem("chat_id", chatData.chat_id);
 
-        mainModule.setChatId(chatData.chat_id);
+                await chatModule.loadHistory();
 
-        // ✅ СОХРАНЯЕМ
-        localStorage.setItem("chat_id", chatData.chat_id);
-
-        await chatModule.loadHistory();
-
-    } catch (e) {
-        console.error("Chat init error:", e);
+            } catch (e) {
+                console.error("Chat init error:", e);
+            }
+        }
     }
-}
+
+    // ❗ ВСЕГДА вне if
 
     document.getElementById("start-trial")
         .addEventListener("click", chatModule.startTrial);
@@ -369,20 +370,21 @@ if (savedChatId) {
         .addEventListener("click", chatModule.submitFeedback);
 
     document.getElementById("message-input")
-        .addEventListener("keypress", e=>{
-            if(e.key==="Enter" && !e.shiftKey){
+        .addEventListener("keypress", e => {
+            if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 chatModule.sendMessage();
             }
         });
 
-    // ✅ scroll контроль
     const chat = document.getElementById("chat-container");
+
     chat.addEventListener("scroll", () => {
         userScrolledUp = !isNearBottom();
     });
 
     document.getElementById("message-input").focus();
+
 });
 
 
