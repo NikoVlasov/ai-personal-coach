@@ -671,6 +671,8 @@ async function loadChats() {
     const data = await res.json();
 
     const list = document.getElementById("chat-list");
+    const btn = document.getElementById("chat-dropdown-btn");
+
     list.innerHTML = "";
 
     data.chats.forEach(c => {
@@ -679,15 +681,26 @@ async function loadChats() {
 
         div.onclick = () => {
             mainModule.setChatId(c.id);
+
+            // ✅ показываем название выбранного чата
+            btn.textContent = c.title;
+
             loadHistory();
+
+            // закрыть dropdown
+            list.classList.remove("show");
         };
 
         list.appendChild(div);
     });
 
-    // 👉 авто выбрать первый чат
+    // ✅ если есть чаты — выбрать первый
     if (data.chats.length > 0) {
-        mainModule.setChatId(data.chats[0].id);
+        const first = data.chats[0];
+
+        mainModule.setChatId(first.id);
+        btn.textContent = first.title;
+
         loadHistory();
     }
 }
@@ -708,10 +721,17 @@ async function createChat() {
 
     const data = await res.json();
 
+    // ✅ ОБНОВИТЬ СПИСОК
     await loadChats();
+
+    // ✅ ВЫБРАТЬ НОВЫЙ ЧАТ
     mainModule.setChatId(data.chat_id);
+    document.getElementById("chat-dropdown-btn").textContent = title;
 
     document.getElementById("new-chat-title").value = "";
+
+    // ✅ очистить чат
+    document.getElementById("chat-container").innerHTML = "";
 }
 
 async function loadHistory() {
