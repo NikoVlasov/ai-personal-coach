@@ -485,37 +485,12 @@ marked.setOptions({
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
-
-        <!-- Блок ввода с новой кнопкой Daily Check-in -->
-        <div id="input-container" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px;">
-            <input
-                type="text"
-                id="message-input"
-                placeholder="Type a message..."
-                style="flex: 1; min-width: 200px;"
-            >
-            <button onclick="chatModule.sendMessage()">Send</button>
-            <button onclick="chatModule.sendMessage(true)">🔎 Web Search</button>
-
-            <!-- Новая кнопка Daily Check-in -->
-            <button
-                id="daily-checkin"
-                style="
-                    background: #28a745;
-                    color: white;
-                    padding: 10px 16px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-weight: bold;
-                    white-space: nowrap;
-                "
-            >
-                Daily Check-in 🌟
-            </button>
-        </div>
-    </div>
 </div>
+</div>
+
+
+
+
 
 <script>
 ////////////////////////////////////////////////////////////
@@ -668,6 +643,38 @@ function addMessage(text, sender) {
     scrollToBottom();
 }
 
+async function deleteChat() {
+    const chatId = mainModule.getChatId();
+
+    if (!chatId) {
+        alert("Select chat first");
+        return;
+    }
+
+    if (!confirm("Delete this chat?")) return;
+
+    const res = await fetch(`/chats/${chatId}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: "Bearer " + mainModule.getToken()
+        }
+    });
+
+    if (!res.ok) {
+        alert("Delete failed");
+        return;
+    }
+
+    // очистить UI
+    document.getElementById("chat-container").innerHTML = "";
+    document.getElementById("chat-dropdown-btn").textContent = "Select chat";
+
+    mainModule.setChatId(null);
+
+    // обновить список
+    await loadChats();
+}
+
 async function loadChats() {
     const res = await fetch("/chats", {
         headers: {
@@ -786,7 +793,7 @@ async function sendMessage() {
     addMessage(aiText, "ai");
 }
 
-return { loadChats, createChat, loadHistory, sendMessage };
+return { loadChats, createChat, loadHistory, sendMessage, deleteChat };
 
 })();
 
