@@ -522,6 +522,13 @@ marked.setOptions({
 // HELPERS
 ////////////////////////////////////////////////////////////
 
+function toggleChatList() {
+    const list = document.getElementById("chat-list");
+    if (!list) return;
+
+    list.classList.toggle("show");
+}
+
 function scrollToBottom() {
     const c = document.getElementById("chat-container");
     if (!c) return;
