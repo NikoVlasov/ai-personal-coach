@@ -651,7 +651,7 @@ async function deleteChat() {
         return;
     }
 
-    if (!confirm("Delete this chat?")) return;
+    console.log("DELETE CHAT ID:", chatId);
 
     const res = await fetch(`/chats/${chatId}`, {
         method: "DELETE",
@@ -661,17 +661,18 @@ async function deleteChat() {
     });
 
     if (!res.ok) {
-        alert("Delete failed");
+        alert("Chat already deleted or not found");
+
+        // 🔥 ВАЖНО: обновляем список даже при ошибке
+        await loadChats();
         return;
     }
 
-    // очистить UI
     document.getElementById("chat-container").innerHTML = "";
     document.getElementById("chat-dropdown-btn").textContent = "Select chat";
 
     mainModule.setChatId(null);
 
-    // обновить список
     await loadChats();
 }
 
@@ -821,7 +822,16 @@ window.addEventListener("DOMContentLoaded", async () => {
                 chatModule.sendMessage();
             }
         });
+
+    // 🔥 ВОТ СЮДА
+    const btn = document.getElementById("delete-chat-btn");
+
+    if (btn) {
+        btn.addEventListener("click", chatModule.deleteChat);
+    }
+
 });
+
 </script>
 </body>
 </html>
