@@ -485,352 +485,399 @@ marked.setOptions({
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
+
+      </div>
 </div>
-</div>
-
-
-
-
-
 <script>
+
 ////////////////////////////////////////////////////////////
 // HELPERS
 ////////////////////////////////////////////////////////////
 
-function toggleChatList() {
-    const list = document.getElementById("chat-list");
-    if (!list) return;
-
-    list.classList.toggle("show");
-}
-
 function scrollToBottom() {
-    const c = document.getElementById("chat-container");
-    if (!c) return;
-    c.scrollTop = c.scrollHeight;
+    const container = document.getElementById("chat-container");
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
 }
 
-function convertLinks(el) {
-    const text = el.textContent;
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
+async function typeWriterEffect(element, text, delay = 8) {
+    element.textContent = "";
 
-    el.innerHTML = "";
-    let lastIndex = 0, match;
-
-    while ((match = urlRegex.exec(text)) !== null) {
-        el.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
-
-        const a = document.createElement("a");
-        a.href = match[0];
-        a.textContent = match[0];
-        a.target = "_blank";
-
-        el.appendChild(a);
-        lastIndex = urlRegex.lastIndex;
+    for (let i = 0; i < text.length; i++) {
+        element.textContent += text.charAt(i);
+        if (i % 5 === 0) scrollToBottom();
+        await new Promise(r => setTimeout(r, delay));
     }
 
-    el.appendChild(document.createTextNode(text.substring(lastIndex)));
+    scrollToBottom();
+
+    convertLinks(element);
+}
+
+function toggleChatList(forceClose = false) {
+    const list = document.getElementById("chat-list");
+    const btn = document.getElementById("chat-dropdown-btn");
+
+    if (!list || !btn) return;
+
+    if (forceClose) {
+        list.classList.remove("show");
+        btn.classList.remove("open");
+        return;
+    }
+
+    list.classList.toggle("show");
+    btn.classList.toggle("open");
 }
 
 ////////////////////////////////////////////////////////////
-// MAIN
+// MAIN MODULE
 ////////////////////////////////////////////////////////////
 
 const mainModule = (() => {
+
     let token = null;
-    let chatId = null;
+    let current_chat_id = null;
+
+    const chatContainer = document.getElementById("chat-container");
+    const inputField = document.getElementById("message-input");
+    const chatListDiv = document.getElementById("chat-list");
+
+    function setToken(t) { token = t; }
+    function getToken() { return token; }
+
+    function setCurrentChatId(id, title = "") {
+        current_chat_id = id;
+
+        if (title) {
+            document.getElementById("chat-dropdown-btn").textContent = title;
+        } else {
+            document.getElementById("chat-dropdown-btn").textContent = "Select chat";
+        }
+
+        toggleChatList(true);
+        loadHistory(id);
+    }
+
+    function getCurrentChatId() { return current_chat_id; }
+
+    function logout() {
+        token = null;
+        current_chat_id = null;
+        localStorage.removeItem("token");
+
+        document.getElementById("chat-container").innerHTML = "";
+        document.getElementById("chat-ui").classList.add("hidden");
+        document.getElementById("auth-container").style.display = "block";
+        document.getElementById("chat-dropdown-btn").textContent = "Select chat";
+    }
 
     return {
-        setToken: t => token = t,
-        getToken: () => token,
-
-        setChatId: id => chatId = id,
-        getChatId: () => chatId,
-
-        logout: () => {
-            localStorage.removeItem("token");
-
-            token = null;
-            chatId = null;
-
-            document.getElementById("chat-container").innerHTML = "";
-            document.getElementById("chat-ui").classList.add("hidden");
-            document.getElementById("auth-container").style.display = "block";
-        }
+        setToken,
+        getToken,
+        setCurrentChatId,
+        getCurrentChatId,
+        logout,
+        chatContainer,
+        inputField,
+        chatListDiv
     };
+
 })();
 
 ////////////////////////////////////////////////////////////
-// AUTH
+// AUTH MODULE
 ////////////////////////////////////////////////////////////
 
 const authModule = (() => {
 
-function showForm(type) {
-    document.getElementById("login-form").classList.toggle("hidden", type !== "login");
-    document.getElementById("register-form").classList.toggle("hidden", type !== "register");
-
-    document.getElementById("login-tab").classList.toggle("active", type === "login");
-    document.getElementById("register-tab").classList.toggle("active", type === "register");
-}
-
-async function login() {
-    const email = document.getElementById("login-email").value;
-    const password = document.getElementById("login-password").value;
-
-    const res = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({email,password})
-    });
-
-    if (!res.ok) {
-        alert("Login failed");
-        return;
+    function showForm(type) {
+        document.getElementById("login-form").classList.toggle("hidden", type !== "login");
+        document.getElementById("register-form").classList.toggle("hidden", type !== "register");
+        document.getElementById("login-tab").classList.toggle("active", type === "login");
+        document.getElementById("register-tab").classList.toggle("active", type === "register");
     }
 
-    const data = await res.json();
+    async function login() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
 
-    mainModule.setToken(data.access_token);
-    localStorage.setItem("token", data.access_token);
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({email, password})
+        });
 
-    document.getElementById("auth-container").style.display = "none";
-    document.getElementById("chat-ui").classList.remove("hidden");
+        if (!res.ok) {
+            alert("Login failed");
+            return;
+        }
 
-    await chatModule.loadChats();
-}
+        const data = await res.json();
+        mainModule.setToken(data.access_token);
+        localStorage.setItem("token", data.access_token);
 
-async function register() {
-    const email = document.getElementById("register-email").value;
-    const password = document.getElementById("register-password").value;
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("chat-ui").classList.remove("hidden");
 
-    const res = await fetch("/register", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({email,password})
-    });
-
-    if (!res.ok) {
-        alert("Register failed");
-        return;
+        chatModule.fetchChats();
     }
 
-    alert("Registered! Now login.");
-    showForm("login");
-}
+    async function register() {
+        const email = document.getElementById("register-email").value;
+        const password = document.getElementById("register-password").value;
 
-return { login, register, showForm };
+        const res = await fetch("/register", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({email, password})
+        });
+
+        if (!res.ok) {
+            alert("Registration failed");
+            return;
+        }
+
+        alert("Registered successfully. Now login.");
+        showForm("login");
+    }
+
+    return { login, register, showForm };
 
 })();
 
 ////////////////////////////////////////////////////////////
-// CHAT
+// CHAT MODULE
 ////////////////////////////////////////////////////////////
 
 const chatModule = (() => {
 
-function addMessage(text, sender) {
-    const msg = document.createElement("div");
-    msg.className = "message " + sender;
+    function addMessage(text, sender) {
+        const msg = document.createElement("div");
+        msg.className = "message " + sender;
 
-    const content = document.createElement("div");
-    content.textContent = text;
-    convertLinks(content);
+        const content = document.createElement("div");
 
-    msg.appendChild(content);
-    document.getElementById("chat-container").appendChild(msg);
+        if (sender === "ai") {
+            typeWriterEffect(content, text);
+        } else {
+            content.textContent = text;
+            convertLinks(content);
+        }
+
+        msg.appendChild(content);
+        mainModule.chatContainer.appendChild(msg);
+        scrollToBottom();
+    }
+
+    async function sendMessage(isSearch = false) {
+        const text = mainModule.inputField.value;
+        const chatId = mainModule.getCurrentChatId();
+
+        if (!chatId) {
+            alert("Select chat first");
+            return;
+        }
+
+        if (!text.trim()) return;
+
+        addMessage(text, "user");
+        mainModule.inputField.value = "";
+
+        const temp = document.createElement("div");
+        temp.className = "message ai";
+        temp.textContent = isSearch ? "🔎 Searching..." : "🤖 Thinking...";
+        mainModule.chatContainer.appendChild(temp);
+        scrollToBottom();
+
+        const endpoint = isSearch ? "/search" : "/coach";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + mainModule.getToken()
+                },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: text
+                })
+            });
+
+            if (!res.ok) {
+                if (res.status === 401) mainModule.logout();
+                throw new Error(res.status);
+            }
+
+            const aiText = await res.text();
+
+            temp.remove();
+            addMessage(aiText, "ai");
+
+        } catch (e) {
+            temp.textContent = "Error. Try again.";
+            console.error(e);
+        }
+    }
+
+    async function fetchChats() {
+        const res = await fetch("/chats", {
+            headers: { Authorization: "Bearer " + mainModule.getToken() }
+        });
+
+        if (!res.ok) {
+            mainModule.logout();
+            return;
+        }
+
+        const data = await res.json();
+        mainModule.chatListDiv.innerHTML = "";
+
+        data.chats.forEach(chat => {
+            const div = document.createElement("div");
+            div.textContent = chat.title;
+
+            div.onclick = () => {
+                mainModule.setCurrentChatId(chat.id, chat.title);
+            };
+
+            mainModule.chatListDiv.appendChild(div);
+        });
+    }
+
+    async function createChat() {
+        const title = document.getElementById("new-chat-title").value;
+        if (!title.trim()) return;
+
+        const res = await fetch("/chats", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + mainModule.getToken()
+            },
+            body: JSON.stringify({title})
+        });
+
+        const data = await res.json();
+
+        await fetchChats();
+        mainModule.setCurrentChatId(data.chat_id, title);
+
+        document.getElementById("new-chat-title").value = "";
+    }
+
+    async function deleteChat() {
+        const chatId = mainModule.getCurrentChatId();
+        if (!chatId) return;
+
+        if (!confirm("Delete this chat?")) return;
+
+        const res = await fetch(`/chats/${chatId}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: "Bearer " + mainModule.getToken()
+            }
+        });
+
+        if (!res.ok) {
+            alert("Failed to delete chat");
+            return;
+        }
+
+        mainModule.setCurrentChatId(null, "Select chat");
+        document.getElementById("chat-container").innerHTML = "";
+
+        fetchChats();
+    }
+
+    return { sendMessage, fetchChats, createChat, deleteChat, addMessage };
+
+})();
+
+////////////////////////////////////////////////////////////
+// HISTORY
+////////////////////////////////////////////////////////////
+
+function convertLinks(element) {
+    const text = element.textContent;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+    element.innerHTML = "";
+
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+        const before = text.substring(lastIndex, match.index);
+        element.appendChild(document.createTextNode(before));
+
+        const link = document.createElement("a");
+        link.href = match[0];
+        link.textContent = match[0];
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        element.appendChild(link);
+
+        lastIndex = urlRegex.lastIndex;
+    }
+
+    const after = text.substring(lastIndex);
+    element.appendChild(document.createTextNode(after));
+}
+
+async function loadHistory(chatId) {
+    if (!chatId) return;
+
+    const res = await fetch(`/history/${chatId}`, {
+        headers: { Authorization: "Bearer " + mainModule.getToken() }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    mainModule.chatContainer.innerHTML = "";
+
+    data.messages.forEach(m => {
+        const msg = document.createElement("div");
+        msg.className = "message " + m.sender;
+
+        const content = document.createElement("div");
+        content.textContent = m.text;
+        convertLinks(content);
+
+        msg.appendChild(content);
+        mainModule.chatContainer.appendChild(msg);
+    });
 
     scrollToBottom();
 }
 
-async function deleteChat() {
-    const chatId = mainModule.getChatId();
 
-    if (!chatId) {
-        alert("Select chat first");
-        return;
-    }
-
-    console.log("DELETE CHAT ID:", chatId);
-
-    const res = await fetch(`/chats/${chatId}`, {
-        method: "DELETE",
-        headers: {
-            Authorization: "Bearer " + mainModule.getToken()
-        }
-    });
-
-    if (!res.ok) {
-        alert("Chat already deleted or not found");
-
-        // 🔥 ВАЖНО: обновляем список даже при ошибке
-        await loadChats();
-        return;
-    }
-
-    document.getElementById("chat-container").innerHTML = "";
-    document.getElementById("chat-dropdown-btn").textContent = "Select chat";
-
-    mainModule.setChatId(null);
-
-    await loadChats();
-}
-
-async function loadChats() {
-    const res = await fetch("/chats", {
-        headers: {
-            Authorization: "Bearer " + mainModule.getToken()
-        }
-    });
-
-    const data = await res.json();
-
-    const list = document.getElementById("chat-list");
-    const btn = document.getElementById("chat-dropdown-btn");
-
-    list.innerHTML = "";
-
-    data.chats.forEach(c => {
-        const div = document.createElement("div");
-        div.textContent = c.title;
-
-        div.onclick = () => {
-            mainModule.setChatId(c.id);
-
-            // ✅ показываем название выбранного чата
-            btn.textContent = c.title;
-
-            loadHistory();
-
-            // закрыть dropdown
-            list.classList.remove("show");
-        };
-
-        list.appendChild(div);
-    });
-
-    // ✅ если есть чаты — выбрать первый
-    if (data.chats.length > 0) {
-        const first = data.chats[0];
-
-        mainModule.setChatId(first.id);
-        btn.textContent = first.title;
-
-        loadHistory();
-    }
-}
-
-async function createChat() {
-    const title = document.getElementById("new-chat-title").value;
-
-    if (!title.trim()) return;
-
-    const res = await fetch("/chats", {
-        method: "POST",
-        headers: {
-            "Content-Type":"application/json",
-            Authorization: "Bearer " + mainModule.getToken()
-        },
-        body: JSON.stringify({title})
-    });
-
-    const data = await res.json();
-
-    // ✅ ОБНОВИТЬ СПИСОК
-    await loadChats();
-
-    // ✅ ВЫБРАТЬ НОВЫЙ ЧАТ
-    mainModule.setChatId(data.chat_id);
-    document.getElementById("chat-dropdown-btn").textContent = title;
-
-    document.getElementById("new-chat-title").value = "";
-
-    // ✅ очистить чат
-    document.getElementById("chat-container").innerHTML = "";
-}
-
-async function loadHistory() {
-    const chatId = mainModule.getChatId();
-    if (!chatId) return;
-
-    const res = await fetch(`/history/${chatId}`, {
-        headers: {
-            Authorization: "Bearer " + mainModule.getToken()
-        }
-    });
-
-    const data = await res.json();
-
-    const container = document.getElementById("chat-container");
-    container.innerHTML = "";
-
-    data.messages.forEach(m => {
-        addMessage(m.text, m.sender);
-    });
-}
-
-async function sendMessage() {
-    const input = document.getElementById("message-input");
-    const text = input.value;
-
-    if (!text.trim()) return;
-
-    addMessage(text, "user");
-    input.value = "";
-
-    const res = await fetch("/coach", {
-        method: "POST",
-        headers: {
-            "Content-Type":"application/json",
-            Authorization: "Bearer " + mainModule.getToken()
-        },
-        body: JSON.stringify({
-            chat_id: mainModule.getChatId(),
-            text
-        })
-    });
-
-    const aiText = await res.text();
-    addMessage(aiText, "ai");
-}
-
-return { loadChats, createChat, loadHistory, sendMessage, deleteChat };
-
-})();
 
 ////////////////////////////////////////////////////////////
 // INIT
 ////////////////////////////////////////////////////////////
 
-window.addEventListener("DOMContentLoaded", async () => {
+window.addEventListener("DOMContentLoaded", () => {
 
-    const token = localStorage.getItem("token");
+    const savedToken = localStorage.getItem("token");
 
-    if (token) {
-        mainModule.setToken(token);
-
+    if (savedToken) {
+        mainModule.setToken(savedToken);
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("chat-ui").classList.remove("hidden");
-
-        await chatModule.loadChats();
+        chatModule.fetchChats();
     }
 
-    document.getElementById("message-input")
-        .addEventListener("keypress", e => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                chatModule.sendMessage();
-            }
-        });
+    mainModule.inputField.addEventListener("keypress", function(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            chatModule.sendMessage(false);
+        }
+    });
 
-    // 🔥 ВОТ СЮДА
-    const btn = document.getElementById("delete-chat-btn");
-
-    if (btn) {
-        btn.addEventListener("click", chatModule.deleteChat);
-    }
-
-});
 
 </script>
 </body>
