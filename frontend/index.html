@@ -485,7 +485,11 @@ marked.setOptions({
 
         <div id="chat-container"></div>
         <div id="quick-buttons"></div>
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="Type a message...">
 
+            <button id="send-btn">Send</button>
+        </div>
       </div>
 </div>
 <script>
@@ -871,12 +875,33 @@ window.addEventListener("DOMContentLoaded", () => {
         chatModule.fetchChats();
     }
 
-    mainModule.inputField.addEventListener("keypress", function(e) {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
+    // ENTER отправка
+    if (mainModule.inputField) {
+        mainModule.inputField.addEventListener("keypress", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                chatModule.sendMessage(false);
+            }
+        });
+    }
+
+    // ✅ КНОПКА SEND (вот это тебе нужно было)
+    const sendBtn = document.getElementById("send-btn");
+
+    if (sendBtn) {
+        sendBtn.addEventListener("click", () => {
             chatModule.sendMessage(false);
-        }
-    });
+        });
+    }
+
+    // ✅ DELETE кнопка (чтобы не падала ошибка)
+    const deleteBtn = document.getElementById("delete-chat-btn");
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener("click", chatModule.deleteChat);
+    }
+
+});
 });
 
 
