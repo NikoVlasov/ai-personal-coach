@@ -518,7 +518,7 @@ marked.setOptions({
             <button type="button" onclick="authModule.register()">Register</button>
         </form>
     </div>
-    <div id="empty-state">
+    <div id="empty-state" class="hidden">
         <h2>Welcome to Mentra Coach</h2>
         <p>Create your personal workout plan in 20 seconds</p>
         <button id="create-plan-btn">Create Plan 💪</button>
@@ -556,6 +556,20 @@ function scrollToBottom() {
     const container = document.getElementById("chat-container");
     if (!container) return;
     container.scrollTop = container.scrollHeight;
+}
+
+function updateEmptyState() {
+    const empty = document.getElementById("empty-state");
+    const chat = document.getElementById("chat-container");
+
+    if (!empty || !chat) return;
+
+    // если нет сообщений → показываем
+    if (chat.children.length === 0) {
+        empty.style.display = "block";
+    } else {
+        empty.style.display = "none";
+    }
 }
 
 async function typeWriterEffect(element, text, delay = 8) {
@@ -731,6 +745,7 @@ const chatModule = (() => {
         mainModule.chatContainer.appendChild(msg);
 
         scrollToBottom();
+        updateEmptyState();
     }
 
     async function sendMessage(isSearch = false) {
@@ -923,6 +938,7 @@ async function loadHistory(chatId) {
     });
 
     scrollToBottom();
+    updateEmptyState();
 }
 
 
@@ -965,7 +981,6 @@ window.addEventListener("DOMContentLoaded", () => {
     if (createPlanBtn) {
         createPlanBtn.addEventListener("click", () => {
             chatModule.sendMessage("create workout plan");
-            document.getElementById("empty-state").style.display = "none";
         });
     }
     // ✅ DELETE кнопка (чтобы не падала ошибка)
