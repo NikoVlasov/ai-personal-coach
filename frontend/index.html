@@ -564,12 +564,7 @@ function updateEmptyState() {
 
     if (!empty || !chat) return;
 
-    // если нет сообщений → показываем
-    if (chat.children.length === 0) {
-        empty.style.display = "block";
-    } else {
-        empty.style.display = "none";
-    }
+    empty.style.display = chat.children.length === 0 ? "block" : "none";
 }
 
 async function typeWriterEffect(element, text, delay = 8) {
@@ -582,7 +577,6 @@ async function typeWriterEffect(element, text, delay = 8) {
     }
 
     scrollToBottom();
-
     convertLinks(element);
 }
 
@@ -594,12 +588,10 @@ function toggleChatList(forceClose = false) {
 
     if (forceClose) {
         list.classList.remove("show");
-        btn.classList.remove("open");
         return;
     }
 
     list.classList.toggle("show");
-    btn.classList.toggle("open");
 }
 
 ////////////////////////////////////////////////////////////
@@ -621,11 +613,12 @@ const mainModule = (() => {
     function setCurrentChatId(id, title = "") {
         current_chat_id = id;
 
-        if (title) {
-            document.getElementById("chat-dropdown-btn").textContent = title;
-        } else {
-            document.getElementById("chat-dropdown-btn").textContent = "Select chat";
-        }
+        document.getElementById("chat-dropdown-btn").textContent =
+            title || "Select chat";
+
+        // ❗ убираем welcome
+        const welcome = document.getElementById("welcome-block");
+        if (welcome) welcome.remove();
 
         toggleChatList(true);
         loadHistory(id);
@@ -641,7 +634,6 @@ const mainModule = (() => {
         document.getElementById("chat-container").innerHTML = "";
         document.getElementById("chat-ui").classList.add("hidden");
         document.getElementById("auth-container").style.display = "block";
-        document.getElementById("chat-dropdown-btn").textContent = "Select chat";
     }
 
     return {
@@ -658,7 +650,7 @@ const mainModule = (() => {
 })();
 
 ////////////////////////////////////////////////////////////
-// AUTH MODULE
+// AUTH
 ////////////////////////////////////////////////////////////
 
 const authModule = (() => {
@@ -666,8 +658,6 @@ const authModule = (() => {
     function showForm(type) {
         document.getElementById("login-form").classList.toggle("hidden", type !== "login");
         document.getElementById("register-form").classList.toggle("hidden", type !== "register");
-        document.getElementById("login-tab").classList.toggle("active", type === "login");
-        document.getElementById("register-tab").classList.toggle("active", type === "register");
     }
 
     async function login() {
@@ -680,12 +670,10 @@ const authModule = (() => {
             body: JSON.stringify({email, password})
         });
 
-        if (!res.ok) {
-            alert("Login failed");
-            return;
-        }
+        if (!res.ok) return alert("Login failed");
 
         const data = await res.json();
+
         mainModule.setToken(data.access_token);
         localStorage.setItem("token", data.access_token);
 
@@ -705,12 +693,9 @@ const authModule = (() => {
             body: JSON.stringify({email, password})
         });
 
-        if (!res.ok) {
-            alert("Registration failed");
-            return;
-        }
+        if (!res.ok) return alert("Registration failed");
 
-        alert("Registered successfully. Now login.");
+        alert("Registered. Login now.");
         showForm("login");
     }
 
@@ -725,10 +710,6 @@ const authModule = (() => {
 const chatModule = (() => {
 
     function addMessage(text, sender) {
-
-        const empty = document.getElementById("empty-state");
-        if (empty) empty.style.display = "none";
-
         const msg = document.createElement("div");
         msg.className = "message " + sender;
 
@@ -748,61 +729,59 @@ const chatModule = (() => {
         updateEmptyState();
     }
 
+    function showWelcome() {
+        const container = mainModule.chatContainer;
+
+        if (document.getElementById("welcome-block")) return;
+
+        const block = document.createElement("div");
+        block.id = "welcome-block";
+
+        block.innerHTML = `
+            <h2>Welcome to Mentra Coach</h2>
+            <button id="create-plan-btn">Create Plan 💪</button>
+        `;
+
+        container.appendChild(block);
+
+        document.getElementById("create-plan-btn").onclick = () => {
+            mainModule.inputField.value = "Create workout plan for me";
+            sendMessage(false);
+            block.remove();
+        };
+    }
+
     async function sendMessage(isSearch = false) {
         const text = mainModule.inputField.value;
         const chatId = mainModule.getCurrentChatId();
 
-        if (!chatId) {
-            alert("Select chat first");
-            return;
-        }
-
-        if (!text.trim()) return;
+        if (!chatId || !text.trim()) return;
 
         addMessage(text, "user");
         mainModule.inputField.value = "";
 
-        const temp = document.createElement("div");
-        temp.className = "message ai";
-
         const typing = document.createElement("div");
-        typing.className = "typing";
-        typing.innerHTML = "<span></span><span></span><span></span>";
-
-        temp.appendChild(typing);
-
-        mainModule.chatContainer.appendChild(temp);
-        scrollToBottom();
-
-
-        const endpoint = isSearch ? "/search" : "/coach";
+        typing.className = "message ai";
+        typing.textContent = "...";
+        mainModule.chatContainer.appendChild(typing);
 
         try {
-            const res = await fetch(endpoint, {
+            const res = await fetch("/coach", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + mainModule.getToken()
                 },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: text
-                })
+                body: JSON.stringify({ chat_id: chatId, text })
             });
-
-            if (!res.ok) {
-                if (res.status === 401) mainModule.logout();
-                throw new Error(res.status);
-            }
 
             const aiText = await res.text();
 
-            temp.remove();
+            typing.remove();
             addMessage(aiText, "ai");
 
         } catch (e) {
-            temp.textContent = "Error. Try again.";
-            console.error(e);
+            typing.textContent = "Error";
         }
     }
 
@@ -811,17 +790,19 @@ const chatModule = (() => {
             headers: { Authorization: "Bearer " + mainModule.getToken() }
         });
 
-        if (!res.ok) {
-            mainModule.logout();
-            return;
-        }
+        if (!res.ok) return mainModule.logout();
 
         const data = await res.json();
         mainModule.chatListDiv.innerHTML = "";
 
+        if (!data.chats.length) {
+            showWelcome();
+            return;
+        }
+
         data.chats.forEach(chat => {
             const div = document.createElement("div");
-            div.textContent = chat.title;
+            div.textContent = chat.title || "Chat";
 
             div.onclick = () => {
                 mainModule.setCurrentChatId(chat.id, chat.title);
@@ -833,7 +814,6 @@ const chatModule = (() => {
 
     async function createChat() {
         const title = document.getElementById("new-chat-title").value;
-        if (!title.trim()) return;
 
         const res = await fetch("/chats", {
             method: "POST",
@@ -841,43 +821,30 @@ const chatModule = (() => {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + mainModule.getToken()
             },
-            body: JSON.stringify({title})
+            body: JSON.stringify({ title })
         });
 
         const data = await res.json();
 
         await fetchChats();
         mainModule.setCurrentChatId(data.chat_id, title);
-
-        document.getElementById("new-chat-title").value = "";
-        chatModule.sendMessage("create workout plan");
     }
 
     async function deleteChat() {
-        const chatId = mainModule.getCurrentChatId();
-        if (!chatId) return;
+        const id = mainModule.getCurrentChatId();
+        if (!id) return;
 
-        if (!confirm("Delete this chat?")) return;
-
-        const res = await fetch(`/chats/${chatId}`, {
+        await fetch(`/chats/${id}`, {
             method: "DELETE",
-            headers: {
-                Authorization: "Bearer " + mainModule.getToken()
-            }
+            headers: { Authorization: "Bearer " + mainModule.getToken() }
         });
 
-        if (!res.ok) {
-            alert("Failed to delete chat");
-            return;
-        }
-
-        mainModule.setCurrentChatId(null, "Select chat");
-        document.getElementById("chat-container").innerHTML = "";
-
+        mainModule.setCurrentChatId(null);
+        mainModule.chatContainer.innerHTML = "";
         fetchChats();
     }
 
-    return { sendMessage, fetchChats, createChat, deleteChat, addMessage };
+    return { sendMessage, fetchChats, createChat, deleteChat };
 
 })();
 
@@ -885,37 +852,7 @@ const chatModule = (() => {
 // HISTORY
 ////////////////////////////////////////////////////////////
 
-function convertLinks(element) {
-    const text = element.textContent;
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-
-    element.innerHTML = "";
-
-    let lastIndex = 0;
-    let match;
-
-    while ((match = urlRegex.exec(text)) !== null) {
-        const before = text.substring(lastIndex, match.index);
-        element.appendChild(document.createTextNode(before));
-
-        const link = document.createElement("a");
-        link.href = match[0];
-        link.textContent = match[0];
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-
-        element.appendChild(link);
-
-        lastIndex = urlRegex.lastIndex;
-    }
-
-    const after = text.substring(lastIndex);
-    element.appendChild(document.createTextNode(after));
-}
-
 async function loadHistory(chatId) {
-    if (!chatId) return;
-
     const res = await fetch(`/history/${chatId}`, {
         headers: { Authorization: "Bearer " + mainModule.getToken() }
     });
@@ -926,22 +863,9 @@ async function loadHistory(chatId) {
     mainModule.chatContainer.innerHTML = "";
 
     data.messages.forEach(m => {
-        const msg = document.createElement("div");
-        msg.className = "message " + m.sender;
-
-        const content = document.createElement("div");
-        content.textContent = m.text;
-        convertLinks(content);
-
-        msg.appendChild(content);
-        mainModule.chatContainer.appendChild(msg);
+        chatModule.addMessage(m.text, m.sender);
     });
-
-    scrollToBottom();
-    updateEmptyState();
 }
-
-
 
 ////////////////////////////////////////////////////////////
 // INIT
@@ -949,50 +873,22 @@ async function loadHistory(chatId) {
 
 window.addEventListener("DOMContentLoaded", () => {
 
-    const savedToken = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-    if (savedToken) {
-        mainModule.setToken(savedToken);
+    if (token) {
+        mainModule.setToken(token);
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("chat-ui").classList.remove("hidden");
         chatModule.fetchChats();
     }
 
-    // ENTER отправка
-    if (mainModule.inputField) {
-        mainModule.inputField.addEventListener("keypress", function(e) {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                chatModule.sendMessage(false);
-            }
-        });
-    }
-
-    // ✅ КНОПКА SEND (вот это тебе нужно было)
     const sendBtn = document.getElementById("send-btn");
+    if (sendBtn) sendBtn.onclick = () => chatModule.sendMessage();
 
-    if (sendBtn) {
-        sendBtn.addEventListener("click", () => {
-            chatModule.sendMessage(false);
-        });
-    }
-    const createPlanBtn = document.getElementById("create-plan-btn");
-
-    if (createPlanBtn) {
-        createPlanBtn.addEventListener("click", () => {
-            chatModule.sendMessage("create workout plan");
-        });
-    }
-    // ✅ DELETE кнопка (чтобы не падала ошибка)
     const deleteBtn = document.getElementById("delete-chat-btn");
-
-    if (deleteBtn) {
-        deleteBtn.addEventListener("click", chatModule.deleteChat);
-    }
+    if (deleteBtn) deleteBtn.onclick = chatModule.deleteChat;
 
 });
-
-
 
 </script>
 </body>
