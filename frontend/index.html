@@ -844,14 +844,39 @@ const chatModule = (() => {
         fetchChats();
     }
 
-    return { sendMessage, fetchChats, createChat, deleteChat };
+    return { sendMessage, fetchChats, createChat, deleteChat, addMessage };
 
 })();
 
 ////////////////////////////////////////////////////////////
 // HISTORY
 ////////////////////////////////////////////////////////////
+function convertLinks(element) {
+    const text = element.textContent;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
 
+    element.innerHTML = "";
+
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+        const before = text.substring(lastIndex, match.index);
+        element.appendChild(document.createTextNode(before));
+
+        const link = document.createElement("a");
+        link.href = match[0];
+        link.textContent = match[0];
+        link.target = "_blank";
+
+        element.appendChild(link);
+
+        lastIndex = urlRegex.lastIndex;
+    }
+
+    const after = text.substring(lastIndex);
+    element.appendChild(document.createTextNode(after));
+}
 async function loadHistory(chatId) {
     const res = await fetch(`/history/${chatId}`, {
         headers: { Authorization: "Bearer " + mainModule.getToken() }
