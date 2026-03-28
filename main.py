@@ -430,7 +430,7 @@ Act like a real personal trainer helping the user build a sustainable home worko
                 model="llama-3.3-70b-versatile",
                 messages=full_messages,  # ← теперь это полная история!
                 temperature=0.5,         # чуть повыше для естественности
-                max_tokens=600
+                max_tokens=400
             )
         )
 
