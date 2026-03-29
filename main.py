@@ -91,10 +91,16 @@ class DailyCheckin(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-class CheckinRequest(BaseModel):
-    energy: int
-    soreness: int
-    mood: int
+class FitnessProfile(Base):
+    __tablename__ = "fitness_profiles"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    goal = Column(String)  # "fat_loss", "strength", "maintenance"
+    health_issues = Column(String, nullable=True)  # текст описания ограничений
+    level = Column(String, default="beginner")  # beginner / intermediate / advanced
+    height = Column(Integer, nullable=True)
+    weight = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 
@@ -183,7 +189,18 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class CheckinRequest(BaseModel):
+    energy: int
+    soreness: int
+    mood: int
 
+class UserRegister(BaseModel):
+    email: str
+    password: str
+    goal: str
+    health_issues: str = None
+    height: int = None
+    weight: int = None
 # =========================
 # STATIC
 # =========================
@@ -207,6 +224,17 @@ async def register(data: UserRegister, db: Session = Depends(get_db)):
 
     user = User(email=data.email, password=hash_password(data.password))
     db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    profile = FitnessProfile(
+        user_id=user.id,
+        goal=data.goal,
+        health_issues=data.health_issues,
+        height=data.height,
+        weight=data.weight
+    )
+    db.add(profile)
     db.commit()
 
     return {"status": "ok"}
@@ -250,38 +278,42 @@ async def generate_workout(
     user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # 1. Берём последний checkin
     checkin = db.query(DailyCheckin)\
         .filter(DailyCheckin.user_id == user.id)\
         .order_by(DailyCheckin.created_at.desc())\
         .first()
+    profile = db.query(FitnessProfile).filter(FitnessProfile.user_id == user.id).first()
 
     if not checkin:
         raise HTTPException(status_code=400, detail="No checkin")
 
-    # 2. Простая логика (пока без AI)
-    if checkin.energy <= 3:
+    # Если пользователь указал проблемы со здоровьем, лёгкий режим
+    if profile.health_issues:
         workout = [
             {"name": "Walking in place", "duration": "5 min"},
-            {"name": "Light squats", "reps": "10 x 2"},
             {"name": "Stretching", "duration": "5 min"}
         ]
-    elif checkin.energy >= 7:
-        workout = [
-            {"name": "Jump squats", "reps": "15 x 3"},
-            {"name": "Push-ups", "reps": "12 x 3"},
-            {"name": "Plank", "duration": "45 sec x 3"}
-        ]
     else:
-        workout = [
-            {"name": "Squats", "reps": "12 x 3"},
-            {"name": "Push-ups", "reps": "10 x 3"},
-            {"name": "Plank", "duration": "30 sec x 3"}
-        ]
+        if checkin.energy <= 3:
+            workout = [
+                {"name": "Walking in place", "duration": "5 min"},
+                {"name": "Light squats", "reps": "10 x 2"},
+                {"name": "Stretching", "duration": "5 min"}
+            ]
+        elif checkin.energy >= 7:
+            workout = [
+                {"name": "Jump squats", "reps": "15 x 3"},
+                {"name": "Push-ups", "reps": "12 x 3"},
+                {"name": "Plank", "duration": "45 sec x 3"}
+            ]
+        else:
+            workout = [
+                {"name": "Squats", "reps": "12 x 3"},
+                {"name": "Push-ups", "reps": "10 x 3"},
+                {"name": "Plank", "duration": "30 sec x 3"}
+            ]
 
-    return {
-        "workout": workout
-    }
+    return {"workout": workout}
 
 @app.post("/complete-workout")
 async def complete_workout(user=Depends(get_current_user), db: Session = Depends(get_db)):

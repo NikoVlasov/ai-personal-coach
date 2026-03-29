@@ -22,10 +22,17 @@
   <!-- REGISTER -->
   <div id="registerTab">
     <h2>Register</h2>
-    <input type="email" id="registerEmail" placeholder="Email">
-    <input type="password" id="registerPassword" placeholder="Password">
+    <input id="registerEmail" placeholder="Email">
+    <input id="registerPassword" type="password" placeholder="Password">
+    <select id="goal">
+      <option value="fat_loss">Похудение</option>
+      <option value="strength">Сила / Тонус</option>
+      <option value="maintenance">Поддержание формы</option>
+    </select>
+    <input id="health_issues" placeholder="Есть ограничения по здоровью (если есть)">
+    <input id="height" type="number" placeholder="Рост (см)">
+    <input id="weight" type="number" placeholder="Вес (кг)">
     <button onclick="register()">Register</button>
-    <span class="link" onclick="showTab('login')">Already have an account? Login</span>
     <div id="registerMessage"></div>
   </div>
 
@@ -79,21 +86,22 @@ function showTab(tab) {
 async function register() {
     const email = document.getElementById("registerEmail").value;
     const password = document.getElementById("registerPassword").value;
-    try {
-        const res = await fetch("/register", {
-            method: "POST",
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({email,password})
-        });
-        if(res.ok){
-            document.getElementById("registerMessage").innerText = "Registered! You can login.";
-            showTab("login");
-        } else {
-            const data = await res.json().catch(() => ({}));
-            document.getElementById("registerMessage").innerText = data.detail || "Error";
-        }
-    } catch(err) {
-        document.getElementById("registerMessage").innerText = `Network error: ${err.message}`;
+    const goal = document.getElementById("goal").value;
+    const health_issues = document.getElementById("health_issues").value;
+    const height = parseInt(document.getElementById("height").value) || null;
+    const weight = parseInt(document.getElementById("weight").value) || null;
+
+    const res = await fetch("/register", {
+        method: "POST",
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email, password, goal, health_issues, height, weight})
+    });
+    const data = await res.json();
+    if(res.ok){
+        document.getElementById("registerMessage").innerText = "Registered! You can login.";
+        showTab("login");
+    } else {
+        document.getElementById("registerMessage").innerText = data.detail || "Error";
     }
 }
 
