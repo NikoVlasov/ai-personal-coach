@@ -1,69 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Fitness App MVP</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .tab { display: none; }
-        input, select, button { display: block; margin: 5px 0; padding: 5px; }
-        #workoutContainer div { margin: 3px 0; }
-    </style>
+<meta charset="UTF-8">
+<title>Fitness AI</title>
+<style>
+body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+h2 { margin-top: 20px; }
+input, select { display: block; margin: 10px 0; padding: 5px; width: 100%; }
+button { padding: 10px; margin: 5px 0; width: 100%; }
+#workoutContainer div { margin: 5px 0; padding: 5px; background: #f0f0f0; }
+#aiAdvice { background: #e0ffe0; padding: 10px; margin: 10px 0; }
+.hidden { display: none; }
+</style>
 </head>
 <body>
 
-<!-- REGISTRATION -->
-<div id="registerTab" class="tab">
-    <h2>Register</h2>
-    <input id="registerEmail" placeholder="Email">
-    <input id="registerPassword" type="password" placeholder="Password">
-    <select id="goal">
-        <option value="fat_loss">Похудение</option>
-        <option value="strength">Сила / Тонус</option>
-        <option value="maintenance">Поддержание формы</option>
-    </select>
-    <input id="height" type="number" placeholder="Рост (см)">
-    <input id="weight" type="number" placeholder="Вес (кг)">
-    <input id="health_issues" placeholder="Есть ограничения по здоровью (если есть)">
-    <button onclick="register()">Register</button>
-    <div id="registerMessage"></div>
-    <button onclick="showTab('login')">Go to Login</button>
+<!-- TABS -->
+<div id="registerTab">
+  <h2>Register</h2>
+  <input type="email" id="registerEmail" placeholder="Email">
+  <input type="password" id="registerPassword" placeholder="Password">
+  <input type="number" id="age" placeholder="Age">
+  <input type="number" id="height" placeholder="Height (cm)">
+  <input type="number" id="weight" placeholder="Weight (kg)">
+  <select id="goal">
+    <option value="">Select goal</option>
+    <option value="fat_loss">Fat Loss</option>
+    <option value="strength">Strength</option>
+    <option value="maintain">Maintain</option>
+  </select>
+  <select id="level">
+    <option value="">Select level</option>
+    <option value="beginner">Beginner</option>
+    <option value="intermediate">Intermediate</option>
+    <option value="advanced">Advanced</option>
+  </select>
+  <button onclick="register()">Register</button>
+  <p id="registerMessage"></p>
+  <button onclick="showTab('login')">Already have an account? Login</button>
 </div>
 
-<!-- LOGIN -->
-<div id="loginTab" class="tab">
-    <h2>Login</h2>
-    <input id="loginEmail" placeholder="Email">
-    <input id="loginPassword" type="password" placeholder="Password">
-    <button onclick="login()">Login</button>
-    <div id="loginMessage"></div>
-    <button onclick="showTab('register')">Go to Register</button>
+<div id="loginTab" class="hidden">
+  <h2>Login</h2>
+  <input type="email" id="loginEmail" placeholder="Email">
+  <input type="password" id="loginPassword" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p id="loginMessage"></p>
 </div>
 
-<!-- MAIN APP -->
-<div id="mainApp" class="tab">
-    <h2>Fitness App</h2>
-    <div>
-        <h3>Daily Check-in</h3>
-        <input id="energy" type="number" placeholder="Energy (1-10)">
-        <input id="soreness" type="number" placeholder="Soreness (1-10)">
-        <input id="mood" type="number" placeholder="Mood (1-10)">
-        <button onclick="submitCheckin()">Submit Check-in</button>
-        <div id="checkinMessage"></div>
-    </div>
-    <div>
-        <h3>Workout</h3>
-        <button onclick="generateWorkout()">Generate Workout</button>
-        <div id="workoutContainer"></div>
-        <button onclick="completeWorkout()">Complete Workout</button>
-        <div id="workoutMessage"></div>
-    </div>
-    <div>
-        <h3>Status</h3>
-        <div id="statusContainer"></div>
-        <button onclick="getStatus()">Refresh Status</button>
-    </div>
-    <button onclick="logout()">Logout</button>
+<div id="mainApp" class="hidden">
+  <h2>Main App</h2>
+
+  <h3>Daily Check-in</h3>
+  <input type="number" id="energy" placeholder="Energy (1-10)">
+  <input type="number" id="soreness" placeholder="Soreness (1-10)">
+  <input type="number" id="mood" placeholder="Mood (1-10)">
+  <button onclick="submitCheckin()">Submit Check-in</button>
+  <p id="checkinMessage"></p>
+
+  <h3>Workout</h3>
+  <button onclick="generateWorkout()">Generate Workout</button>
+  <div id="workoutContainer"></div>
+  <button onclick="completeWorkout()">Complete Workout</button>
+  <p id="workoutMessage"></p>
+
+  <h3>Status</h3>
+  <div id="statusContainer"></div>
+
+  <h3>AI Advice</h3>
+  <div id="aiAdvice"></div>
+
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script>
@@ -71,31 +78,36 @@ let token = null;
 
 // TAB SWITCHING
 function showTab(tab) {
-    document.getElementById("registerTab").style.display = tab === "register" ? "block" : "none";
-    document.getElementById("loginTab").style.display = tab === "login" ? "block" : "none";
-    document.getElementById("mainApp").style.display = tab === "app" ? "block" : "none";
+    document.getElementById("registerTab").classList.toggle('hidden', tab !== "register");
+    document.getElementById("loginTab").classList.toggle('hidden', tab !== "login");
+    document.getElementById("mainApp").classList.toggle('hidden', tab !== "app");
 }
-
-// INIT: show register first
-showTab("register");
 
 // REGISTER
 async function register() {
     const email = document.getElementById("registerEmail").value;
     const password = document.getElementById("registerPassword").value;
+    const age = parseInt(document.getElementById("age").value);
+    const height = parseInt(document.getElementById("height").value);
+    const weight = parseInt(document.getElementById("weight").value);
     const goal = document.getElementById("goal").value;
-    const health_issues = document.getElementById("health_issues").value;
-    const height = parseInt(document.getElementById("height").value) || null;
-    const weight = parseInt(document.getElementById("weight").value) || null;
+    const level = document.getElementById("level").value;
+
+    if(!email || !password || !age || !height || !weight || !goal || !level){
+        document.getElementById("registerMessage").innerText = "Fill all fields";
+        return;
+    }
 
     const res = await fetch("/register", {
         method: "POST",
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email, password, goal, health_issues, height, weight})
+        body: JSON.stringify({email,password})
     });
+
     const data = await res.json();
     if(res.ok){
-        document.getElementById("registerMessage").innerText = "Registered! Please login.";
+        // TODO: save additional profile to backend
+        document.getElementById("registerMessage").innerText = "Registered! You can login.";
         showTab("login");
     } else {
         document.getElementById("registerMessage").innerText = data.detail || "Error";
@@ -133,6 +145,10 @@ async function submitCheckin() {
     });
     const data = await res.json();
     document.getElementById("checkinMessage").innerText = data.status;
+
+    if(res.ok){
+        generateWorkout();
+    }
 }
 
 // GENERATE WORKOUT
@@ -147,6 +163,9 @@ async function generateWorkout() {
     data.workout.forEach(w => {
         container.innerHTML += `<div class="workout">${w.name} ${w.reps || w.duration || ""}</div>`;
     });
+
+    // AI advice
+    document.getElementById("aiAdvice").innerText = data.advice || "Follow this workout for today. Keep consistency!";
 }
 
 // COMPLETE WORKOUT
@@ -174,7 +193,9 @@ function logout() {
     token = null;
     showTab("login");
 }
-</script>
 
+// INITIAL
+showTab("register");
+</script>
 </body>
 </html>
