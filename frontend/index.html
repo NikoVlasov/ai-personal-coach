@@ -2,200 +2,174 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fitness AI</title>
 <style>
-body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-h2 { margin-top: 20px; }
-input, select { display: block; margin: 10px 0; padding: 5px; width: 100%; }
-button { padding: 10px; margin: 5px 0; width: 100%; }
-#workoutContainer div { margin: 5px 0; padding: 5px; background: #f0f0f0; }
-#aiAdvice { background: #e0ffe0; padding: 10px; margin: 10px 0; }
-.hidden { display: none; }
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f2f5; }
+.container { max-width: 500px; margin: 40px auto; background:white; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+h2 { text-align:center; color:#333; }
+input[type=text], input[type=password], input[type=number] { width:100%; padding:10px; margin:5px 0 15px 0; border-radius:5px; border:1px solid #ccc; }
+button { padding:10px 20px; border:none; border-radius:5px; background:#4CAF50; color:white; cursor:pointer; margin:5px 0; }
+button:hover { background:#45a049; }
+.tab { display:none; }
+.message { color:red; text-align:center; margin-bottom:10px; }
+.card { background:#fafafa; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ddd; }
+.workout { margin:5px 0; }
+#statusContainer { font-weight:bold; margin:10px 0; text-align:center; }
+.aiAdvice { font-style:italic; color:#555; margin:10px 0; }
 </style>
 </head>
 <body>
+<div class="container">
 
-<!-- TABS -->
-<div id="registerTab">
-  <h2>Register</h2>
-  <input type="email" id="registerEmail" placeholder="Email">
-  <input type="password" id="registerPassword" placeholder="Password">
-  <input type="number" id="age" placeholder="Age">
-  <input type="number" id="height" placeholder="Height (cm)">
-  <input type="number" id="weight" placeholder="Weight (kg)">
-  <select id="goal">
-    <option value="">Select goal</option>
-    <option value="fat_loss">Fat Loss</option>
-    <option value="strength">Strength</option>
-    <option value="maintain">Maintain</option>
-  </select>
-  <select id="level">
-    <option value="">Select level</option>
-    <option value="beginner">Beginner</option>
-    <option value="intermediate">Intermediate</option>
-    <option value="advanced">Advanced</option>
-  </select>
-  <button onclick="register()">Register</button>
-  <p id="registerMessage"></p>
-  <button onclick="showTab('login')">Already have an account? Login</button>
-</div>
+    <!-- REGISTER -->
+    <div id="registerTab" class="tab">
+        <h2>Register</h2>
+        <div class="message" id="registerMessage"></div>
+        <input type="text" id="registerEmail" placeholder="Email">
+        <input type="password" id="registerPassword" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <p style="text-align:center;">Already have an account? <a href="#" onclick="showTab('login')">Login</a></p>
+    </div>
 
-<div id="loginTab" class="hidden">
-  <h2>Login</h2>
-  <input type="email" id="loginEmail" placeholder="Email">
-  <input type="password" id="loginPassword" placeholder="Password">
-  <button onclick="login()">Login</button>
-  <p id="loginMessage"></p>
-</div>
+    <!-- LOGIN -->
+    <div id="loginTab" class="tab">
+        <h2>Login</h2>
+        <div class="message" id="loginMessage"></div>
+        <input type="text" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p style="text-align:center;">Don't have an account? <a href="#" onclick="showTab('register')">Register</a></p>
+    </div>
 
-<div id="mainApp" class="hidden">
-  <h2>Main App</h2>
+    <!-- MAIN APP -->
+    <div id="mainApp" class="tab">
+        <h2>Fitness AI</h2>
+        <div id="statusContainer">Loading status...</div>
 
-  <h3>Daily Check-in</h3>
-  <input type="number" id="energy" placeholder="Energy (1-10)">
-  <input type="number" id="soreness" placeholder="Soreness (1-10)">
-  <input type="number" id="mood" placeholder="Mood (1-10)">
-  <button onclick="submitCheckin()">Submit Check-in</button>
-  <p id="checkinMessage"></p>
+        <div class="card">
+            <h3>Daily Check-in</h3>
+            <input type="number" id="energy" placeholder="Energy 1-10">
+            <input type="number" id="soreness" placeholder="Soreness 1-10">
+            <input type="number" id="mood" placeholder="Mood 1-10">
+            <button onclick="submitCheckin()">Submit Check-in</button>
+            <div class="message" id="checkinMessage"></div>
+        </div>
 
-  <h3>Workout</h3>
-  <button onclick="generateWorkout()">Generate Workout</button>
-  <div id="workoutContainer"></div>
-  <button onclick="completeWorkout()">Complete Workout</button>
-  <p id="workoutMessage"></p>
+        <div class="card">
+            <h3>Generate Workout</h3>
+            <button onclick="generateWorkout()">Generate Workout</button>
+            <div id="workoutContainer"></div>
+            <div class="aiAdvice" id="aiAdvice"></div>
+            <button onclick="completeWorkout()">Complete Workout</button>
+            <div class="message" id="workoutMessage"></div>
+        </div>
 
-  <h3>Status</h3>
-  <div id="statusContainer"></div>
-
-  <h3>AI Advice</h3>
-  <div id="aiAdvice"></div>
-
-  <button onclick="logout()">Logout</button>
+        <button onclick="logout()" style="background:#f44336;">Logout</button>
+    </div>
 </div>
 
 <script>
 let token = null;
 
 // TAB SWITCHING
-function showTab(tab) {
-    document.getElementById("registerTab").classList.toggle('hidden', tab !== "register");
-    document.getElementById("loginTab").classList.toggle('hidden', tab !== "login");
-    document.getElementById("mainApp").classList.toggle('hidden', tab !== "app");
+function showTab(tab){
+    document.getElementById("registerTab").style.display = tab==="register"?"block":"none";
+    document.getElementById("loginTab").style.display = tab==="login"?"block":"none";
+    document.getElementById("mainApp").style.display = tab==="app"?"block":"none";
 }
 
+// INIT
+showTab("register");
+
 // REGISTER
-async function register() {
-    const email = document.getElementById("registerEmail").value;
-    const password = document.getElementById("registerPassword").value;
-    const age = parseInt(document.getElementById("age").value);
-    const height = parseInt(document.getElementById("height").value);
-    const weight = parseInt(document.getElementById("weight").value);
-    const goal = document.getElementById("goal").value;
-    const level = document.getElementById("level").value;
-
-    if(!email || !password || !age || !height || !weight || !goal || !level){
-        document.getElementById("registerMessage").innerText = "Fill all fields";
-        return;
-    }
-
-    const res = await fetch("/register", {
-        method: "POST",
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email,password})
-    });
-
-    const data = await res.json();
-    if(res.ok){
-        // TODO: save additional profile to backend
-        document.getElementById("registerMessage").innerText = "Registered! You can login.";
-        showTab("login");
-    } else {
-        document.getElementById("registerMessage").innerText = data.detail || "Error";
-    }
+async function register(){
+    const email=document.getElementById("registerEmail").value;
+    const password=document.getElementById("registerPassword").value;
+    try{
+        const res=await fetch("/register",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+        const data=await res.json();
+        if(res.ok){
+            document.getElementById("registerMessage").innerText="Registered! You can login.";
+            showTab("login");
+        } else {
+            document.getElementById("registerMessage").innerText=data.detail||"Error";
+        }
+    }catch(e){document.getElementById("registerMessage").innerText="Server error";}
 }
 
 // LOGIN
-async function login() {
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
-    const res = await fetch("/login", {
-        method: "POST",
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email,password})
-    });
-    const data = await res.json();
-    if(res.ok){
-        token = data.access_token;
-        showTab("app");
-        getStatus();
-    } else {
-        document.getElementById("loginMessage").innerText = data.detail || "Error";
-    }
+async function login(){
+    const email=document.getElementById("loginEmail").value;
+    const password=document.getElementById("loginPassword").value;
+    try{
+        const res=await fetch("/login",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+        const data=await res.json();
+        if(res.ok){
+            token=data.access_token;
+            showTab("app");
+            getStatus();
+        } else {
+            document.getElementById("loginMessage").innerText=data.detail||"Error";
+        }
+    }catch(e){document.getElementById("loginMessage").innerText="Server error";}
 }
 
 // CHECKIN
-async function submitCheckin() {
-    const energy = parseInt(document.getElementById("energy").value);
-    const soreness = parseInt(document.getElementById("soreness").value);
-    const mood = parseInt(document.getElementById("mood").value);
-    const res = await fetch("/checkin", {
-        method: "POST",
-        headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
-        body: JSON.stringify({energy, soreness, mood})
-    });
-    const data = await res.json();
-    document.getElementById("checkinMessage").innerText = data.status;
-
-    if(res.ok){
-        generateWorkout();
-    }
+async function submitCheckin(){
+    const energy=parseInt(document.getElementById("energy").value);
+    const soreness=parseInt(document.getElementById("soreness").value);
+    const mood=parseInt(document.getElementById("mood").value);
+    try{
+        const res=await fetch("/checkin",{method:"POST",headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({energy,soreness,mood})});
+        const data=await res.json();
+        document.getElementById("checkinMessage").innerText=data.status||"Saved";
+    }catch(e){document.getElementById("checkinMessage").innerText="Server error";}
 }
 
 // GENERATE WORKOUT
-async function generateWorkout() {
-    const res = await fetch("/workout", {
-        method: "POST",
-        headers: {'Authorization': `Bearer ${token}`}
-    });
-    const data = await res.json();
-    const container = document.getElementById("workoutContainer");
-    container.innerHTML = "";
-    data.workout.forEach(w => {
-        container.innerHTML += `<div class="workout">${w.name} ${w.reps || w.duration || ""}</div>`;
-    });
-
-    // AI advice
-    document.getElementById("aiAdvice").innerText = data.advice || "Follow this workout for today. Keep consistency!";
+async function generateWorkout(){
+    try{
+        const res=await fetch("/workout",{method:"POST",headers:{'Authorization':`Bearer ${token}`}});
+        const data=await res.json();
+        const container=document.getElementById("workoutContainer");
+        container.innerHTML="";
+        data.workout.forEach(w=>{
+            container.innerHTML+=`<div class="workout">${w.name} ${w.reps||w.duration||""}</div>`;
+        });
+        // Simple AI advice
+        const advice=document.getElementById("aiAdvice");
+        advice.innerText="💡 Tip: Listen to your body! Keep a balanced diet to enhance results.";
+    }catch(e){document.getElementById("aiAdvice").innerText="Failed to generate workout";}
 }
 
 // COMPLETE WORKOUT
-async function completeWorkout() {
-    const res = await fetch("/complete-workout", {
-        method: "POST",
-        headers: {'Authorization': `Bearer ${token}`}
-    });
-    const data = await res.json();
-    document.getElementById("workoutMessage").innerText = data.status === "ok" ? `Workout done! Streak: ${data.streak}` : "Already completed today";
-    getStatus();
+async function completeWorkout(){
+    try{
+        const res=await fetch("/complete-workout",{method:"POST",headers:{'Authorization':`Bearer ${token}`}});
+        const data=await res.json();
+        if(data.status==="ok"){
+            document.getElementById("workoutMessage").innerText=`Workout done! Streak: ${data.streak}`;
+        } else if(data.status==="already_done"){
+            document.getElementById("workoutMessage").innerText="Already completed today";
+        } else {
+            document.getElementById("workoutMessage").innerText="Error";
+        }
+        getStatus();
+    }catch(e){document.getElementById("workoutMessage").innerText="Server error";}
 }
 
 // GET STATUS
-async function getStatus() {
-    const res = await fetch("/status", {
-        headers: {'Authorization': `Bearer ${token}`}
-    });
-    const data = await res.json();
-    document.getElementById("statusContainer").innerText = `Streak: ${data.streak}, Total workouts: ${data.total}`;
+async function getStatus(){
+    try{
+        const res=await fetch("/status",{headers:{'Authorization':`Bearer ${token}`}});
+        const data=await res.json();
+        document.getElementById("statusContainer").innerText=`Streak: ${data.streak}, Total workouts: ${data.total}`;
+    }catch(e){document.getElementById("statusContainer").innerText="Failed to fetch status";}
 }
 
 // LOGOUT
-function logout() {
-    token = null;
-    showTab("login");
-}
-
-// INITIAL
-showTab("register");
+function logout(){token=null; showTab("login");}
 </script>
 </body>
 </html>
