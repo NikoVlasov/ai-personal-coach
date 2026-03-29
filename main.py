@@ -95,7 +95,7 @@ class FitnessProfile(Base):
     __tablename__ = "fitness_profiles"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    goal = Column(String)  # "fat_loss", "strength", "maintenance"
+    goal = Column(String, default="maintenance")  # fat_loss / strength / maintenance
     health_issues = Column(String, nullable=True)  # текст описания ограничений
     level = Column(String, default="beginner")  # beginner / intermediate / advanced
     height = Column(Integer, nullable=True)
@@ -179,10 +179,6 @@ def get_current_user(
 # =========================
 # SCHEMAS
 # =========================
-
-class UserRegister(BaseModel):
-    email: str
-    password: str
 
 
 class UserLogin(BaseModel):
@@ -283,6 +279,8 @@ async def generate_workout(
         .order_by(DailyCheckin.created_at.desc())\
         .first()
     profile = db.query(FitnessProfile).filter(FitnessProfile.user_id == user.id).first()
+    if not profile:
+        raise HTTPException(status_code=400, detail="Fitness profile missing")
 
     if not checkin:
         raise HTTPException(status_code=400, detail="No checkin")
