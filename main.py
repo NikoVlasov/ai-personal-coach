@@ -284,47 +284,41 @@ async def generate_workout(
     }
 
 @app.post("/complete-workout")
-async def complete_workout(
-    user=Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    stats = db.query(UserStats).filter(UserStats.user_id == user.id).first()
+async def complete_workout(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        stats = db.query(UserStats).filter(UserStats.user_id == user.id).first()
+        if not stats:
+            stats = UserStats(user_id=user.id)
+            db.add(stats)
+            db.commit()  # сразу коммитим, чтобы объект был в базе
 
-    if not stats:
-        stats = UserStats(user_id=user.id)
-        db.add(stats)
+        today = datetime.utcnow().date()
 
-    today = datetime.utcnow().date()
-
-    # Проверка streak
-    if stats.last_workout_date:
-        last_date = stats.last_workout_date.date()
-
-        if last_date == today - timedelta(days=1):
-            stats.current_streak += 1
-        elif last_date == today:
-            return {"status": "already_done"}
+        if stats.last_workout_date:
+            last_date = stats.last_workout_date.date()
+            if last_date == today - timedelta(days=1):
+                stats.current_streak += 1
+            elif last_date == today:
+                return {"status": "already_done"}
+            else:
+                stats.current_streak = 1
         else:
             stats.current_streak = 1
-    else:
-        stats.current_streak = 1
 
-    stats.last_workout_date = datetime.utcnow()
-    stats.total_workouts += 1
+        stats.last_workout_date = datetime.utcnow()
+        stats.total_workouts += 1
 
-    if stats.current_streak > stats.longest_streak:
-        stats.longest_streak = stats.current_streak
+        if stats.current_streak > stats.longest_streak:
+            stats.longest_streak = stats.current_streak
 
-    # логируем тренировку
-    log = WorkoutLog(user_id=user.id, duration=20)
-    db.add(log)
+        log = WorkoutLog(user_id=user.id, duration=20)
+        db.add(log)
+        db.commit()
 
-    db.commit()
-
-    return {
-        "status": "ok",
-        "streak": stats.current_streak
-    }
+        return {"status": "ok", "streak": stats.current_streak}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "detail": str(e)}
 
 @app.get("/status")
 async def get_status(

@@ -79,17 +79,21 @@ function showTab(tab) {
 async function register() {
     const email = document.getElementById("registerEmail").value;
     const password = document.getElementById("registerPassword").value;
-    const res = await fetch("/register", {
-        method: "POST",
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email,password})
-    });
-    const data = await res.json();
-    if(res.ok){
-        document.getElementById("registerMessage").innerText = "Registered! You can login.";
-        showTab("login");
-    } else {
-        document.getElementById("registerMessage").innerText = data.detail || "Error";
+    try {
+        const res = await fetch("/register", {
+            method: "POST",
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({email,password})
+        });
+        if(res.ok){
+            document.getElementById("registerMessage").innerText = "Registered! You can login.";
+            showTab("login");
+        } else {
+            const data = await res.json().catch(() => ({}));
+            document.getElementById("registerMessage").innerText = data.detail || "Error";
+        }
+    } catch(err) {
+        document.getElementById("registerMessage").innerText = `Network error: ${err.message}`;
     }
 }
 
@@ -97,18 +101,23 @@ async function register() {
 async function login() {
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
-    const res = await fetch("/login", {
-        method: "POST",
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email,password})
-    });
-    const data = await res.json();
-    if(res.ok){
-        token = data.access_token;
-        showTab("app");
-        getStatus();
-    } else {
-        document.getElementById("loginMessage").innerText = data.detail || "Error";
+    try {
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({email,password})
+        });
+        if(res.ok){
+            const data = await res.json();
+            token = data.access_token;
+            showTab("app");
+            getStatus();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            document.getElementById("loginMessage").innerText = data.detail || "Error";
+        }
+    } catch(err) {
+        document.getElementById("loginMessage").innerText = `Network error: ${err.message}`;
     }
 }
 
@@ -117,47 +126,78 @@ async function submitCheckin() {
     const energy = parseInt(document.getElementById("energy").value);
     const soreness = parseInt(document.getElementById("soreness").value);
     const mood = parseInt(document.getElementById("mood").value);
-    const res = await fetch("/checkin", {
-        method: "POST",
-        headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
-        body: JSON.stringify({energy, soreness, mood})
-    });
-    const data = await res.json();
-    document.getElementById("checkinMessage").innerText = data.status;
+    try {
+        const res = await fetch("/checkin", {
+            method: "POST",
+            headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({energy, soreness, mood})
+        });
+        const data = await res.json().catch(() => ({}));
+        document.getElementById("checkinMessage").innerText = data.status || "Error submitting checkin";
+    } catch(err) {
+        document.getElementById("checkinMessage").innerText = `Network error: ${err.message}`;
+    }
 }
 
 // GENERATE WORKOUT
 async function generateWorkout() {
-    const res = await fetch("/workout", {
-        method: "POST",
-        headers: {'Authorization': `Bearer ${token}`}
-    });
-    const data = await res.json();
-    const container = document.getElementById("workoutContainer");
-    container.innerHTML = "";
-    data.workout.forEach(w => {
-        container.innerHTML += `<div class="workout">${w.name} ${w.reps || w.duration || ""}</div>`;
-    });
+    try {
+        const res = await fetch("/workout", {
+            method: "POST",
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        const container = document.getElementById("workoutContainer");
+        container.innerHTML = "";
+        data.workout.forEach(w => {
+            container.innerHTML += `<div class="workout">${w.name} ${w.reps || w.duration || ""}</div>`;
+        });
+    } catch(err) {
+        document.getElementById("workoutContainer").innerText = `Error: ${err.message}`;
+    }
 }
 
 // COMPLETE WORKOUT
 async function completeWorkout() {
-    const res = await fetch("/complete-workout", {
-        method: "POST",
-        headers: {'Authorization': `Bearer ${token}`}
-    });
-    const data = await res.json();
-    document.getElementById("workoutMessage").innerText = data.status === "ok" ? `Workout done! Streak: ${data.streak}` : "Already completed today";
-    getStatus();
+    try {
+        const res = await fetch("/complete-workout", {
+            method: "POST",
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+
+        let data;
+        try {
+            data = await res.json();
+        } catch {
+            const text = await res.text();
+            data = { status: "error", detail: text };
+        }
+
+        if (data.status === "ok") {
+            document.getElementById("workoutMessage").innerText = `Workout done! Streak: ${data.streak}`;
+        } else if (data.status === "already_done") {
+            document.getElementById("workoutMessage").innerText = "Workout already completed today!";
+        } else {
+            document.getElementById("workoutMessage").innerText = data.detail || "Error completing workout";
+        }
+
+        getStatus();
+    } catch(err) {
+        document.getElementById("workoutMessage").innerText = `Network error: ${err.message}`;
+    }
 }
 
 // GET STATUS
 async function getStatus() {
-    const res = await fetch("/status", {
-        headers: {'Authorization': `Bearer ${token}`}
-    });
-    const data = await res.json();
-    document.getElementById("statusContainer").innerText = `Streak: ${data.streak}, Total workouts: ${data.total}`;
+    try {
+        const res = await fetch("/status", {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        document.getElementById("statusContainer").innerText = `Streak: ${data.streak}, Total workouts: ${data.total}`;
+    } catch(err) {
+        document.getElementById("statusContainer").innerText = `Error: ${err.message}`;
+    }
 }
 
 // LOGOUT
