@@ -16,7 +16,6 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey,
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
 from urllib.parse import urlparse
 # --- API CLIENTS ---
-from tavily import TavilyClient
 from groq import Groq
 
 
@@ -30,7 +29,6 @@ logger = logging.getLogger("app")
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 
@@ -80,46 +78,13 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
-    chats = relationship("Chat", back_populates="user")
 
-
-class Chat(Base):
-    __tablename__ = "chats"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    user = relationship("User", back_populates="chats")
-    messages = relationship("Message", back_populates="chat")
-
-
-class Message(Base):
-    __tablename__ = "messages"
-    id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("chats.id"))
-    sender = Column(String)
-    text = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    chat = relationship("Chat", back_populates="messages")
-
-class FitnessProfile(Base):
-    __tablename__ = "fitness_profiles"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-
-    goal = Column(String)          # fat loss / strength
-    level = Column(String)         # beginner / intermediate
-    height = Column(Integer)
-    weight = Column(Integer)
-
-    created_at = Column(DateTime, default=datetime.utcnow)
 
 class DailyCheckin(Base):
     __tablename__ = "daily_checkins"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
+    user_id = Column(Integer, ForeignKey("users.id"))
     energy = Column(Integer)
     soreness = Column(Integer)
     mood = Column(Integer)
@@ -127,12 +92,38 @@ class DailyCheckin(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class CheckinRequest(BaseModel):
-    chat_id: int
+    energy: int
+    soreness: int
+    mood: int
+
+
+
+class UserStats(Base):
+    __tablename__ = "user_stats"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    current_streak = Column(Integer, default=0)
+    longest_streak = Column(Integer, default=0)
+
+    last_workout_date = Column(DateTime, nullable=True)
+
+    total_workouts = Column(Integer, default=0)
+
+class WorkoutLog(Base):
+    __tablename__ = "workout_logs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    duration = Column(Integer)  # минуты
+    completed = Column(Integer, default=1)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
 
-
-# =========================
 # SECURITY
 # =========================
 
@@ -193,24 +184,6 @@ class UserLogin(BaseModel):
     password: str
 
 
-class ChatCreate(BaseModel):
-    title: str
-
-
-class MessageRequest(BaseModel):
-    chat_id: int
-    text: str
-
-class CheckinRequest(BaseModel):
-    chat_id: int
-
-class CheckinRequest(BaseModel):
-    chat_id: int
-    energy: int
-    soreness: int
-    mood: int
-
-
 # =========================
 # STATIC
 # =========================
@@ -254,226 +227,128 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
         "user_id": user.id
     }
 
+@app.post("/checkin")
+async def checkin(
+    data: CheckinRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    checkin = DailyCheckin(
+        user_id=user.id,
+        energy=data.energy,
+        soreness=data.soreness,
+        mood=data.mood
+    )
 
-# =========================
-# CHATS
-# =========================
-
-@app.post("/chats")
-async def create_chat(data: ChatCreate,
-                      user=Depends(get_current_user),
-                      db: Session = Depends(get_db)):
-    chat = Chat(user_id=user.id, title=data.title)
-    db.add(chat)
+    db.add(checkin)
     db.commit()
-    db.refresh(chat)
-    return {"chat_id": chat.id}
 
+    return {"status": "saved"}
 
-@app.get("/chats")
-async def get_chats(user=Depends(get_current_user),
-                    db: Session = Depends(get_db)):
-    chats = db.query(Chat).filter(Chat.user_id == user.id).order_by(Chat.id.desc()).all()
+@app.post("/workout")
+async def generate_workout(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 1. Берём последний checkin
+    checkin = db.query(DailyCheckin)\
+        .filter(DailyCheckin.user_id == user.id)\
+        .order_by(DailyCheckin.created_at.desc())\
+        .first()
+
+    if not checkin:
+        raise HTTPException(status_code=400, detail="No checkin")
+
+    # 2. Простая логика (пока без AI)
+    if checkin.energy <= 3:
+        workout = [
+            {"name": "Walking in place", "duration": "5 min"},
+            {"name": "Light squats", "reps": "10 x 2"},
+            {"name": "Stretching", "duration": "5 min"}
+        ]
+    elif checkin.energy >= 7:
+        workout = [
+            {"name": "Jump squats", "reps": "15 x 3"},
+            {"name": "Push-ups", "reps": "12 x 3"},
+            {"name": "Plank", "duration": "45 sec x 3"}
+        ]
+    else:
+        workout = [
+            {"name": "Squats", "reps": "12 x 3"},
+            {"name": "Push-ups", "reps": "10 x 3"},
+            {"name": "Plank", "duration": "30 sec x 3"}
+        ]
+
     return {
-        "chats": [{"id": c.id, "title": c.title} for c in chats]
+        "workout": workout
+    }
+
+@app.post("/complete-workout")
+async def complete_workout(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    stats = db.query(UserStats).filter(UserStats.user_id == user.id).first()
+
+    if not stats:
+        stats = UserStats(user_id=user.id)
+        db.add(stats)
+
+    today = datetime.utcnow().date()
+
+    # Проверка streak
+    if stats.last_workout_date:
+        last_date = stats.last_workout_date.date()
+
+        if last_date == today - timedelta(days=1):
+            stats.current_streak += 1
+        elif last_date == today:
+            return {"status": "already_done"}
+        else:
+            stats.current_streak = 1
+    else:
+        stats.current_streak = 1
+
+    stats.last_workout_date = datetime.utcnow()
+    stats.total_workouts += 1
+
+    if stats.current_streak > stats.longest_streak:
+        stats.longest_streak = stats.current_streak
+
+    # логируем тренировку
+    log = WorkoutLog(user_id=user.id, duration=20)
+    db.add(log)
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "streak": stats.current_streak
+    }
+
+@app.get("/status")
+async def get_status(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    stats = db.query(UserStats).filter(UserStats.user_id == user.id).first()
+
+    if not stats:
+        return {
+            "streak": 0,
+            "total": 0
+        }
+
+    return {
+        "streak": stats.current_streak,
+        "total": stats.total_workouts
     }
 
 
-@app.get("/history/{chat_id}")
-async def history(chat_id: int,
-                  user=Depends(get_current_user),
-                  db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user.id).first()
-    if not chat:
-        raise HTTPException(status_code=403)
-
-    messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.id).all()
-
-    return {
-        "messages": [{"sender": m.sender, "text": m.text} for m in messages]
-    }
 
 
-# =========================
-# AI COACH
-# =========================
-
-@app.post("/coach")
-async def coach(msg: MessageRequest,
-                user=Depends(get_current_user),
-                db: Session = Depends(get_db)):
-
-    chat = db.query(Chat).filter(Chat.id == msg.chat_id, Chat.user_id == user.id).first()
-    if not chat:
-        raise HTTPException(status_code=404)
-
-    # Сохраняем новое сообщение пользователя
-    db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
-    db.commit()
-
-    try:
-        # 1. Загружаем ВСЮ историю сообщений этого чата (в порядке создания)
-        db_messages = db.query(Message).filter(
-            Message.chat_id == msg.chat_id
-        ).order_by(Message.created_at.desc()).limit(20).all()
-
-        db_messages.reverse()
-
-        # 2. Формируем массив messages для Groq в формате [{"role": "...", "content": "..."}]
-        conversation = []
-        for m in db_messages:
-            if m.sender == "user":
-                conversation.append({"role": "user", "content": m.text})
-            elif m.sender == "ai":
-                conversation.append({"role": "assistant", "content": m.text})
-
-        # 3. Добавляем system prompt в начало (он должен быть первым!)
-        full_messages = [
-                            {
-                                "role": "system",
-                                "content": """You are **WorkoutCoach AI**, an experienced home fitness coach specializing in fat loss, bodyweight training, and sustainable fitness routines without gym equipment.
-
-Your goal is to help the user improve their physical shape, lose fat, and build strength using simple home workouts.
-
-LANGUAGE RULE:
-Always respond in the same language as the user. If the user writes in Russian, reply in Russian. If they write in English, reply in English. Adapt naturally to the user's language.
-
-PERSONALITY AND STYLE:
-Speak like a calm, knowledgeable fitness coach. Your tone should be supportive, practical, and conversational — not robotic or overly motivational. Avoid exaggerated praise, but remain encouraging and helpful.
-
-FIRST MESSAGE RULE:
-Start with a simple greeting such as:
-"Привет!" / "Hello!"
-
-Then briefly include a safety note:
-"Before starting any physical activity, make sure you are in good health. If you have injuries, chronic conditions, or doubts, consult a medical professional before beginning. Stop immediately if you feel pain."
-
-Then transition naturally into helping the user get started.
-
-USER ASSESSMENT PHASE:
-Before creating a workout plan, collect basic information about the user if it is missing. Ask up to 4 questions such as:
-
-* fitness level (beginner / intermediate)
-* goal (fat loss, strength, general fitness)
-* available workout time per day
-* injuries or physical limitations
-* height / weight (optional)
-
-Use this information to adapt recommendations.
-
-WORKOUT APPROACH:
-Focus only on **home workouts without equipment**. Workouts should typically last **15–45 minutes** and combine:
-
-* bodyweight strength exercises
-* cardio movements
-* core training (abs, waist)
-* fat-burning circuits
-
-PROGRAM STRUCTURE:
-You can provide different formats depending on the situation:
-
-1. Quick exercise guidance (1–3 exercises)
-2. A full workout session
-3. A weekly workout plan
-4. Adjustments based on progress
-
-When the user asks for a plan, generate a **structured weekly training plan** including:
-
-* training days
-* rest or recovery days
-* exercise focus (cardio / strength / core)
-* approximate duration
-
-EXERCISE FORMAT:
-When giving exercises, include:
-
-* exercise name
-* step-by-step instructions
-* repetitions or duration
-* number of sets
-* rest between sets
-
-PROGRESSION:
-Gradually increase training difficulty over time by:
-
-* increasing repetitions or duration by 5–10%
-* introducing slightly more challenging exercises
-* adding extra sets
-
-NUTRITION GUIDANCE:
-For fat loss, occasionally include simple nutrition advice such as:
-
-* maintaining a moderate calorie deficit (~500 kcal/day)
-* prioritizing protein and vegetables
-* reducing sugar and ultra-processed foods
-* drinking enough water
-
-Keep nutrition tips short and practical.
-
-CONVERSATION STYLE:
-Maintain a real conversation. You may ask 1–2 relevant questions when needed to better adapt the training program.
-
-Track user progress across the conversation and reference previous workouts when appropriate.
-
-RESPONSE LENGTH:
-Typically 120–250 words unless the user asks for a detailed program.
-
-GOAL:
-Act like a real personal trainer helping the user build a sustainable home workout habit and gradually improve their fitness.
-"""
-                            }
-        ] + conversation  # ← здесь добавляем всю историю после system
-
-        # 4. Вызов Groq с полной историей
-        completion = await asyncio.to_thread(
-            lambda: groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=full_messages,  # ← теперь это полная история!
-                temperature=0.5,         # чуть повыше для естественности
-                max_tokens=400
-            )
-        )
-
-        ai_text = completion.choices[0].message.content.strip()
-
-        # 5. Сохраняем ответ ИИ
-        db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
-        db.commit()
-
-        return PlainTextResponse(ai_text)
-
-    except Exception as e:
-        logger.error(f"COACH ERROR: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
-# =========================
-# SEARCH
-# =========================
 
-# =========================
-# SEARCH (Perplexity-style)
-# =========================
 
-@app.delete("/chats/{chat_id}")
-async def delete_chat(chat_id: int,
-                      user=Depends(get_current_user),
-                      db: Session = Depends(get_db)):
-
-    chat = db.query(Chat).filter(
-        Chat.id == chat_id,
-        Chat.user_id == user.id
-    ).first()
-
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
-
-    # Удаляем сообщения
-    db.query(Message).filter(Message.chat_id == chat_id).delete()
-
-    # Удаляем чат
-    db.delete(chat)
-    db.commit()
-
-    return {"status": "deleted"}
 

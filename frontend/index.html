@@ -3,918 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mentra Coach</title>
+<title>Fitness App MVP</title>
 <style>
-/* =================================================== */
-/*     AI COACH — ARCHITECTURE + FUTURISTIC DESIGN    */
-/* =================================================== */
-
-
-/* ============================= */
-/* DESIGN SYSTEM (из второго)   */
-/* ============================= */
-
-:root {
-  --bg-main:        #f5f9ff;
-  --bg-chat:        #e8f0ff;
-  --bg-message-user: #5a8cff;
-  --bg-message-ai:  #ffffff;
-  --accent:         #5a8cff;
-  --accent-dark:    #3b6ae0;
-  --text-main:      #1a2b4c;
-  --text-secondary: #5a6f8c;
-  --border:         rgba(90, 140, 255, 0.15);
-  --shadow-sm:      0 4px 12px rgba(90, 140, 255, 0.08);
-  --shadow-md:      0 8px 24px rgba(90, 140, 255, 0.12);
-  --radius:         14px;
-  --transition:     all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="dark"] {
-  --bg-main:        #0f172a;
-  --bg-chat:        #1e293b;
-  --bg-message-user: #1e40af;
-  --bg-message-ai:  #1e293b;
-  --text-main:      #e2e8f0;
-  --text-secondary: #94a3b8;
-  --border:         rgba(90, 140, 255, 0.25);
-  --shadow-sm:      0 4px 12px rgba(0,0,0,0.4);
-  --shadow-md:      0 8px 24px rgba(0,0,0,0.5);
-}
-
-
-/* ============================= */
-/* RESET                         */
-/* ============================= */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-
-/* ============================= */
-/* BODY — архитектура сохранена */
-/* ============================= */
-
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg-main);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-
-/* ============================= */
-/* APP CONTAINER (архитектура)  */
-/* ============================= */
-
-#app-container {
-  width: 420px;
-  max-width: 100%;
-  min-height: 700px;          /* не меняем как ты просил */
-  background: var(--bg-main);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.hidden { display: none; }
-
-
-/* ============================= */
-/* HEADER                        */
-/* ============================= */
-
-.app-header {
-  background: var(--bg-chat);
-  color: var(--text-main);
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1.25rem;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-}
-
-.logout-text {
-  cursor: pointer;
-  font-size: 0.85em;
-  padding: 6px 10px;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  transition: var(--transition);
-}
-
-.logout-text:hover {
-  background: rgba(90,140,255,0.08);
-  color: var(--text-main);
-}
-
-
-/* ============================= */
-/* AUTH                          */
-/* ============================= */
-
-#auth-container {
-  padding: 20px;
-  display:flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* ============================= */
-/* AUTH FIX — Tabs Work Properly */
-/* ============================= */
-
-.auth-tabs {
-  display: flex;
-  width: 100%;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: rgba(90, 140, 255, 0.08);
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 18px;
-}
-
-.auth-tabs button {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  background: transparent;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.auth-tabs button.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-}
-
-.auth-form {
-  display: flex; /* 🔥 важно */
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-}
-
-.hidden {
-  display: none !important; /* 🔥 показываем только активную */
-}
-
-.auth-form input {
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-chat);
-  color: var(--text-main);
-  transition: var(--transition);
-}
-
-.auth-form input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90,140,255,0.15);
-}
-
-.auth-form button {
-  padding: 12px;
-  border-radius: var(--radius);
-  border: none;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.auth-form button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(90,140,255,0.25);
-}
-
-
-/* ============================= */
-/* CHAT DROPDOWN (архитектура сохранена) */
-/* ============================= */
-
-#chat-dropdown-container {
-  position: relative;
-  margin: 15px 10px 10px 10px;
-}
-
-#chat-dropdown-btn {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-chat);
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-}
-
-#chat-dropdown-btn:hover {
-  border-color: var(--accent);
-}
-
-#chat-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  max-height: 0;
-  overflow: hidden;
-  background: var(--bg-chat);
-  border: 1px solid var(--border);
-  border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
-  opacity: 0;
-  z-index: 100;
-}
-
-#chat-list.show {
-  max-height: 200px;
-  overflow-y:auto;
-  opacity: 1;
-}
-
-#chat-list div {
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-#chat-list div:hover {
-  background: rgba(90,140,255,0.08);
-}
-#new-chat-title {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-chat);
-  font-size: 14.5px;
-  transition: var(--transition);
-  min-width: 0;
-}
-
-#new-chat-title:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90,140,255,0.15);
-}
-
-/* ============================= */
-/* CHAT CONTAINER (архитектура сохранена) */
-/* ============================= */
-
-#chat-container {
-  flex: 1;
-  padding: 12px 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--bg-chat);
-  max-height: 400px;  /* оставлено */
-}
-/* ============================= */
-/* NEW CHAT CONTAINER FIX */
-/* ============================= */
-
-#new-chat-container {
-  display: flex;
-  gap: 8px;
-  margin: 0 10px 10px 10px;   /* такие же отступы как у dropdown */
-}
-
-#new-chat-title {
-  flex: 1;                    /* занимает всё доступное место */
-}
-
-/* ============================= */
-/* MESSAGES                     */
-/* ============================= */
-
-.message {
-  max-width: 75%;
-  padding: 14px 18px;
-  border-radius: 18px;
-  line-height: 1.6;
-  font-size: 14.5px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  animation: fadeIn 0.3s ease;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.user {
-  background: var(--bg-message-user);
-  color: white;
-  align-self: flex-end;
-  border-bottom-right-radius: 4px;
-}
-
-.ai {
-  background: var(--bg-message-ai);
-  color: var(--text-main);
-  align-self: flex-start;
-  border-bottom-left-radius: 4px;
-}
-
-
-/* ============================= */
-/* INPUT AREA (архитектура сохранена) */
-/* ============================= */
-
-#input-container {
-  display:flex;
-  gap:8px;
-  padding:12px;
-}
-
-#message-input {
-  flex:1;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-chat);
-  transition: var(--transition);
-}
-
-#message-input:focus {
-  outline:none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90,140,255,0.15);
-}
-
-/* ============================= */
-/* UNIFIED BUTTON SYSTEM */
-/* ============================= */
-
-#input-container button,
-#new-chat-container button,
-#delete-chat-btn {
-  padding: 0 18px;
-  min-width: 90px;
-  height: 44px;
-  border-radius: var(--radius);
-  border: none;
-  background: var(--accent);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#input-container button:hover,
-#new-chat-container button:hover,
-#delete-chat-btn:hover {
-  background: var(--accent-dark);
-  transform: scale(1.05);
-}
-
-/* ============================= */
-/* DELETE BUTTON — OVERRIDE */
-/* ============================= */
-
-#delete-chat-btn {
-  background: linear-gradient(135deg, #b84a4a, #9f3b3b);
-}
-
-#delete-chat-btn:hover {
-  background: linear-gradient(135deg, #a13f3f, #873232);
-}
-
-/* ============================= */
-/* DELETE ALIGN FIX */
-/* ============================= */
-
-#delete-chat-btn {
-  margin: 0 10px 12px 10px;
-}
-
-/* ============================= */
-/* ANIMATIONS                   */
-/* ============================= */
-
-@keyframes fadeIn {
-  from { opacity:0; transform: translateY(8px); }
-  to   { opacity:1; transform: translateY(0); }
-}
-/* ============================= */
-/* TYPING                   */
-/* ============================= */
-
-.typing {
-  display: flex;
-  gap: 6px;
-  padding: 10px 14px;
-  background: var(--bg-message-ai);
-  border-radius: 14px;
-  width: fit-content;
-}
-
-.typing span {
-  width: 6px;
-  height: 6px;
-  background: var(--text-secondary);
-  border-radius: 50%;
-  animation: blink 1.4s infinite;
-}
-
-.typing span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.typing span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes blink {
-  0%, 80%, 100% { opacity: 0.2; }
-  40% { opacity: 1; }
-}
-/* ============================= */
-/* EMPTY STATE                  */
-/* ============================= */
-
-#empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-secondary);
-}
-
-#empty-state h2 {
-  margin-bottom: 10px;
-  color: var(--text-main);
-}
-
-#empty-state button {
-  margin-top: 15px;
-}
+  body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+  .container { max-width: 400px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);}
+  h2 { text-align: center; }
+  input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+  button { width: 100%; padding: 10px; margin: 10px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #0056b3; }
+  .link { color: #007bff; cursor: pointer; text-decoration: underline; font-size: 0.9em; display: block; text-align: center; margin-top: 5px;}
+  #mainApp { display: none; }
+  .workout { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
 </style>
-
-<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-    <script>
-marked.setOptions({
-    gfm: true,
-    breaks: true,
-    mangle: false,
-    headerIds: false
-});
-</script>
-
-
-<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-    <script>
-marked.setOptions({
-    gfm: true,
-    breaks: true,
-    mangle: false,
-    headerIds: false
-});
-</script>
 </head>
 <body>
-<div id="app-container">
-    <header class="app-header">
-        <div class="app-title">Mentra Coach</div>
-        <span class="logout-text" id="btn-logout" onclick="mainModule.logout()">Logout</span>
-    </header>
+<div class="container">
 
-    <!-- AUTH -->
-    <div id="auth-container">
-        <div class="auth-tabs">
-            <button id="login-tab" class="active" onclick="authModule.showForm('login')">Login</button>
-            <button id="register-tab" onclick="authModule.showForm('register')">Register</button>
-        </div>
-        <form id="login-form" class="auth-form">
-            <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button type="button" onclick="authModule.login()">Enter</button>
-        </form>
-        <form id="register-form" class="auth-form hidden">
-            <input type="email" id="register-email" placeholder="Email" required>
-            <input type="password" id="register-password" placeholder="Password" required>
-            <button type="button" onclick="authModule.register()">Register</button>
-        </form>
-    </div>
-    <div id="empty-state" class="hidden">
-        <h2>Welcome to Mentra Coach</h2>
-        <p>Create your personal workout plan in 20 seconds</p>
-        <button id="create-plan-btn">Create Plan 💪</button>
-    </div>
-    <!-- CHAT -->
-    <div id="chat-ui" class="hidden">
-        <div id="chat-dropdown-container">
-            <div id="chat-dropdown-btn" onclick="toggleChatList()">Select chat</div>
-            <div id="chat-list"></div>
-        </div>
+  <!-- REGISTER -->
+  <div id="registerTab">
+    <h2>Register</h2>
+    <input type="email" id="registerEmail" placeholder="Email">
+    <input type="password" id="registerPassword" placeholder="Password">
+    <button onclick="register()">Register</button>
+    <span class="link" onclick="showTab('login')">Already have an account? Login</span>
+    <div id="registerMessage"></div>
+  </div>
 
-        <div id="new-chat-container">
-            <input type="text" id="new-chat-title" placeholder="New chat title">
-            <button onclick="chatModule.createChat()">Create</button>
-        </div>
+  <!-- LOGIN -->
+  <div id="loginTab" style="display:none;">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <span class="link" onclick="showTab('register')">No account? Register</span>
+    <div id="loginMessage"></div>
+  </div>
 
-        <button id="delete-chat-btn" onclick="chatModule.deleteChat()">Delete chat</button>
+  <!-- MAIN APP -->
+  <div id="mainApp">
+    <h2>Fitness App</h2>
 
-        <div id="chat-container"></div>
-        <div id="quick-buttons"></div>
-        <div id="input-container">
-            <input type="text" id="message-input" placeholder="Ask for a workout or type 'plan'">
+    <h3>Daily Check-in</h3>
+    <input type="number" id="energy" placeholder="Energy 1-10" min="1" max="10">
+    <input type="number" id="soreness" placeholder="Soreness 1-10" min="1" max="10">
+    <input type="number" id="mood" placeholder="Mood 1-10" min="1" max="10">
+    <button onclick="submitCheckin()">Submit Check-in</button>
+    <div id="checkinMessage"></div>
 
-            <button id="send-btn">Send</button>
-        </div>
-      </div>
+    <h3>Workout</h3>
+    <button onclick="generateWorkout()">Generate Workout</button>
+    <div id="workoutContainer"></div>
+    <button onclick="completeWorkout()">Complete Workout</button>
+    <div id="workoutMessage"></div>
+
+    <h3>Status</h3>
+    <button onclick="getStatus()">Refresh Status</button>
+    <div id="statusContainer"></div>
+
+    <button onclick="logout()" style="background:#dc3545;">Logout</button>
+  </div>
+
 </div>
+
 <script>
+let token = null;
 
-////////////////////////////////////////////////////////////
-// HELPERS
-////////////////////////////////////////////////////////////
-
-function scrollToBottom() {
-    const container = document.getElementById("chat-container");
-    if (!container) return;
-    container.scrollTop = container.scrollHeight;
+// TAB SWITCHING
+function showTab(tab) {
+    document.getElementById("registerTab").style.display = tab === "register" ? "block" : "none";
+    document.getElementById("loginTab").style.display = tab === "login" ? "block" : "none";
+    document.getElementById("mainApp").style.display = tab === "app" ? "block" : "none";
 }
 
-function updateEmptyState() {
-    const empty = document.getElementById("empty-state");
-    const chat = document.getElementById("chat-container");
-
-    if (!empty || !chat) return;
-
-    empty.style.display = chat.children.length === 0 ? "block" : "none";
-}
-
-async function typeWriterEffect(element, text, delay = 8) {
-    element.textContent = "";
-
-    for (let i = 0; i < text.length; i++) {
-        element.textContent += text.charAt(i);
-        if (i % 5 === 0) scrollToBottom();
-        await new Promise(r => setTimeout(r, delay));
-    }
-
-    scrollToBottom();
-    convertLinks(element);
-}
-
-function toggleChatList(forceClose = false) {
-    const list = document.getElementById("chat-list");
-    const btn = document.getElementById("chat-dropdown-btn");
-
-    if (!list || !btn) return;
-
-    if (forceClose) {
-        list.classList.remove("show");
-        return;
-    }
-
-    list.classList.toggle("show");
-}
-
-////////////////////////////////////////////////////////////
-// MAIN MODULE
-////////////////////////////////////////////////////////////
-
-const mainModule = (() => {
-
-    let token = null;
-    let current_chat_id = null;
-
-    const chatContainer = document.getElementById("chat-container");
-    const inputField = document.getElementById("message-input");
-    const chatListDiv = document.getElementById("chat-list");
-
-    function setToken(t) { token = t; }
-    function getToken() { return token; }
-
-    function setCurrentChatId(id, title = "") {
-        current_chat_id = id;
-
-        document.getElementById("chat-dropdown-btn").textContent =
-            title || "Select chat";
-
-        // ❗ убираем welcome
-        const welcome = document.getElementById("welcome-block");
-        if (welcome) welcome.remove();
-
-        toggleChatList(true);
-        loadHistory(id);
-    }
-
-    function getCurrentChatId() { return current_chat_id; }
-
-    function logout() {
-        token = null;
-        current_chat_id = null;
-        localStorage.removeItem("token");
-
-        document.getElementById("chat-container").innerHTML = "";
-        document.getElementById("chat-ui").classList.add("hidden");
-        document.getElementById("auth-container").style.display = "block";
-    }
-
-    return {
-        setToken,
-        getToken,
-        setCurrentChatId,
-        getCurrentChatId,
-        logout,
-        chatContainer,
-        inputField,
-        chatListDiv
-    };
-
-})();
-
-////////////////////////////////////////////////////////////
-// AUTH
-////////////////////////////////////////////////////////////
-
-const authModule = (() => {
-
-    function showForm(type) {
-        document.getElementById("login-form").classList.toggle("hidden", type !== "login");
-        document.getElementById("register-form").classList.toggle("hidden", type !== "register");
-    }
-
-    async function login() {
-        const email = document.getElementById("login-email").value;
-        const password = document.getElementById("login-password").value;
-
-        const res = await fetch("/login", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({email, password})
-        });
-
-        if (!res.ok) return alert("Login failed");
-
-        const data = await res.json();
-
-        mainModule.setToken(data.access_token);
-        localStorage.setItem("token", data.access_token);
-
-        document.getElementById("auth-container").style.display = "none";
-        document.getElementById("chat-ui").classList.remove("hidden");
-
-        chatModule.fetchChats();
-    }
-
-    async function register() {
-        const email = document.getElementById("register-email").value;
-        const password = document.getElementById("register-password").value;
-
-        const res = await fetch("/register", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({email, password})
-        });
-
-        if (!res.ok) return alert("Registration failed");
-
-        alert("Registered. Login now.");
-        showForm("login");
-    }
-
-    return { login, register, showForm };
-
-})();
-
-////////////////////////////////////////////////////////////
-// CHAT MODULE
-////////////////////////////////////////////////////////////
-
-const chatModule = (() => {
-
-    function addMessage(text, sender) {
-        const msg = document.createElement("div");
-        msg.className = "message " + sender;
-
-        const content = document.createElement("div");
-
-        if (sender === "ai") {
-            typeWriterEffect(content, text);
-        } else {
-            content.textContent = text;
-            convertLinks(content);
-        }
-
-        msg.appendChild(content);
-        mainModule.chatContainer.appendChild(msg);
-
-        scrollToBottom();
-        updateEmptyState();
-    }
-
-    function showWelcome() {
-        const container = mainModule.chatContainer;
-
-        if (document.getElementById("welcome-block")) return;
-
-        const block = document.createElement("div");
-        block.id = "welcome-block";
-
-        block.innerHTML = `
-            <h2>Welcome to Mentra Coach</h2>
-            <button id="create-plan-btn">Create Plan 💪</button>
-        `;
-
-        container.appendChild(block);
-
-        document.getElementById("create-plan-btn").onclick = () => {
-            mainModule.inputField.value = "Create workout plan for me";
-            sendMessage(false);
-            block.remove();
-        };
-    }
-
-    async function sendMessage(isSearch = false) {
-        const text = mainModule.inputField.value;
-        const chatId = mainModule.getCurrentChatId();
-
-        if (!chatId || !text.trim()) return;
-
-        addMessage(text, "user");
-        mainModule.inputField.value = "";
-
-        const typing = document.createElement("div");
-        typing.className = "message ai";
-        typing.textContent = "...";
-        mainModule.chatContainer.appendChild(typing);
-
-        try {
-            const res = await fetch("/coach", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + mainModule.getToken()
-                },
-                body: JSON.stringify({ chat_id: chatId, text })
-            });
-
-            const aiText = await res.text();
-
-            typing.remove();
-            addMessage(aiText, "ai");
-
-        } catch (e) {
-            typing.textContent = "Error";
-        }
-    }
-
-    async function fetchChats() {
-        const res = await fetch("/chats", {
-            headers: { Authorization: "Bearer " + mainModule.getToken() }
-        });
-
-        if (!res.ok) return mainModule.logout();
-
-        const data = await res.json();
-        mainModule.chatListDiv.innerHTML = "";
-
-        if (!data.chats.length) {
-            showWelcome();
-            return;
-        }
-
-        data.chats.forEach(chat => {
-            const div = document.createElement("div");
-            div.textContent = chat.title || "Chat";
-
-            div.onclick = () => {
-                mainModule.setCurrentChatId(chat.id, chat.title);
-            };
-
-            mainModule.chatListDiv.appendChild(div);
-        });
-    }
-
-    async function createChat() {
-        const title = document.getElementById("new-chat-title").value;
-
-        const res = await fetch("/chats", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + mainModule.getToken()
-            },
-            body: JSON.stringify({ title })
-        });
-
-        const data = await res.json();
-
-        await fetchChats();
-        mainModule.setCurrentChatId(data.chat_id, title);
-    }
-
-    async function deleteChat() {
-        const id = mainModule.getCurrentChatId();
-        if (!id) return;
-
-        await fetch(`/chats/${id}`, {
-            method: "DELETE",
-            headers: { Authorization: "Bearer " + mainModule.getToken() }
-        });
-
-        mainModule.setCurrentChatId(null);
-        mainModule.chatContainer.innerHTML = "";
-        fetchChats();
-    }
-
-    return { sendMessage, fetchChats, createChat, deleteChat, addMessage };
-
-})();
-
-////////////////////////////////////////////////////////////
-// HISTORY
-////////////////////////////////////////////////////////////
-function convertLinks(element) {
-    const text = element.textContent;
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-
-    element.innerHTML = "";
-
-    let lastIndex = 0;
-    let match;
-
-    while ((match = urlRegex.exec(text)) !== null) {
-        const before = text.substring(lastIndex, match.index);
-        element.appendChild(document.createTextNode(before));
-
-        const link = document.createElement("a");
-        link.href = match[0];
-        link.textContent = match[0];
-        link.target = "_blank";
-
-        element.appendChild(link);
-
-        lastIndex = urlRegex.lastIndex;
-    }
-
-    const after = text.substring(lastIndex);
-    element.appendChild(document.createTextNode(after));
-}
-async function loadHistory(chatId) {
-    const res = await fetch(`/history/${chatId}`, {
-        headers: { Authorization: "Bearer " + mainModule.getToken() }
+// REGISTER
+async function register() {
+    const email = document.getElementById("registerEmail").value;
+    const password = document.getElementById("registerPassword").value;
+    const res = await fetch("/register", {
+        method: "POST",
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email,password})
     });
-
-    if (!res.ok) return;
-
     const data = await res.json();
-    mainModule.chatContainer.innerHTML = "";
+    if(res.ok){
+        document.getElementById("registerMessage").innerText = "Registered! You can login.";
+        showTab("login");
+    } else {
+        document.getElementById("registerMessage").innerText = data.detail || "Error";
+    }
+}
 
-    data.messages.forEach(m => {
-        chatModule.addMessage(m.text, m.sender);
+// LOGIN
+async function login() {
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email,password})
+    });
+    const data = await res.json();
+    if(res.ok){
+        token = data.access_token;
+        showTab("app");
+        getStatus();
+    } else {
+        document.getElementById("loginMessage").innerText = data.detail || "Error";
+    }
+}
+
+// CHECKIN
+async function submitCheckin() {
+    const energy = parseInt(document.getElementById("energy").value);
+    const soreness = parseInt(document.getElementById("soreness").value);
+    const mood = parseInt(document.getElementById("mood").value);
+    const res = await fetch("/checkin", {
+        method: "POST",
+        headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
+        body: JSON.stringify({energy, soreness, mood})
+    });
+    const data = await res.json();
+    document.getElementById("checkinMessage").innerText = data.status;
+}
+
+// GENERATE WORKOUT
+async function generateWorkout() {
+    const res = await fetch("/workout", {
+        method: "POST",
+        headers: {'Authorization': `Bearer ${token}`}
+    });
+    const data = await res.json();
+    const container = document.getElementById("workoutContainer");
+    container.innerHTML = "";
+    data.workout.forEach(w => {
+        container.innerHTML += `<div class="workout">${w.name} ${w.reps || w.duration || ""}</div>`;
     });
 }
 
-////////////////////////////////////////////////////////////
-// INIT
-////////////////////////////////////////////////////////////
+// COMPLETE WORKOUT
+async function completeWorkout() {
+    const res = await fetch("/complete-workout", {
+        method: "POST",
+        headers: {'Authorization': `Bearer ${token}`}
+    });
+    const data = await res.json();
+    document.getElementById("workoutMessage").innerText = data.status === "ok" ? `Workout done! Streak: ${data.streak}` : "Already completed today";
+    getStatus();
+}
 
-window.addEventListener("DOMContentLoaded", () => {
+// GET STATUS
+async function getStatus() {
+    const res = await fetch("/status", {
+        headers: {'Authorization': `Bearer ${token}`}
+    });
+    const data = await res.json();
+    document.getElementById("statusContainer").innerText = `Streak: ${data.streak}, Total workouts: ${data.total}`;
+}
 
-    const token = localStorage.getItem("token");
-
-    if (token) {
-        mainModule.setToken(token);
-        document.getElementById("auth-container").style.display = "none";
-        document.getElementById("chat-ui").classList.remove("hidden");
-        chatModule.fetchChats();
-    }
-
-    const sendBtn = document.getElementById("send-btn");
-    if (sendBtn) sendBtn.onclick = () => chatModule.sendMessage();
-
-    const deleteBtn = document.getElementById("delete-chat-btn");
-    if (deleteBtn) deleteBtn.onclick = chatModule.deleteChat;
-
-});
-
+// LOGOUT
+function logout() {
+    token = null;
+    showTab("login");
+}
 </script>
 </body>
 </html>
