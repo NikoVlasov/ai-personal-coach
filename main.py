@@ -72,7 +72,13 @@ oauth2_scheme = HTTPBearer()
 # DATABASE MODELS
 # =========================
 
-engine = create_engine(DATABASE_URL)
+# СТАЛО:
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,        # проверяет соединение перед использованием
+    pool_recycle=300,          # пересоздаёт соединение каждые 5 минут
+    connect_args={"sslmode": "require"}
+)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
