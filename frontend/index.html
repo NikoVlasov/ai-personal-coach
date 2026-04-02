@@ -1012,7 +1012,7 @@ const planUI = {
     try {
       const res = await api.post('/coach', {
         chat_id: state.currentChatId,
-        text: 'Please create a full 7-day weekly workout plan for me based on my profile. Format each day as: **Day N (Mon/Tue/...):** [Rest day / Workout focus] — brief description.'
+        text: 'Please create a strict 7-day weekly workout plan based EXACTLY on my saved profile. IMPORTANT RULES: 1) Use EXACTLY the number of training days I specified in my profile (days_per_week field) — no more, no less. 2) The remaining days must be marked as Rest day. 3) Format each day exactly as: **Day N (Mon/Tue/...):** [Rest day OR Workout focus] — brief description. 4) Do not add extra training days under any circumstances.'
       });
       const text = await res.text();
       status.textContent = '';
