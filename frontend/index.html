@@ -389,7 +389,12 @@ input[type=range] {
 
   <!-- HEADER -->
   <header class="app-header">
-    <div class="app-title">🏋️ Viskara</div>
+    <div class="app-title">
+      <link rel="icon" type="image/png" href="/static/icon.png">
+      <link rel="apple-touch-icon" href="/static/icon.png">
+      <img src="/static/logo.png" alt="Viskara"
+      style="height:32px; width:auto; vertical-align:middle;">
+    </div>
     <div class="header-actions">
       <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
       <button class="icon-btn" id="btn-logout" onclick="auth.logout()">Logout</button>
