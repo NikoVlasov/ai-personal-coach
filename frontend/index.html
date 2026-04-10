@@ -390,15 +390,25 @@ input[type=range] {
 <div id="app-container">
 
   <!-- HEADER -->
-  <header class="app-header">
-    <div class="app-title">
-      <img src="/static/logo.png" alt="Viskara"
-      style="height:32px; width:auto; vertical-align:middle;">
+  <header class="app-header" style="display:flex; align-items:center; justify-content:space-between; position:relative;">
+
+    <!-- Слева — надпись -->
+    <div class="app-title" style="font-size:1.1rem; font-weight:700; z-index:1;">
+      Viskara
     </div>
-    <div class="header-actions">
+
+    <!-- По центру — логотип -->
+    <div style="position:absolute; left:50%; transform:translateX(-50%);">
+      <img src="/static/logo.png" alt="logo"
+      style="height:36px; width:auto; vertical-align:middle;">
+    </div>
+
+    <!-- Справа — кнопки -->
+    <div class="header-actions" style="z-index:1;">
       <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
       <button class="icon-btn" id="btn-logout" onclick="auth.logout()">Logout</button>
     </div>
+
   </header>
 
   <!-- AUTH SCREEN -->
