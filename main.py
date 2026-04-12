@@ -532,7 +532,10 @@ RESPONSE FORMAT:
 Use markdown formatting — headers (##), bullet points (-), and **bold** for exercise names. This improves readability.
 
 RESPONSE LENGTH:
-120–250 words unless the user asks for a detailed program.""" + profile_context
+120–250 words for simple questions.
+400–800 words when user asks for a detailed workout plan, nutrition plan, or weekly schedule.
+Never cut your response mid-sentence. Always complete the full plan if asked.
+""" + profile_context
 
         full_messages = [{"role": "system", "content": system_prompt}] + conversation
 
@@ -541,7 +544,7 @@ RESPONSE LENGTH:
                 model="llama-3.3-70b-versatile",
                 messages=full_messages,
                 temperature=0.5,
-                max_tokens=600
+                max_tokens=1500
             )
         )
 
