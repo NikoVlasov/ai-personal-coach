@@ -279,10 +279,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <div id="chat-list"></div>
           </div>
         </div>
-        <div class="new-chat-row">
-          <input type="text" id="new-chat-title" placeholder="New chat name...">
-          <button class="btn-new" onclick="chatUI.createChat()">+ New</button>
-        </div>
+
         <div id="chat-messages"></div>
         <div class="chat-input-row">
           <textarea id="message-input" placeholder="Ask your coach..." rows="1"></textarea>
@@ -440,10 +437,14 @@ const auth={
     if(!d.profile){show('onboarding-screen');}
     else{profile.fill(d.profile);auth.enter();}
   },
-  enter(){
+  async enter(){
     show('main-screen');
     document.getElementById('prof-email').textContent=state.email;
-    chatUI.fetchChats();logUI.fetchLogs();
+    logUI.fetchLogs();
+    await chatUI.fetchChats();
+    const r=await api.post('/chats/auto',{});
+    const d=await r.json();
+    if(d.chat_id) await chatUI.selectChat(d.chat_id, d.title);
   },
   logout(){
     state.token=null;state.email='';state.chatId=null;
