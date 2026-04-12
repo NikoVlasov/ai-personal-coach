@@ -486,7 +486,25 @@ async def coach(msg: MessageRequest,
 
     db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
     db.commit()
-
+    # Автоназвание по первому сообщению
+    if chat.title == "New Chat":
+        try:
+            title_completion = await asyncio.to_thread(
+                lambda: groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{
+                        "role": "user",
+                        "content": f"Generate a short chat title (3-5 words max) for this fitness message. Reply with ONLY the title, nothing else: '{msg.text}'"
+                    }],
+                    temperature=0.3,
+                    max_tokens=20
+                )
+            )
+            auto_title = title_completion.choices[0].message.content.strip().strip('"')
+            chat.title = auto_title
+            db.commit()
+        except:
+            pass
     try:
         # Load last 20 messages
         db_messages = db.query(Message).filter(
@@ -753,15 +771,15 @@ DAILY CHECK-IN RULES:
 @app.post("/chats/auto")
 async def auto_create_chat(user=Depends(get_current_user),
                            db: Session = Depends(get_db)):
-    from datetime import date
-    existing = db.query(Chat).filter(Chat.user_id == user.id).first()
+    existing = db.query(Chat).filter(
+        Chat.user_id == user.id
+    ).order_by(Chat.id.desc()).first()
     if existing:
         return {"chat_id": existing.id, "title": existing.title}
-    title = f"My Fitness Journey"
-    chat = Chat(user_id=user.id, title=title)
+    chat = Chat(user_id=user.id, title="New Chat")
     db.add(chat)
     db.commit()
     db.refresh(chat)
-    return {"chat_id": chat.id, "title": title}
+    return {"chat_id": chat.id, "title": chat.title}
 
 

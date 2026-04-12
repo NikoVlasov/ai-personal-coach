@@ -279,7 +279,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <div id="chat-list"></div>
           </div>
         </div>
-
+        <div class="new-chat-row">
+          <button class="btn-new" style="width:100%" onclick="chatUI.createChat()">+ New chat</button>
+        </div>
         <div id="chat-messages"></div>
         <div class="chat-input-row">
           <textarea id="message-input" placeholder="Ask your coach..." rows="1"></textarea>
@@ -559,13 +561,10 @@ const chatUI={
     d.messages.forEach(m=>chatUI.addMsg(m.text,m.sender));
   },
   async createChat(){
-    const el=document.getElementById('new-chat-title');
-    const title=el.value.trim();if(!title)return;
-    const r=await api.post('/chats',{title});
+    const r=await api.post('/chats',{title:'New Chat'});
     const d=await r.json();
-    el.value='';
     await chatUI.fetchChats();
-    chatUI.selectChat(d.chat_id,title);
+    chatUI.selectChat(d.chat_id,'New Chat');
   },
   async delChat(id,e){
     e.stopPropagation();
