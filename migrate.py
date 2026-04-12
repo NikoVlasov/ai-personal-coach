@@ -29,6 +29,11 @@ migrations = [
     "ALTER TABLE fitness_profiles ADD COLUMN IF NOT EXISTS limitations TEXT",
     "ALTER TABLE fitness_profiles ADD COLUMN IF NOT EXISTS days_per_week INTEGER",
     "ALTER TABLE fitness_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
+    "ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS exercise VARCHAR",
+    "ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS sets INTEGER",
+    "ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS reps INTEGER",
+    "ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS duration_minutes INTEGER",
+    "ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS notes TEXT",
     """
     CREATE TABLE IF NOT EXISTS workout_logs (
         id SERIAL PRIMARY KEY,
