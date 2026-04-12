@@ -552,6 +552,7 @@ const chatUI={
     });
   },
   async selectChat(id,title){
+    console.log('selectChat called:', id, title);
     state.chatId=id;
     document.getElementById('chat-title').textContent=title;
     document.getElementById('chat-list').classList.remove('show');
