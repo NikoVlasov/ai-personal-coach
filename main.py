@@ -498,11 +498,31 @@ async def coach(msg: MessageRequest,
         goal = goal_map.get(profile.goal, 'fitness') if profile else 'fitness'
         name = user.email.split('@')[0].capitalize()
 
-        welcome_text = (
-            f"Hey {name}! 👋 Ready to work on **{goal}** today?\n\n"
-            f"How are you feeling right now?\n"
-            f"[BTN:💪 Ready to train][BTN:😴 Low energy][BTN:🤕 Sore muscles]"
+        welcome_completion = await asyncio.to_thread(
+            lambda: groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{
+                    "role": "system",
+                    "content": (
+                        f"You are a friendly fitness coach. "
+                        f"The user's name is {name}, their goal is {goal}. "
+                        f"Write a short warm welcome (2-3 sentences max). "
+                        f"Ask how they feel today. "
+                        f"Then on a new line add exactly: "
+                        f"[BTN:💪 Ready to train][BTN:😴 Low energy][BTN:🤕 Sore muscles]. "
+                        f"Detect the user's language from their browser or default to English. "
+                        f"If user's email looks Russian or Cyrillic — respond in Russian. "
+                        f"Otherwise respond in English."
+                    )
+                }, {
+                    "role": "user",
+                    "content": "start"
+                }],
+                temperature=0.5,
+                max_tokens=150
+            )
         )
+        welcome_text = welcome_completion.choices[0].message.content.strip()
 
         db.add(Message(chat_id=chat.id, sender="ai", text=welcome_text))
         db.commit()
