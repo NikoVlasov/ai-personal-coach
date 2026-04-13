@@ -285,11 +285,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         <div id="chat-messages"></div>
         <div class="chat-input-row">
           <textarea id="message-input" placeholder="Ask your coach..." rows="1"></textarea>
-          <button class="rnd" id="search-btn" onclick="chatUI.send(true)" title="Web search">🔎</button>
           <button class="rnd" id="checkin-btn" onclick="checkin.open()" title="Check-in">⭐</button>
           <button class="rnd" id="send-btn" onclick="chatUI.send(false)">➤</button>
         </div>
       </div>
+
 
       <!-- PLAN -->
       <div class="tab-pane" id="pane-plan">
@@ -348,10 +348,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-pane="pane-chat" onclick="nav.go('pane-chat',this)"><span class="nav-icon">💬</span>Chat</button>
-      <button class="nav-btn" data-pane="pane-plan" onclick="nav.go('pane-plan',this)"><span class="nav-icon">📅</span>Plan</button>
-      <button class="nav-btn" data-pane="pane-log" onclick="nav.go('pane-log',this)"><span class="nav-icon">📝</span>Log</button>
-      <button class="nav-btn" data-pane="pane-profile" onclick="nav.go('pane-profile',this)"><span class="nav-icon">👤</span>Profile</button>
+      <button class="nav-btn active" data-pane="pane-chat" onclick="nav.go('pane-chat',this)">
+        <span class="nav-icon">💬</span>Chat
+      </button>
+      <button class="nav-btn" data-pane="pane-profile" onclick="nav.go('pane-profile',this)">
+        <span class="nav-icon">👤</span>Profile
+      </button>
     </nav>
   </div>
 
@@ -519,7 +521,6 @@ const chatUI={
   setLoading(v){
     state.loading=v;
     document.getElementById('send-btn').disabled=v;
-    document.getElementById('search-btn').disabled=v;
   },
   async send(isSearch){
     if(state.loading)return;
