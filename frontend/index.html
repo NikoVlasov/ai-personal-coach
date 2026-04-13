@@ -433,7 +433,13 @@ const auth={
     await chatUI.fetchChats();
     const r=await api.post('/chats/auto',{});
     const d=await r.json();
-    if(d.chat_id) await chatUI.selectChat(d.chat_id, d.title);
+    if(d.chat_id){
+      await chatUI.selectChat(d.chat_id, d.title);
+      const msgs=document.getElementById('chat-messages');
+      if(msgs.children.length===0){
+        await chatUI.showWelcome();
+      }
+    }
     await goalBar.load();
   },
   logout(){
@@ -598,6 +604,14 @@ const chatUI={
     await api.del('/chats/'+id);
     if(state.chatId===id){state.chatId=null;document.getElementById('chat-title').textContent='Select chat';document.getElementById('chat-messages').innerHTML='';}
     chatUI.fetchChats();
+  },
+  async showWelcome(){
+    const r=await api.post('/coach',{
+      chat_id:state.chatId,
+      text:'__welcome__'
+    });
+    const text=await r.text();
+    chatUI.addMsg(text,'ai');
   }
 };
 const checkin={

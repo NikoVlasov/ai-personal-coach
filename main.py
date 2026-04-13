@@ -484,8 +484,33 @@ async def coach(msg: MessageRequest,
     if not chat:
         raise HTTPException(status_code=404)
 
+    # Специальное приветствие — не сохраняем как сообщение пользователя
+    if msg.text == '__welcome__':
+        profile = db.query(FitnessProfile).filter(
+            FitnessProfile.user_id == user.id
+        ).first()
+
+        goal_map = {
+            'fat_loss': 'fat loss',
+            'strength': 'building strength',
+            'general': 'general fitness'
+        }
+        goal = goal_map.get(profile.goal, 'fitness') if profile else 'fitness'
+        name = user.email.split('@')[0].capitalize()
+
+        welcome_text = (
+            f"Hey {name}! 👋 Ready to work on **{goal}** today?\n\n"
+            f"How are you feeling right now?\n"
+            f"[BTN:💪 Ready to train][BTN:😴 Low energy][BTN:🤕 Sore muscles]"
+        )
+
+        db.add(Message(chat_id=chat.id, sender="ai", text=welcome_text))
+        db.commit()
+        return PlainTextResponse(welcome_text)
+
     db.add(Message(chat_id=chat.id, sender="user", text=msg.text))
     db.commit()
+
     # Автоназвание по первому сообщению
     if chat.title == "New Chat":
         try:
@@ -505,6 +530,7 @@ async def coach(msg: MessageRequest,
             db.commit()
         except:
             pass
+
     try:
         # Load last 20 messages
         db_messages = db.query(Message).filter(
@@ -596,8 +622,6 @@ Always add buttons. Never skip this step.
     except Exception as e:
         logger.error(f"COACH ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
 # =========================
 # SEARCH
 # =========================
