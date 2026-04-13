@@ -546,6 +546,13 @@ Include: exercise name, step-by-step instructions, reps or duration, sets, rest 
 NUTRITION GUIDANCE:
 Occasionally include simple advice: moderate calorie deficit (~500 kcal/day), prioritise protein and vegetables, reduce sugar, drink water.
 
+NUTRITION DISCLAIMER:
+When giving nutrition advice, always add a brief note that:
+- These are general guidelines, not medical nutrition advice
+- For a personalised nutrition plan, consult a registered dietitian
+- Keep the disclaimer short — one sentence maximum
+Example: "Note: these are general guidelines. For a personalised nutrition plan, consult a dietitian."
+
 RESPONSE FORMAT:
 Use markdown formatting — headers (##), bullet points (-), and **bold** for exercise names. This improves readability.
 
@@ -553,6 +560,19 @@ RESPONSE LENGTH:
 120–250 words for simple questions.
 400–800 words when user asks for a detailed workout plan, nutrition plan, or weekly schedule.
 Never cut your response mid-sentence. Always complete the full plan if asked.
+
+QUICK BUTTONS FORMAT:
+After every response, suggest 2-3 quick reply buttons relevant to the context.
+Format them exactly like this on a new line:
+[BTN:💪 Ready to train][BTN:😴 Low energy][BTN:❓ Ask a question]
+
+Examples by context:
+- Morning greeting: [BTN:💪 Ready to train][BTN:😴 Low energy today][BTN:🤕 Sore muscles]
+- After showing workout: [BTN:✅ Workout done!][BTN:❓ Question about exercise][BTN:⏭ Skip today]
+- After workout logged: [BTN:🥗 What to eat today][BTN:🛒 Shopping list][BTN:👍 All good]
+- Nutrition question: [BTN:🥩 High protein foods][BTN:🛒 Weekly shopping list][BTN:👍 Thanks]
+
+Always add buttons. Never skip this step.
 """ + profile_context
 
         full_messages = [{"role": "system", "content": system_prompt}] + conversation
@@ -771,15 +791,25 @@ DAILY CHECK-IN RULES:
 @app.post("/chats/auto")
 async def auto_create_chat(user=Depends(get_current_user),
                            db: Session = Depends(get_db)):
-    existing = db.query(Chat).filter(
-        Chat.user_id == user.id
-    ).order_by(Chat.id.desc()).first()
-    if existing:
-        return {"chat_id": existing.id, "title": existing.title}
-    chat = Chat(user_id=user.id, title="New Chat")
-    db.add(chat)
-    db.commit()
-    db.refresh(chat)
-    return {"chat_id": chat.id, "title": chat.title}
+    try:
+        existing = db.query(Chat).filter(
+            Chat.user_id == user.id
+        ).order_by(Chat.id.desc()).first()
+        if existing:
+            return {"chat_id": existing.id, "title": existing.title}
+        chat = Chat(user_id=user.id, title="My Fitness Journey")
+        db.add(chat)
+        db.commit()
+        db.refresh(chat)
+
+        # Приветственное сообщение
+        welcome = "Hello! 👋 I'm your Viskara AI coach. I'll guide you through your workouts every day and adapt to how you feel.\n\nHow are you feeling today?\n[BTN:💪 Ready to train][BTN:😴 Low energy today][BTN:🤕 Sore muscles]"
+        db.add(Message(chat_id=chat.id, sender="ai", text=welcome))
+        db.commit()
+
+        return {"chat_id": chat.id, "title": chat.title}
+    except Exception as e:
+        logger.error(f"AUTO CHAT ERROR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 

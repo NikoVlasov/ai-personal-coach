@@ -260,6 +260,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="field"><label>Days/week</label><input type="number" id="ob-days" placeholder="3" min="1" max="7"></div>
     </div>
     <div class="field"><label>Injuries / limitations</label><input type="text" id="ob-lim" placeholder="e.g. bad knee"></div>
+
+    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;font-size:11px;color:rgba(255,255,255,0.5);line-height:1.6;">
+      ⚠️ Viskara provides general fitness and nutrition guidance only. Always consult a doctor before starting a new exercise programme. For personalised nutrition advice, consult a registered dietitian.
+    </div>
+
     <button class="btn-primary" onclick="profile.saveOb()">Start training →</button>
     <button class="skip-link" onclick="profile.skip()">Skip for now</button>
     <div class="err" id="ob-err"></div>
@@ -485,13 +490,51 @@ const nav={
 };
 const chatUI={
   toggleList(){document.getElementById('chat-list').classList.toggle('show');},
-  addMsg(text,sender){
+  addMsg(text, sender){
     const c=document.getElementById('chat-messages');
+    const wrap=document.createElement('div');
+    wrap.style.cssText='display:flex;flex-direction:column;gap:6px';
+
     const d=document.createElement('div');
     d.className='message '+sender;
-    if(sender==='ai')d.innerHTML=marked.parse(text);
-    else d.textContent=text;
-    c.appendChild(d);c.scrollTop=c.scrollHeight;return d;
+
+    if(sender==='ai'){
+      const btnRegex=/\[BTN:([^\]]+)\]/g;
+      const cleanText=text.replace(btnRegex,'').trim();
+      d.innerHTML=marked.parse(cleanText);
+      wrap.appendChild(d);
+
+      const buttons=[];
+      let match;
+      while((match=btnRegex.exec(text))!==null){
+        buttons.push(match[1]);
+      }
+
+      if(buttons.length>0){
+        const row=document.createElement('div');
+        row.style.cssText='display:flex;flex-wrap:wrap;gap:6px;padding:0 4px';
+        buttons.forEach(label=>{
+          const btn=document.createElement('button');
+          btn.textContent=label;
+          btn.style.cssText='background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;color:#a78bfa;font-size:12px;font-weight:600;padding:6px 14px;cursor:pointer;font-family:inherit;transition:all 0.2s';
+          btn.onmouseover=()=>btn.style.background='rgba(124,58,237,0.3)';
+          btn.onmouseout=()=>btn.style.background='rgba(124,58,237,0.15)';
+          btn.onclick=()=>{
+            document.getElementById('message-input').value=label;
+            chatUI.send(false);
+          };
+          row.appendChild(btn);
+        });
+        wrap.appendChild(row);
+      }
+    } else {
+      d.textContent=text;
+      wrap.appendChild(d);
+    }
+
+    c.appendChild(wrap);
+    c.scrollTop=c.scrollHeight;
+    return d;
   },
   addThinking(text){
     const c=document.getElementById('chat-messages');
