@@ -449,10 +449,7 @@ const auth={
     const d=await r.json();
     if(d.chat_id){
       await chatUI.selectChat(d.chat_id, d.title);
-      const msgs=document.getElementById('chat-messages');
-      if(msgs.children.length===0){
-        await chatUI.showWelcome();
-      }
+      await chatUI.showWelcome();
     }
     await goalBar.load();
   },

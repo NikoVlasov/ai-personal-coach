@@ -651,8 +651,7 @@ Always add buttons. Never skip this step.
 
         ai_text = completion.choices[0].message.content.strip()
 
-        db.add(Message(chat_id=chat.id, sender="ai", text=ai_text))
-        db.commit()
+
 
         return PlainTextResponse(ai_text)
 
