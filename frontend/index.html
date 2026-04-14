@@ -618,7 +618,8 @@ const chatUI={
     const r=await api.post('/chats',{title:'New Chat'});
     const d=await r.json();
     await chatUI.fetchChats();
-    chatUI.selectChat(d.chat_id,'New Chat');
+    await chatUI.selectChat(d.chat_id,'New Chat');
+    await chatUI.showWelcome();
   },
   async delChat(id,e){
     e.stopPropagation();
