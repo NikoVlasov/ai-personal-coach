@@ -489,7 +489,6 @@ async def coach(msg: MessageRequest,
     if not chat:
         raise HTTPException(status_code=404)
 
-    # Специальное приветствие — не сохраняем как сообщение пользователя
     if msg.text == '__welcome__':
         profile = db.query(FitnessProfile).filter(
             FitnessProfile.user_id == user.id
@@ -501,8 +500,17 @@ async def coach(msg: MessageRequest,
             'zh': 'Chinese', 'pt': 'Portuguese', 'it': 'Italian',
             'tr': 'Turkish'
         }
-        lang = profile.language if profile else 'en'
+
+        lang = profile.language if (profile and profile.language) else 'en'
         lang_name = language_map.get(lang, 'English')
+
+        goal_map = {
+            'fat_loss': 'fat loss',
+            'strength': 'building strength',
+            'general': 'general fitness'
+        }
+        goal = goal_map.get(profile.goal, 'fitness') if profile else 'fitness'
+        name = user.email.split('@')[0].capitalize()
 
         welcome_completion = await asyncio.to_thread(
             lambda: groq_client.chat.completions.create(
