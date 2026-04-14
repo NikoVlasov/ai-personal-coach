@@ -525,8 +525,10 @@ async def coach(msg: MessageRequest,
                         f"The user's name is {name}, their goal is {goal}. "
                         f"Write a short warm welcome (2-3 sentences max). "
                         f"Ask how they feel today. "
-                        f"Then on a new line add exactly: "
-                        f"[BTN:💪 Ready to train][BTN:😴 Low energy][BTN:🤕 Sore muscles]. "
+                        f"Then on a new line add 3 quick reply buttons in {lang_name} language. "
+                        f"Format exactly like this: [BTN:emoji text][BTN:emoji text][BTN:emoji text]. "
+                        f"The buttons should mean: 'Ready to train', 'Low energy today', 'Sore muscles'. "
+                        f"Translate these button labels to {lang_name}. Keep emojis: 💪 😴 🤕. "
                         f"IMPORTANT: Respond ONLY in {lang_name}. No other language."
                     )
                 }, {
@@ -628,10 +630,10 @@ Format them exactly like this on a new line:
 [BTN:💪 Ready to train][BTN:😴 Low energy][BTN:❓ Ask a question]
 
 Examples by context:
-- Morning greeting: [BTN:💪 Ready to train][BTN:😴 Low energy today][BTN:🤕 Sore muscles]
-- After showing workout: [BTN:✅ Workout done!][BTN:❓ Question about exercise][BTN:⏭ Skip today]
-- After workout logged: [BTN:🥗 What to eat today][BTN:🛒 Shopping list][BTN:👍 All good]
-- Nutrition question: [BTN:🥩 High protein foods][BTN:🛒 Weekly shopping list][BTN:👍 Thanks]
+- Always translate button text to the user's language
+- Keep emojis in buttons
+- Examples in English: [BTN:💪 Ready to train][BTN:✅ Workout done!][BTN:🥗 What to eat]
+- Translate button labels to match the language of your response
 
 Always add buttons. Never skip this step.
 """ + profile_context
