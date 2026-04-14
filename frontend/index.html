@@ -260,6 +260,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="field"><label>Days/week</label><input type="number" id="ob-days" placeholder="3" min="1" max="7"></div>
     </div>
     <div class="field"><label>Injuries / limitations</label><input type="text" id="ob-lim" placeholder="e.g. bad knee"></div>
+    <div class="field"><label>Language</label>
+      <select id="ob-lang">
+        <option value="en">🇬🇧 English</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="pt">🇧🇷 Português</option>
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+      </select>
+    </div>
 
     <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;font-size:11px;color:rgba(255,255,255,0.5);line-height:1.6;">
       ⚠️ Viskara provides general fitness and nutrition guidance only. Always consult a doctor before starting a new exercise programme. For personalised nutrition advice, consult a registered dietitian.
@@ -457,7 +471,15 @@ const profile={
     const w=parseFloat(document.getElementById('ob-w').value);
     if(!h||!w){err.textContent='Height and weight are required.';return;}
     try{
-      await api.post('/profile',{goal:document.getElementById('ob-goal').value,level:document.getElementById('ob-level').value,height:h,weight:w,age:parseInt(document.getElementById('ob-age').value)||null,days_per_week:parseInt(document.getElementById('ob-days').value)||null,limitations:document.getElementById('ob-lim').value||null});
+      await api.post('/profile',{
+        goal:document.getElementById('ob-goal').value,
+        level:document.getElementById('ob-level').value,
+        height:h,weight:w,
+        age:parseInt(document.getElementById('ob-age').value)||null,
+        days_per_week:parseInt(document.getElementById('ob-days').value)||null,
+        limitations:document.getElementById('ob-lim').value||null,
+        language:document.getElementById('ob-lang').value
+      });
       auth.enter();
     }catch(e){err.textContent='Could not save. Try again.';}
   },

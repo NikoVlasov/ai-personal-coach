@@ -125,6 +125,7 @@ class FitnessProfile(Base):
     days_per_week = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    language = Column(String, default='en')
 
 
 class DailyCheckin(Base):
@@ -237,6 +238,7 @@ class FitnessProfileRequest(BaseModel):
     age: Optional[int] = None
     limitations: Optional[str] = None
     days_per_week: Optional[int] = None
+    language: Optional[str] = 'en'
 
 
 class WorkoutLogRequest(BaseModel):
@@ -282,7 +284,8 @@ def build_profile_context(profile: FitnessProfile) -> str:
         lines.append(f"Physical limitations / injuries: {profile.limitations}")
     lines.append("--- END OF PROFILE ---\n")
     lines.append("Always personalise your advice based on this profile. Reference it naturally without reading it aloud.")
-
+    lines.append(f"User language: {profile.language}")
+    lines.append(f"IMPORTANT: Always respond in the user's language: {profile.language}")
     return "\n".join(lines)
 
 
@@ -389,6 +392,7 @@ async def save_profile(data: FitnessProfileRequest,
         profile.age = data.age
         profile.limitations = data.limitations
         profile.days_per_week = data.days_per_week
+        profile.language = data.language
         profile.updated_at = datetime.utcnow()
     else:
         # Create new
@@ -400,7 +404,8 @@ async def save_profile(data: FitnessProfileRequest,
             weight=data.weight,
             age=data.age,
             limitations=data.limitations,
-            days_per_week=data.days_per_week
+            days_per_week=data.days_per_week,
+            language = data.language
         )
         db.add(profile)
     db.commit()
@@ -490,13 +495,14 @@ async def coach(msg: MessageRequest,
             FitnessProfile.user_id == user.id
         ).first()
 
-        goal_map = {
-            'fat_loss': 'fat loss',
-            'strength': 'building strength',
-            'general': 'general fitness'
+        language_map = {
+            'en': 'English', 'ru': 'Russian', 'es': 'Spanish',
+            'de': 'German', 'fr': 'French', 'ar': 'Arabic',
+            'zh': 'Chinese', 'pt': 'Portuguese', 'it': 'Italian',
+            'tr': 'Turkish'
         }
-        goal = goal_map.get(profile.goal, 'fitness') if profile else 'fitness'
-        name = user.email.split('@')[0].capitalize()
+        lang = profile.language if profile else 'en'
+        lang_name = language_map.get(lang, 'English')
 
         welcome_completion = await asyncio.to_thread(
             lambda: groq_client.chat.completions.create(
@@ -510,9 +516,7 @@ async def coach(msg: MessageRequest,
                         f"Ask how they feel today. "
                         f"Then on a new line add exactly: "
                         f"[BTN:💪 Ready to train][BTN:😴 Low energy][BTN:🤕 Sore muscles]. "
-                        f"Detect the user's language from their browser or default to English. "
-                        f"If user's email looks Russian or Cyrillic — respond in Russian. "
-                        f"Otherwise respond in English."
+                        f"IMPORTANT: Respond ONLY in {lang_name}. No other language."
                     )
                 }, {
                     "role": "user",

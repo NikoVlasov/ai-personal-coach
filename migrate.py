@@ -41,6 +41,7 @@ migrations = [
     "ALTER TABLE fitness_profiles ADD COLUMN IF NOT EXISTS days_per_week INTEGER",
     "ALTER TABLE fitness_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
     "ALTER TABLE fitness_profiles ALTER COLUMN weight TYPE FLOAT USING weight::float",
+    "ALTER TABLE fitness_profiles ADD COLUMN IF NOT EXISTS language VARCHAR DEFAULT 'en'",
     """
     CREATE TABLE IF NOT EXISTS daily_checkins (
         id SERIAL PRIMARY KEY,
