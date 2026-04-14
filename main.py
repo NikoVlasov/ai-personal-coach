@@ -504,6 +504,9 @@ async def coach(msg: MessageRequest,
         lang = profile.language if (profile and profile.language) else 'en'
         lang_name = language_map.get(lang, 'English')
 
+        logger.info(f"WELCOME DEBUG: email={user.email} lang={lang} lang_name={lang_name} profile_language={profile.language if profile else 'NO PROFILE'}")
+
+
         goal_map = {
             'fat_loss': 'fat loss',
             'strength': 'building strength',
