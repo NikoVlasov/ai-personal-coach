@@ -259,6 +259,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="field"><label>Age</label><input type="number" id="ob-age" placeholder="25"></div>
       <div class="field"><label>Days/week</label><input type="number" id="ob-days" placeholder="3" min="1" max="7"></div>
     </div>
+    <div class="field"><label>Training days</label>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:4px">
+        <div class="day-btn" data-day="Mon" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Mon</div>
+        <div class="day-btn" data-day="Tue" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Tue</div>
+        <div class="day-btn" data-day="Wed" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Wed</div>
+        <div class="day-btn" data-day="Thu" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Thu</div>
+        <div class="day-btn" data-day="Fri" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Fri</div>
+        <div class="day-btn" data-day="Sat" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Sat</div>
+        <div class="day-btn" data-day="Sun" onclick="toggleDay(this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;color:rgba(255,255,255,0.4)">Sun</div>
+      </div>
+    </div>
     <div class="field"><label>Injuries / limitations</label><input type="text" id="ob-lim" placeholder="e.g. bad knee"></div>
     <div class="field"><label>Language</label>
       <select id="ob-lang">
@@ -749,6 +760,29 @@ const goalBar = {
     }catch(e){}
   }
 };
+
+function toggleDay(el){
+  const active = el.style.background.includes('6,214,160');
+  if(active){
+    el.style.background='rgba(255,255,255,0.04)';
+    el.style.borderColor='rgba(255,255,255,0.1)';
+    el.style.color='rgba(255,255,255,0.4)';
+  } else {
+    el.style.background='rgba(6,214,160,0.2)';
+    el.style.borderColor='rgba(6,214,160,0.5)';
+    el.style.color='#34d399';
+  }
+}
+
+function getSelectedDays(){
+  const selected=[];
+  document.querySelectorAll('.day-btn').forEach(btn=>{
+    if(btn.style.background.includes('6,214,160')){
+      selected.push(btn.getAttribute('data-day'));
+    }
+  });
+  return selected.join(',');
+}
 
 window.addEventListener('DOMContentLoaded',async()=>{
   const token=localStorage.getItem('token');

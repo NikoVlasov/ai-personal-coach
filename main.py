@@ -126,7 +126,7 @@ class FitnessProfile(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     language = Column(String, default='en')
-
+    schedule = Column(String, default='')
 
 class DailyCheckin(Base):
     __tablename__ = "daily_checkins"
@@ -239,7 +239,7 @@ class FitnessProfileRequest(BaseModel):
     limitations: Optional[str] = None
     days_per_week: Optional[int] = None
     language: Optional[str] = 'en'
-
+    schedule: Optional[str] = ''
 
 class WorkoutLogRequest(BaseModel):
     exercise: str
@@ -282,10 +282,19 @@ def build_profile_context(profile: FitnessProfile) -> str:
         lines.append(f"Available training days per week: {profile.days_per_week}")
     if profile.limitations:
         lines.append(f"Physical limitations / injuries: {profile.limitations}")
+
+    # Расписание тренировок
+    if profile.schedule:
+        lines.append(f"Training days this week: {profile.schedule}")
+        lines.append("Rest days are all other days of the week.")
+    else:
+        lines.append("User has no weekly schedule set yet — ask them which days they want to train.")
+
     lines.append("--- END OF PROFILE ---\n")
     lines.append("Always personalise your advice based on this profile. Reference it naturally without reading it aloud.")
     lines.append(f"User language: {profile.language}")
     lines.append(f"IMPORTANT: Always respond in the user's language: {profile.language}")
+
     now = datetime.now()
     day_names = {
         0: "Monday", 1: "Tuesday", 2: "Wednesday",
@@ -296,13 +305,24 @@ def build_profile_context(profile: FitnessProfile) -> str:
 
     lines.append(f"\nToday is {day_name}, {now.strftime('%B %d, %Y')}.")
 
-    if is_weekend:
-        lines.append("Today is a REST DAY — recommend recovery, stretching, yoga, light walk, good nutrition.")
+    # Определяем тренировочный день или отдых на основе расписания
+    if profile.schedule:
+        today_short = day_name[:3]  # Mon, Tue, Wed...
+        training_days = [d.strip() for d in profile.schedule.split(',')]
+        if today_short in training_days:
+            lines.append(f"According to user's schedule, TODAY IS A TRAINING DAY.")
+            lines.append("Suggest today's workout based on their goal and level.")
+        else:
+            lines.append(f"According to user's schedule, TODAY IS A REST DAY.")
+            lines.append("Recommend recovery: stretching, yoga, light walk, good nutrition and sleep.")
     else:
-        lines.append(
-            "Today is a potential TRAINING DAY — check user's days_per_week and suggest workout if appropriate.")
+        if is_weekend:
+            lines.append("Today is a REST DAY — recommend recovery, stretching, yoga, light walk, good nutrition.")
+        else:
+            lines.append("Today is a potential TRAINING DAY — check user's days_per_week and suggest workout if appropriate.")
 
     lines.append("Always mention the day context naturally in your response.")
+
     return "\n".join(lines)
 
 
@@ -402,7 +422,6 @@ async def save_profile(data: FitnessProfileRequest,
                        db: Session = Depends(get_db)):
     profile = db.query(FitnessProfile).filter(FitnessProfile.user_id == user.id).first()
     if profile:
-        # Update existing
         profile.goal = data.goal
         profile.level = data.level
         profile.height = data.height
@@ -411,9 +430,9 @@ async def save_profile(data: FitnessProfileRequest,
         profile.limitations = data.limitations
         profile.days_per_week = data.days_per_week
         profile.language = data.language
+        profile.schedule = data.schedule
         profile.updated_at = datetime.utcnow()
     else:
-        # Create new
         profile = FitnessProfile(
             user_id=user.id,
             goal=data.goal,
@@ -423,7 +442,8 @@ async def save_profile(data: FitnessProfileRequest,
             age=data.age,
             limitations=data.limitations,
             days_per_week=data.days_per_week,
-            language = data.language
+            language=data.language,
+            schedule=data.schedule
         )
         db.add(profile)
     db.commit()
