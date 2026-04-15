@@ -286,7 +286,25 @@ def build_profile_context(profile: FitnessProfile) -> str:
     lines.append("Always personalise your advice based on this profile. Reference it naturally without reading it aloud.")
     lines.append(f"User language: {profile.language}")
     lines.append(f"IMPORTANT: Always respond in the user's language: {profile.language}")
+    now = datetime.now()
+    day_names = {
+        0: "Monday", 1: "Tuesday", 2: "Wednesday",
+        3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"
+    }
+    day_name = day_names[now.weekday()]
+    is_weekend = now.weekday() >= 5
+
+    lines.append(f"\nToday is {day_name}, {now.strftime('%B %d, %Y')}.")
+
+    if is_weekend:
+        lines.append("Today is a REST DAY — recommend recovery, stretching, yoga, light walk, good nutrition.")
+    else:
+        lines.append(
+            "Today is a potential TRAINING DAY — check user's days_per_week and suggest workout if appropriate.")
+
+    lines.append("Always mention the day context naturally in your response.")
     return "\n".join(lines)
+
 
 
 # =========================
